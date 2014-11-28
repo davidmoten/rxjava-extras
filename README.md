@@ -3,7 +3,7 @@ rxjava-extras
 
 <a href="https://travis-ci.org/davidmoten/rxjava-extras"><img src="https://travis-ci.org/davidmoten/rxjava-extras.svg"/></a>
 
-Utilities for use with rxjava:
+Utilities for use with rxjava (some were struck out of RxJava core for 1.0.0):
 
 * ```Functions.identity```
 * ```Functions.alwaysTrue```
