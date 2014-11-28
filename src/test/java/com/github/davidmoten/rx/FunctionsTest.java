@@ -22,4 +22,9 @@ public class FunctionsTest {
     public void testAlwaysFalse() {
         assertFalse(Functions.<Integer> alwaysFalse().call(123));
     }
+
+    @Test
+    public void testConstant() {
+        assertEquals(123, (int) Functions.constant(123).call(1));
+    }
 }

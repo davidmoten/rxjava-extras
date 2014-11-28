@@ -6,7 +6,6 @@ public class Functions {
 
     public static <T> Func1<T, T> identity() {
         return new Func1<T, T>() {
-
             @Override
             public T call(T t) {
                 return t;
@@ -32,4 +31,12 @@ public class Functions {
         };
     }
 
+    public static <T, R> Func1<T, R> constant(final R r) {
+        return new Func1<T, R>() {
+            @Override
+            public R call(T t) {
+                return r;
+            }
+        };
+    }
 }
