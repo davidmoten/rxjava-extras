@@ -27,4 +27,12 @@ public class FunctionsTest {
     public void testConstant() {
         assertEquals(123, (int) Functions.constant(123).call(1));
     }
+
+    @Test
+    public void testConstructorIsPrivate() {
+        TestingUtil.callConstructorAndCheckIsPrivate(Functions.class);
+    }
+}
+
+
 }

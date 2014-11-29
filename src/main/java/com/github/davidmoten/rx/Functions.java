@@ -2,7 +2,11 @@ package com.github.davidmoten.rx;
 
 import rx.functions.Func1;
 
-public class Functions {
+public final class Functions {
+
+    private Functions(){
+        //do nothing
+    }
 
     public static <T> Func1<T, T> identity() {
         return new Func1<T, T>() {
