@@ -9,7 +9,7 @@ Utilities for use with rxjava (some were struck out of RxJava core for 1.0.0):
 * ```Functions.alwaysTrue```
 * ```Functions.alwaysFalse```
 * ```Functions.constant```
-* 
+
 Status: *released to Maven Central*
 
 Maven site reports are [here](http://davidmoten.github.io/rxjava-extras/index.html) including [javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/index.html).
