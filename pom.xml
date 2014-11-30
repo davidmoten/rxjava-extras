@@ -11,7 +11,7 @@
 
     <groupId>com.github.davidmoten</groupId>
     <artifactId>rxjava-extras</artifactId>
-    <version>0.2</version>
+    <version>0.3-SNAPSHOT</version>
 
     <name>${project.artifactId}</name>
     <description>RxJava utilities</description>
