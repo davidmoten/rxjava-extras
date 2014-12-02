@@ -55,6 +55,7 @@ public final class Functions {
      * <code>source.flatMap(parallel(Schedulers.computation()));</code>
      * 
      * @param scheduler
+     *            to be used for subscription to the function input
      * @return each t is mapped to a single element observable using the given
      *         Scheduler for subscription
      */
