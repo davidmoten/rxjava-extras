@@ -1,11 +1,13 @@
 package com.github.davidmoten.rx;
 
+import rx.Observable;
+import rx.Scheduler;
 import rx.functions.Func1;
 
 public final class Functions {
 
-    private Functions(){
-        //do nothing
+    private Functions() {
+        // do nothing
     }
 
     public static <T> Func1<T, T> identity() {
@@ -40,6 +42,24 @@ public final class Functions {
             @Override
             public R call(T t) {
                 return r;
+            }
+        };
+    }
+
+    public static <T> Func1<T, Observable<T>> parallel(final Scheduler scheduler) {
+        return new Func1<T, Observable<T>>() {
+            @Override
+            public Observable<T> call(T t) {
+                return Observable.just(t).subscribeOn(scheduler);
+            }
+        };
+    }
+
+    public static <T> Func1<T, Observable<T>> nest() {
+        return new Func1<T, Observable<T>>() {
+            @Override
+            public Observable<T> call(T t) {
+                return Observable.just(t);
             }
         };
     }
