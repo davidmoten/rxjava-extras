@@ -46,6 +46,18 @@ public final class Functions {
         };
     }
 
+    /**
+     * <p>
+     * Returns a function that is expected to be used for performing parallel
+     * processing of an observable sequence. For example:
+     * </p>
+     * 
+     * <code>source.flatMap(parallel(Schedulers.computation()));</code>
+     * 
+     * @param scheduler
+     * @return each t is mapped to a single element observable using the given
+     *         Scheduler for subscription
+     */
     public static <T> Func1<T, Observable<T>> parallel(final Scheduler scheduler) {
         return new Func1<T, Observable<T>>() {
             @Override
