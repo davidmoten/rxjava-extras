@@ -9,14 +9,13 @@ import rx.Subscriber;
 public class StandardProducer<T, R> implements Producer {
 
     private final AtomicLong requested = new AtomicLong(0);
-    private final T state;
     private final Subscriber<? super R> subscriber;
     private final Emitter<T, R> emitter;
 
-    public StandardProducer(T state, Subscriber<? super R> subscriber, Emitter<T, R> emitter) {
-        this.state = state;
+    public StandardProducer(T state, Subscriber<? super R> subscriber,
+            EmitterFactory<T, R> emitterFactory) {
         this.subscriber = subscriber;
-        this.emitter = emitter;
+        this.emitter = emitterFactory.create(state, subscriber);
     }
 
     @Override
@@ -39,7 +38,7 @@ public class StandardProducer<T, R> implements Producer {
 
     private void requestAll() {
         requested.set(Long.MAX_VALUE);
-        emitter.emitAll(state, subscriber);
+        emitter.emitAll();
     }
 
     private void requestSome(long n) throws IOException {
@@ -51,9 +50,9 @@ public class StandardProducer<T, R> implements Producer {
             while (true) {
                 long r = requested.get();
                 LongWrapper numToEmit = new LongWrapper(r);
-                emitter.emitSome(numToEmit, state, subscriber);
+                emitter.emitSome(numToEmit);
                 // check if we have finished
-                if (!subscriber.isUnsubscribed() && emitter.noMoreToEmit(state))
+                if (!subscriber.isUnsubscribed() && emitter.noMoreToEmit())
                     subscriber.onCompleted();
                 else if (subscriber.isUnsubscribed())
                     return;
