@@ -46,6 +46,15 @@ public final class Functions {
         };
     }
 
+    public static <T> Func1<T, Boolean> not(final Func1<T, Boolean> f) {
+        return new Func1<T, Boolean>() {
+            @Override
+            public Boolean call(T t) {
+                return !f.call(t);
+            }
+        };
+    }
+
     /**
      * <p>
      * Returns a function that is expected to be used for performing parallel
