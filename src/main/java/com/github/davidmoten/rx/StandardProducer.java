@@ -50,7 +50,8 @@ public class StandardProducer<T> implements Producer {
                 long r = requested.get();
                 LongWrapper numToEmit = new LongWrapper(r);
                 emitter.emitSome(numToEmit);
-                if (subscriber.isUnsubscribed())
+                // check if we have finished
+                if (subscriber.isUnsubscribed() || emitter.completed())
                     return;
                 else if (requested.addAndGet(-r) == 0)
                     return;

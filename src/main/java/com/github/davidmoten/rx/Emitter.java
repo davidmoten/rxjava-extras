@@ -5,4 +5,6 @@ public interface Emitter {
     void emitAll();
 
     void emitSome(LongWrapper numToEmit);
+
+    boolean completed();
 }
