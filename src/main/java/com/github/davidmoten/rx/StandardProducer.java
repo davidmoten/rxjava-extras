@@ -6,16 +6,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import rx.Producer;
 import rx.Subscriber;
 
-public class StandardProducer<T, R> implements Producer {
+public class StandardProducer<T> implements Producer {
 
     private final AtomicLong requested = new AtomicLong(0);
-    private final Subscriber<? super R> subscriber;
-    private final Emitter<T, R> emitter;
+    private final Subscriber<? super T> subscriber;
+    private final Emitter emitter;
 
-    public StandardProducer(T state, Subscriber<? super R> subscriber,
-            EmitterFactory<T, R> emitterFactory) {
+    public StandardProducer(Subscriber<? super T> subscriber, EmitterFactory<T> emitterFactory) {
         this.subscriber = subscriber;
-        this.emitter = emitterFactory.create(state, subscriber);
+        this.emitter = emitterFactory.create(subscriber);
     }
 
     @Override

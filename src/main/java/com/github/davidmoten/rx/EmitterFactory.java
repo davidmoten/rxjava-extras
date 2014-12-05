@@ -2,8 +2,8 @@ package com.github.davidmoten.rx;
 
 import rx.Subscriber;
 
-public interface EmitterFactory<T, R> {
+public interface EmitterFactory<T> {
 
-    Emitter<T, R> create(T t, Subscriber<? super R> subscriber);
+    Emitter create(Subscriber<? super T> subscriber);
 
 }

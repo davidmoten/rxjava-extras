@@ -1,6 +1,6 @@
 package com.github.davidmoten.rx;
 
-public interface Emitter<T, R> {
+public interface Emitter {
 
     void emitAll();
 
