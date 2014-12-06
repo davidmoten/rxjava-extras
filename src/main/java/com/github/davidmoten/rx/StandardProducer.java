@@ -48,8 +48,11 @@ public class StandardProducer<T> implements Producer {
         if (previousCount == 0) {
             while (true) {
                 long r = requested.get();
-                LongWrapper numToEmit = new LongWrapper(r);
-                emitter.emitSome(numToEmit);
+                long numToEmit = r;
+                while (numToEmit > 0 && !emitter.completed()) {
+                    emitter.emitOne();
+                    numToEmit--;
+                }
                 // check if we have finished
                 if (subscriber.isUnsubscribed() || emitter.completed())
                     return;

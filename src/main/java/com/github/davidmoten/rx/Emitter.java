@@ -4,7 +4,7 @@ public interface Emitter {
 
     void emitAll();
 
-    void emitSome(LongWrapper numToEmit);
+    void emitOne();
 
     boolean completed();
 }
