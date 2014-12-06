@@ -6,9 +6,17 @@ import rx.Subscriber;
 
 public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T> {
 
-    abstract T next();
+    protected boolean completed = false;
 
-    abstract T completed();
+    abstract Optional<T> next();
+
+    public boolean completed() {
+        return completed;
+    }
+
+    public void onCompleted() {
+        this.completed = false;
+    }
 
     @Override
     public void call(Subscriber<? super T> subscriber) {
@@ -32,14 +40,20 @@ public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T> {
 
                     @Override
                     public void emitOne() {
-                        subscriber.onNext(next());
-                        if (completed())
+                        Optional<T> next = next();
+                        if (next.isPresent()) {
+                            subscriber.onNext(next.get());
+                            if (completed())
+                                subscriber.onCompleted();
+                        } else {
                             subscriber.onCompleted();
+                            onCompleted();
+                        }
                     }
 
                     @Override
                     public boolean completed() {
-                        return completed();
+                        return completed;
                     }
                 };
             }
