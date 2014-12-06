@@ -6,6 +6,10 @@ import rx.Subscriber;
 
 public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T> {
 
+    abstract T next();
+
+    abstract T completed();
+
     @Override
     public void call(Subscriber<? super T> subscriber) {
         subscriber.setProducer(createProducer(subscriber));
@@ -42,9 +46,5 @@ public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T> {
         };
         return new StandardProducer<T>(subscriber, factory);
     }
-
-    abstract T next();
-
-    abstract T completed();
 
 }
