@@ -4,19 +4,10 @@ import rx.Observable.OnSubscribe;
 import rx.Producer;
 import rx.Subscriber;
 
-public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T> {
+public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T>, Next<T> {
 
-    private boolean completed = false;
-
-    abstract Optional<T> next();
-
-    public boolean completed() {
-        return completed;
-    }
-
-    public void onCompleted() {
-        this.completed = false;
-    }
+    @Override
+    public abstract Optional<T> next();
 
     @Override
     public void call(Subscriber<? super T> subscriber) {
@@ -24,41 +15,50 @@ public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T> {
     }
 
     private Producer createProducer(Subscriber<? super T> subscriber) {
-
-        EmitterFactory<T> factory = new EmitterFactory<T>() {
-
-            @Override
-            public Emitter create(final Subscriber<? super T> subscriber) {
-                return new Emitter() {
-
-                    @Override
-                    public void emitAll() {
-                        while (!subscriber.isUnsubscribed() && !completed()) {
-                            emitOne();
-                        }
-                    }
-
-                    @Override
-                    public void emitOne() {
-                        Optional<T> next = next();
-                        if (next.isPresent()) {
-                            subscriber.onNext(next.get());
-                            if (completed())
-                                subscriber.onCompleted();
-                        } else {
-                            subscriber.onCompleted();
-                            onCompleted();
-                        }
-                    }
-
-                    @Override
-                    public boolean completed() {
-                        return completed;
-                    }
-                };
-            }
-        };
+        EmitterFactory<T> factory = standardEmitterFactory(this);
         return new StandardProducer<T>(subscriber, factory);
     }
 
+    private static <T> EmitterFactory<T> standardEmitterFactory(final Next<T> a) {
+        return new EmitterFactory<T>() {
+
+            @Override
+            public Emitter create(final Subscriber<? super T> subscriber) {
+                return createEmitter(a, subscriber);
+            }
+
+        };
+    }
+
+    private static <T> Emitter createEmitter(final Next<T> a, final Subscriber<? super T> subscriber) {
+        return new Emitter() {
+
+            private boolean completed = false;
+
+            @Override
+            public void emitAll() {
+                while (!subscriber.isUnsubscribed() && !completed()) {
+                    emitOne();
+                }
+            }
+
+            @Override
+            public void emitOne() {
+                Optional<T> next = a.next();
+                if (next.isPresent()) {
+                    subscriber.onNext(next.get());
+                    if (completed())
+                        subscriber.onCompleted();
+                } else {
+                    subscriber.onCompleted();
+                    completed = true;
+                }
+            }
+
+            @Override
+            public boolean completed() {
+                return completed;
+            }
+        };
+    }
 }

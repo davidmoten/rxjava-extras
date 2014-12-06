@@ -16,6 +16,7 @@ public class Optional<T> {
         return new Optional<T>(true, t);
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> Optional<T> absent() {
         return (Optional<T>) absent;
     }

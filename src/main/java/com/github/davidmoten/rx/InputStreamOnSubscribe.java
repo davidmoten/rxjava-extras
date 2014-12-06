@@ -15,7 +15,7 @@ public class InputStreamOnSubscribe extends AbstractOnSubscribe<byte[]> {
     }
 
     @Override
-    Optional<byte[]> next() {
+    public Optional<byte[]> next() {
         try {
             byte[] bytes = new byte[size];
             int n = is.read(bytes);
