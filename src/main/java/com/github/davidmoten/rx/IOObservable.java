@@ -2,6 +2,8 @@ package com.github.davidmoten.rx;
 
 import java.io.InputStream;
 
+import com.github.davidmoten.rx.operators.InputStreamOnSubscribe;
+
 import rx.Observable;
 
 public class IOObservable {

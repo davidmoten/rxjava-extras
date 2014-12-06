@@ -8,6 +8,8 @@ import java.nio.charset.Charset;
 
 import org.junit.Test;
 
+import com.github.davidmoten.rx.operators.InputStreamOnSubscribe;
+
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.functions.Action1;

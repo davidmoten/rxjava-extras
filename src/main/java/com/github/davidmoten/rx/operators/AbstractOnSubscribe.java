@@ -1,13 +1,16 @@
-package com.github.davidmoten.rx;
+package com.github.davidmoten.rx.operators;
+
+import com.github.davidmoten.rx.Emitter;
+import com.github.davidmoten.rx.EmitterFactory;
+import com.github.davidmoten.rx.StandardProducer;
+import com.github.davidmoten.rx.util.Next;
+import com.github.davidmoten.rx.util.Optional;
 
 import rx.Observable.OnSubscribe;
 import rx.Producer;
 import rx.Subscriber;
 
 public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T>, Next<T> {
-
-    @Override
-    public abstract Optional<T> next();
 
     @Override
     public void call(Subscriber<? super T> subscriber) {

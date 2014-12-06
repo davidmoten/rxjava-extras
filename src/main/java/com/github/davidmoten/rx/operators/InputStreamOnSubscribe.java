@@ -1,8 +1,10 @@
-package com.github.davidmoten.rx;
+package com.github.davidmoten.rx.operators;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+
+import com.github.davidmoten.rx.util.Optional;
 
 public class InputStreamOnSubscribe extends AbstractOnSubscribe<byte[]> {
 
