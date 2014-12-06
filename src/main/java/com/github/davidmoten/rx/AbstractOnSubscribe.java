@@ -6,7 +6,7 @@ import rx.Subscriber;
 
 public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T> {
 
-    protected boolean completed = false;
+    private boolean completed = false;
 
     abstract Optional<T> next();
 
