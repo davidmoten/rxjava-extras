@@ -1,14 +1,14 @@
 package com.github.davidmoten.rx.operators;
 
+import rx.Observable.OnSubscribe;
+import rx.Producer;
+import rx.Subscriber;
+
 import com.github.davidmoten.rx.Emitter;
 import com.github.davidmoten.rx.EmitterFactory;
 import com.github.davidmoten.rx.StandardProducer;
 import com.github.davidmoten.rx.util.Next;
 import com.github.davidmoten.rx.util.Optional;
-
-import rx.Observable.OnSubscribe;
-import rx.Producer;
-import rx.Subscriber;
 
 public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T>, Next<T> {
 
@@ -40,19 +40,23 @@ public abstract class AbstractOnSubscribe<T> implements OnSubscribe<T>, Next<T> 
 
             @Override
             public void emitAll() {
-                while (!subscriber.isUnsubscribed() && !completed()) {
+                while (!subscriber.isUnsubscribed() && !completed) {
                     emitOne();
+                }
+                if (!subscriber.isUnsubscribed() && !completed) {
+                    subscriber.onCompleted();
+                    completed = true;
                 }
             }
 
             @Override
             public void emitOne() {
                 Optional<T> next = a.next();
-                if (next.isPresent()) {
+                if (next.isPresent() && !subscriber.isUnsubscribed()) {
                     subscriber.onNext(next.get());
-                    if (completed())
+                    if (completed && !subscriber.isUnsubscribed())
                         subscriber.onCompleted();
-                } else {
+                } else if (!subscriber.isUnsubscribed()) {
                     subscriber.onCompleted();
                     completed = true;
                 }
