@@ -77,7 +77,7 @@ public final class Functions {
         };
     }
 
-    public static <T> Func1<T, Observable<T>> nest() {
+    public static <T> Func1<T, Observable<T>> just() {
         return new Func1<T, Observable<T>>() {
             @Override
             public Observable<T> call(T t) {
