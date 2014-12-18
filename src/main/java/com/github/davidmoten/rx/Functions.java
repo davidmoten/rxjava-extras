@@ -85,4 +85,13 @@ public final class Functions {
             }
         };
     }
+
+    public static <T> Func1<Iterable<T>, Observable<T>> iterableToObservable() {
+        return new Func1<Iterable<T>, Observable<T>>() {
+            @Override
+            public Observable<T> call(Iterable<T> iterable) {
+                return Observable.from(iterable);
+            }
+        };
+    }
 }
