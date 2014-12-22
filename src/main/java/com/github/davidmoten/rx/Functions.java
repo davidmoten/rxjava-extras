@@ -58,7 +58,8 @@ public final class Functions {
     /**
      * <p>
      * Returns a function that is expected to be used for performing parallel
-     * processing of an observable sequence. For example:
+     * processing of an observable sequence via flatMap for instance. For
+     * example:
      * </p>
      * 
      * <code>source.flatMap(parallel(Schedulers.computation()));</code>

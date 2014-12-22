@@ -31,6 +31,11 @@ public class FunctionsTest {
     }
 
     @Test
+    public void testNot() {
+        assertEquals(false, (boolean) Functions.not(Functions.alwaysTrue()).call(123));
+    }
+
+    @Test
     public void testConstructorIsPrivate() {
         TestingUtil.callConstructorAndCheckIsPrivate(Functions.class);
     }
