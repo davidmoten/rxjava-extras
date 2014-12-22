@@ -12,6 +12,7 @@ Utilities for use with rxjava (some were struck out of RxJava core for 1.0.0):
 * ```Functions.alwaysTrue```
 * ```Functions.alwaysFalse```
 * ```Functions.constant```
+* ```Functions.not```
 
 Status: *released to Maven Central*
 
