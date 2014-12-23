@@ -75,17 +75,11 @@ public final class TestingHelper {
             return new AbstractTestSuite<T, R>(this);
         }
 
-        public void runTests() {
-            for (Case<T, R> c : cases) {
-                runTest(c);
-            }
-            System.out.println("tests passed");
-        }
     }
 
-    private static <T, R> void runTest(Case<T, R> c) {
+    private static <T, R> void runTest(Case<T, R> c, TestType testType) {
         UnsubscribeDetector<T> detector = UnsubscribeDetector.detect();
-        TestSubscriber<R> sub = new TestSubscriber<R>();
+        TestSubscriber<R> sub = createTestSubscriber(testType);
         c.function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
         sub.assertTerminalEvent();
         sub.assertNoErrors();
@@ -97,6 +91,33 @@ public final class TestingHelper {
             } catch (InterruptedException e) {
                 // do nothing
             }
+    }
+
+    private static <T> TestSubscriber<T> createTestSubscriber(TestType testType) {
+        if (testType == TestType.WITHOUT_BACKP)
+            return new TestSubscriber<T>();
+        else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX)
+            return new TestSubscriber<T>() {
+
+                @Override
+                public void onStart() {
+                    request(Long.MAX_VALUE);
+                }
+            };
+        else
+            return new TestSubscriber<T>() {
+
+                @Override
+                public void onStart() {
+                    request(1);
+                }
+
+                @Override
+                public void onNext(T t) {
+                    super.onNext(t);
+                    request(1);
+                }
+            };
     }
 
     public static class ExpectBuilder<T, R> {
@@ -156,7 +177,8 @@ public final class TestingHelper {
             super();
             int i = 0;
             for (Case<T, R> c : builder.cases) {
-                addTest(new MyTestCase<T, R>(c.name, c));
+                for (TestType testType : TestType.values())
+                    addTest(new MyTestCase<T, R>(c.name + "_" + testType.name(), c, testType));
             }
         }
     }
@@ -164,17 +186,22 @@ public final class TestingHelper {
     private static class MyTestCase<T, R> extends TestCase {
 
         private final Case<T, R> c;
+        private final TestType testType;
 
-        MyTestCase(String name, Case<T, R> c) {
+        MyTestCase(String name, Case<T, R> c, TestType testType) {
             super(name);
             this.c = c;
+            this.testType = testType;
         }
 
         @Override
         protected void runTest() throws Throwable {
-            TestingHelper.runTest(c);
+            TestingHelper.runTest(c, testType);
         }
 
     }
 
+    private enum TestType {
+        WITHOUT_BACKP, BACKP_INITIAL_REQUEST_MAX, BACKP_ONE_BY_ONE, BACKP_TWO_BY_TWO, BACKP_REQUEST_ZERO, BACKP_REQUEST_NEGATIVE;
+    }
 }
