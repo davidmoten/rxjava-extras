@@ -36,7 +36,7 @@ public final class TestingHelper {
         private Func1<Observable<T>, Observable<R>> function;
 
         public ExpectBuilder<T, R> fromEmpty() {
-            return new ExpectBuilder<T, R>(this, Collections.emptyList());
+            return new ExpectBuilder<T, R>(this, Collections.<T> emptyList());
         }
 
         public ExpectBuilder<T, R> from(T... items) {
