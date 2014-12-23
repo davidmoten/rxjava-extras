@@ -93,7 +93,20 @@ public final class TestingHelper {
             }
     }
 
+    private enum TestType {
+        WITHOUT_BACKP, BACKP_INITIAL_REQUEST_MAX, BACKP_ONE_BY_ONE, BACKP_TWO_BY_TWO, BACKP_REQUEST_ZERO, BACKP_REQUEST_NEGATIVE, BACKP_FIVE_BY_FIVE, BACKP_FIFTY_BY_FIFTY, BACKP_THOUSAND_BY_THOUSAND;
+    }
+
+    public static class DeliveredMoreThanRequestedException extends RuntimeException {
+        private static final long serialVersionUID = 1369440545774454215L;
+
+        public DeliveredMoreThanRequestedException() {
+            super("more items arrived than requested");
+        }
+    }
+
     private static <T> TestSubscriber<T> createTestSubscriber(TestType testType) {
+
         if (testType == TestType.WITHOUT_BACKP)
             return new TestSubscriber<T>();
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX)
@@ -104,7 +117,7 @@ public final class TestingHelper {
                     request(Long.MAX_VALUE);
                 }
             };
-        else
+        else if (testType == TestType.BACKP_ONE_BY_ONE)
             return new TestSubscriber<T>() {
 
                 @Override
@@ -118,6 +131,86 @@ public final class TestingHelper {
                     request(1);
                 }
             };
+        else if (testType == TestType.BACKP_REQUEST_ZERO)
+            return new TestSubscriber<T>() {
+
+                @Override
+                public void onStart() {
+                    request(0);
+                    request(1);
+                }
+
+                @Override
+                public void onNext(T t) {
+                    super.onNext(t);
+                    request(1);
+                }
+            };
+        else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
+            return new TestSubscriber<T>() {
+
+                @Override
+                public void onStart() {
+                    request(-1);
+                    request(1);
+                }
+
+                @Override
+                public void onNext(T t) {
+                    super.onNext(t);
+                    request(1);
+                }
+            };
+        else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
+            return new TestSubscriber<T>() {
+
+                @Override
+                public void onStart() {
+                    request(-1);
+                    request(1);
+                }
+
+                @Override
+                public void onNext(T t) {
+                    super.onNext(t);
+                    request(1);
+                }
+            };
+        else if (testType == TestType.BACKP_TWO_BY_TWO)
+            return createTestSubscriberWithBackpNbyN(2);
+        else if (testType == TestType.BACKP_FIVE_BY_FIVE)
+            return createTestSubscriberWithBackpNbyN(5);
+        else if (testType == TestType.BACKP_FIFTY_BY_FIFTY)
+            return createTestSubscriberWithBackpNbyN(2);
+        else if (testType == TestType.BACKP_THOUSAND_BY_THOUSAND)
+            return createTestSubscriberWithBackpNbyN(2);
+        else
+            throw new RuntimeException(testType + " not implemented");
+
+    }
+
+    private static <T> TestSubscriber<T> createTestSubscriberWithBackpNbyN(final int requestSize) {
+        return new TestSubscriber<T>() {
+
+            long expecting = 0;
+
+            @Override
+            public void onStart() {
+                expecting += requestSize;
+                request(requestSize);
+            }
+
+            @Override
+            public void onNext(T t) {
+                expecting--;
+                super.onNext(t);
+                if (expecting < 0)
+                    onError(new DeliveredMoreThanRequestedException());
+                else if (expecting == 0)
+                    request(requestSize);
+            }
+
+        };
     }
 
     public static class ExpectBuilder<T, R> {
@@ -201,7 +294,4 @@ public final class TestingHelper {
 
     }
 
-    private enum TestType {
-        WITHOUT_BACKP, BACKP_INITIAL_REQUEST_MAX, BACKP_ONE_BY_ONE, BACKP_TWO_BY_TWO, BACKP_REQUEST_ZERO, BACKP_REQUEST_NEGATIVE;
-    }
 }
