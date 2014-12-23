@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,6 +19,8 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.observers.TestSubscriber;
 
+import com.github.davidmoten.util.Optional;
+
 public final class TestingHelper {
 
     public static <T, R> Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
@@ -24,19 +28,24 @@ public final class TestingHelper {
     }
 
     private static class Case<T, R> {
+        final String name;
         final List<T> from;
-        final List<R> expected;
+        final Optional<List<R>> expected;
         final boolean checkSourceUnsubscribed;
         final Func1<Observable<T>, Observable<R>> function;
-        final String name;
+        final Optional<Integer> unsubscribeAfter;
+        final Optional<Integer> expectAtMost;
 
-        Case(List<T> from, List<R> expected, boolean checkSourceUnsubscribed,
-                Func1<Observable<T>, Observable<R>> function, String name) {
+        Case(List<T> from, Optional<List<R>> expected, boolean checkSourceUnsubscribed,
+                Func1<Observable<T>, Observable<R>> function, String name,
+                Optional<Integer> unsubscribeAfter, Optional<Integer> expectAtLeast) {
             this.from = from;
             this.expected = expected;
             this.checkSourceUnsubscribed = checkSourceUnsubscribed;
             this.function = function;
             this.name = name;
+            this.unsubscribeAfter = unsubscribeAfter;
+            this.expectAtMost = expectAtLeast;
         }
     }
 
@@ -66,8 +75,9 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> expect(List<T> from, List<R> expected,
-                boolean checkSourceUnsubscribed, String name) {
-            cases.add(new Case<T, R>(from, expected, checkSourceUnsubscribed, function, name));
+                boolean checkSourceUnsubscribed, String name, Optional<Integer> unsubscribeAfter) {
+            cases.add(new Case<T, R>(from, Optional.of(expected), checkSourceUnsubscribed,
+                    function, name, unsubscribeAfter, Optional.<Integer> absent()));
             return this;
         }
 
@@ -78,12 +88,16 @@ public final class TestingHelper {
     }
 
     private static <T, R> void runTest(Case<T, R> c, TestType testType) {
-        UnsubscribeDetector<T> detector = UnsubscribeDetector.detect();
+        UnsubscribeDetector<T> detector = UnsubscribeDetector.create();
         TestSubscriber<R> sub = createTestSubscriber(testType);
         c.function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
+        sub.awaitTerminalEvent(10, TimeUnit.SECONDS);
         sub.assertTerminalEvent();
         sub.assertNoErrors();
-        sub.assertReceivedOnNext(c.expected);
+        if (c.expected.isPresent())
+            sub.assertReceivedOnNext(c.expected.get());
+        if (c.expectAtMost.isPresent())
+            assertTrue(sub.getOnNextEvents().size() <= c.expectAtMost.get());
         sub.assertUnsubscribed();
         if (c.checkSourceUnsubscribed)
             try {
@@ -217,6 +231,7 @@ public final class TestingHelper {
         private List<T> list;
         private final Builder<T, R> builder;
         private boolean checkSourceUnsubscribed = true;
+        private final Optional<Integer> unsubscribeAfter = Optional.absent();
         private String name;
 
         private ExpectBuilder(Builder<T, R> builder, List<T> list, String name) {
@@ -236,7 +251,8 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> expectEmpty() {
-            return builder.expect(list, Collections.<R> emptyList(), checkSourceUnsubscribed, name);
+            return builder.expect(list, Collections.<R> emptyList(), checkSourceUnsubscribed, name,
+                    unsubscribeAfter);
         }
 
         public Builder<T, R> expect(R... items) {
@@ -244,7 +260,7 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> expect(List<R> items) {
-            return builder.expect(list, items, checkSourceUnsubscribed, name);
+            return builder.expect(list, items, checkSourceUnsubscribed, name, unsubscribeAfter);
         }
 
         public Builder<T, R> expect(Set<R> set) {

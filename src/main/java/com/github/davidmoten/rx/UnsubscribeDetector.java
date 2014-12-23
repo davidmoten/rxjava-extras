@@ -57,7 +57,7 @@ public final class UnsubscribeDetector<T> implements Operator<T, T> {
      * 
      * @return
      */
-    public static <T> UnsubscribeDetector<T> detect() {
+    public static <T> UnsubscribeDetector<T> create() {
         return new UnsubscribeDetector<T>();
     }
 }
