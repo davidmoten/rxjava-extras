@@ -142,6 +142,11 @@ public final class TestingHelper {
             return this;
         }
 
+        public ExpectBuilder<T, R> from(T... items) {
+            list = Arrays.asList(items);
+            return this;
+        }
+
     }
 
     @RunWith(Suite.class)

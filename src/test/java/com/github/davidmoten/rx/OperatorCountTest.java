@@ -20,9 +20,9 @@ public class OperatorCountTest extends TestCase {
         // test empty
                 .name("testEmpty").fromEmpty().expect(0)
                 // test non-empty count
-                .from("a", "b").name("testTwo").expect(2)
+                .name("testTwo").from("a", "b").expect(2)
                 // test single input
-                .from("a").name("testOne").expect(1)
+                .name("testOne").from("a").expect(1)
                 // get test suite
                 .testSuite();
     }
