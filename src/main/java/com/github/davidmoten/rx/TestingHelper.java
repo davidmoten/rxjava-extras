@@ -5,23 +5,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 import rx.functions.Func1;
 import rx.observers.TestSubscriber;
 
-public class TransformationTester {
+public final class TestingHelper {
 
     public static <T, R> Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
         return new Builder<T, R>().function(function);
-    }
-
-    public static <T, R> ExpectBuilder<T, R> fromEmpty() {
-        return new ExpectBuilder<T, R>(new Builder<T, R>(), true);
-    }
-
-    public static <T, R> ExpectBuilder<T, R> from(T... items) {
-        return new ExpectBuilder<T, R>(new Builder<T, R>(), Arrays.asList(items));
     }
 
     private static class Case<T, R> {
@@ -60,13 +53,20 @@ public class TransformationTester {
 
         public void runTests() {
             for (Case<T, R> c : cases) {
+                UnsubscribeDetector<T> detector = UnsubscribeDetector.detect();
                 TestSubscriber<R> sub = new TestSubscriber<R>();
-                function.call(Observable.from(c.from)).subscribe(sub);
+                function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
                 sub.assertTerminalEvent();
                 sub.assertNoErrors();
                 sub.assertReceivedOnNext(c.expected);
                 sub.assertUnsubscribed();
+                try {
+                    detector.latch().await(3, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    // do nothing
+                }
             }
+            System.out.println("tests passed");
         }
     }
 
@@ -111,11 +111,13 @@ public class TransformationTester {
                 return o.count();
             }
         };
-        TransformationTester.function(f)
+        TestingHelper.function(f)
         // test empty
                 .fromEmpty().expect(0)
                 // test non-empty count
                 .from("a", "b").expect(2)
+                // test single input
+                .from("a").expect(1)
                 // run tests
                 .runTests();
 
