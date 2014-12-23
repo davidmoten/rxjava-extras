@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.observers.TestSubscriber;
@@ -53,20 +55,24 @@ public final class TestingHelper {
 
         public void runTests() {
             for (Case<T, R> c : cases) {
-                UnsubscribeDetector<T> detector = UnsubscribeDetector.detect();
-                TestSubscriber<R> sub = new TestSubscriber<R>();
-                function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
-                sub.assertTerminalEvent();
-                sub.assertNoErrors();
-                sub.assertReceivedOnNext(c.expected);
-                sub.assertUnsubscribed();
-                try {
-                    detector.latch().await(3, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    // do nothing
-                }
+                runTest(function, c);
             }
             System.out.println("tests passed");
+        }
+    }
+
+    private static <T, R> void runTest(Func1<Observable<T>, Observable<R>> function, Case<T, R> c) {
+        UnsubscribeDetector<T> detector = UnsubscribeDetector.detect();
+        TestSubscriber<R> sub = new TestSubscriber<R>();
+        function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
+        sub.assertTerminalEvent();
+        sub.assertNoErrors();
+        sub.assertReceivedOnNext(c.expected);
+        sub.assertUnsubscribed();
+        try {
+            detector.latch().await(3, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            // do nothing
         }
     }
 
@@ -101,6 +107,30 @@ public final class TestingHelper {
         public Builder<T, R> expect(Set<R> set) {
             return new Builder<T, R>();
         }
+    }
+
+    private static class MyTestSuite<T, R> extends TestSuite {
+
+        MyTestSuite(List<Case<T, R>> cases) {
+            for (Case<T, R> c : cases) {
+                addTest(new MyTestCase(c));
+            }
+        }
+    }
+
+    private static class MyTestCase<T, R> extends TestCase {
+
+        private final Case<T, R> c;
+
+        MyTestCase(Case<T, R> c) {
+            this.c = c;
+        }
+
+        @Override
+        protected void runTest() throws Throwable {
+
+        }
+
     }
 
     public static void main(String[] args) {
