@@ -92,7 +92,13 @@ public final class TestingHelper {
         UnsubscribeDetector<T> detector = UnsubscribeDetector.create();
         TestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
         c.function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
-        if (!c.unsubscribeAfter.isPresent()) {
+        if (c.unsubscribeAfter.isPresent()) {
+            try {
+                detector.latch().await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // do nothing
+            }
+        } else {
             sub.awaitTerminalEvent(10, TimeUnit.SECONDS);
         }
         sub.assertNoErrors();
