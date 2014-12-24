@@ -254,7 +254,7 @@ public final class TestingHelper {
                     if (unsubscribeAfter.isPresent()
                             && count.incrementAndGet() == unsubscribeAfter.get())
                         unsubscribe();
-                    if (expecting == 0)
+                    else if (expecting == 0)
                         request(requestSize);
                 }
             }
