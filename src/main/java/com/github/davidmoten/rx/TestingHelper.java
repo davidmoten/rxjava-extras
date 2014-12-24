@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -89,10 +90,11 @@ public final class TestingHelper {
 
     private static <T, R> void runTest(Case<T, R> c, TestType testType) {
         UnsubscribeDetector<T> detector = UnsubscribeDetector.create();
-        TestSubscriber<R> sub = createTestSubscriber(testType);
+        TestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
         c.function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
-        sub.awaitTerminalEvent(10, TimeUnit.SECONDS);
-        sub.assertTerminalEvent();
+        if (!c.unsubscribeAfter.isPresent()) {
+            sub.awaitTerminalEvent(10, TimeUnit.SECONDS);
+        }
         sub.assertNoErrors();
         if (c.expected.isPresent())
             sub.assertReceivedOnNext(c.expected.get());
@@ -119,20 +121,32 @@ public final class TestingHelper {
         }
     }
 
-    private static <T> TestSubscriber<T> createTestSubscriber(TestType testType) {
+    private static <T> TestSubscriber<T> createTestSubscriber(TestType testType,
+            final Optional<Integer> unsubscribeAfter) {
 
         if (testType == TestType.WITHOUT_BACKP)
             return new TestSubscriber<T>();
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX)
             return new TestSubscriber<T>() {
+                AtomicInteger count = new AtomicInteger();
 
                 @Override
                 public void onStart() {
                     request(Long.MAX_VALUE);
                 }
+
+                @Override
+                public void onNext(T t) {
+                    super.onNext(t);
+                    if (unsubscribeAfter.isPresent()
+                            && count.incrementAndGet() == unsubscribeAfter.get())
+                        unsubscribe();
+                }
+
             };
         else if (testType == TestType.BACKP_ONE_BY_ONE)
             return new TestSubscriber<T>() {
+                AtomicInteger count = new AtomicInteger();
 
                 @Override
                 public void onStart() {
@@ -142,11 +156,15 @@ public final class TestingHelper {
                 @Override
                 public void onNext(T t) {
                     super.onNext(t);
+                    if (unsubscribeAfter.isPresent()
+                            && count.incrementAndGet() == unsubscribeAfter.get())
+                        unsubscribe();
                     request(1);
                 }
             };
         else if (testType == TestType.BACKP_REQUEST_ZERO)
             return new TestSubscriber<T>() {
+                AtomicInteger count = new AtomicInteger();
 
                 @Override
                 public void onStart() {
@@ -157,11 +175,15 @@ public final class TestingHelper {
                 @Override
                 public void onNext(T t) {
                     super.onNext(t);
+                    if (unsubscribeAfter.isPresent()
+                            && count.incrementAndGet() == unsubscribeAfter.get())
+                        unsubscribe();
                     request(1);
                 }
             };
         else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
             return new TestSubscriber<T>() {
+                AtomicInteger count = new AtomicInteger();
 
                 @Override
                 public void onStart() {
@@ -172,11 +194,15 @@ public final class TestingHelper {
                 @Override
                 public void onNext(T t) {
                     super.onNext(t);
+                    if (unsubscribeAfter.isPresent()
+                            && count.incrementAndGet() == unsubscribeAfter.get())
+                        unsubscribe();
                     request(1);
                 }
             };
         else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
             return new TestSubscriber<T>() {
+                AtomicInteger count = new AtomicInteger();
 
                 @Override
                 public void onStart() {
@@ -187,25 +213,29 @@ public final class TestingHelper {
                 @Override
                 public void onNext(T t) {
                     super.onNext(t);
+                    if (unsubscribeAfter.isPresent()
+                            && count.incrementAndGet() == unsubscribeAfter.get())
+                        unsubscribe();
                     request(1);
                 }
             };
         else if (testType == TestType.BACKP_TWO_BY_TWO)
-            return createTestSubscriberWithBackpNbyN(2);
+            return createTestSubscriberWithBackpNbyN(2, unsubscribeAfter);
         else if (testType == TestType.BACKP_FIVE_BY_FIVE)
-            return createTestSubscriberWithBackpNbyN(5);
+            return createTestSubscriberWithBackpNbyN(5, unsubscribeAfter);
         else if (testType == TestType.BACKP_FIFTY_BY_FIFTY)
-            return createTestSubscriberWithBackpNbyN(2);
+            return createTestSubscriberWithBackpNbyN(2, unsubscribeAfter);
         else if (testType == TestType.BACKP_THOUSAND_BY_THOUSAND)
-            return createTestSubscriberWithBackpNbyN(2);
+            return createTestSubscriberWithBackpNbyN(2, unsubscribeAfter);
         else
             throw new RuntimeException(testType + " not implemented");
 
     }
 
-    private static <T> TestSubscriber<T> createTestSubscriberWithBackpNbyN(final int requestSize) {
+    private static <T> TestSubscriber<T> createTestSubscriberWithBackpNbyN(final int requestSize,
+            final Optional<Integer> unsubscribeAfter) {
         return new TestSubscriber<T>() {
-
+            AtomicInteger count = new AtomicInteger();
             long expecting = 0;
 
             @Override
@@ -220,8 +250,13 @@ public final class TestingHelper {
                 super.onNext(t);
                 if (expecting < 0)
                     onError(new DeliveredMoreThanRequestedException());
-                else if (expecting == 0)
-                    request(requestSize);
+                else {
+                    if (unsubscribeAfter.isPresent()
+                            && count.incrementAndGet() == unsubscribeAfter.get())
+                        unsubscribe();
+                    if (expecting == 0)
+                        request(requestSize);
+                }
             }
 
         };
@@ -231,7 +266,7 @@ public final class TestingHelper {
         private List<T> list;
         private final Builder<T, R> builder;
         private boolean checkSourceUnsubscribed = true;
-        private final Optional<Integer> unsubscribeAfter = Optional.absent();
+        private Optional<Integer> unsubscribeAfter = Optional.absent();
         private String name;
 
         private ExpectBuilder(Builder<T, R> builder, List<T> list, String name) {
@@ -274,6 +309,11 @@ public final class TestingHelper {
 
         public ExpectBuilder<T, R> from(T... items) {
             list = Arrays.asList(items);
+            return this;
+        }
+
+        public ExpectBuilder<T, R> unsubscribeAfter(int n) {
+            unsubscribeAfter = Optional.of(n);
             return this;
         }
 

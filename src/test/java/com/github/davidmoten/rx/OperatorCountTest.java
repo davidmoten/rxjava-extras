@@ -23,6 +23,8 @@ public class OperatorCountTest extends TestCase {
                 .name("testTwo").from("a", "b").expect(2)
                 // test single input
                 .name("testOne").from("a").expect(1)
+                // unsub before completion
+                .name("testTwoUnsubscribeAfterOne").from("a", "b").unsubscribeAfter(1).expect(2)
                 // get test suite
                 .testSuite();
     }
