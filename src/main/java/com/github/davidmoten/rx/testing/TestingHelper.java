@@ -93,7 +93,7 @@ public final class TestingHelper {
         c.function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
         if (c.unsubscribeAfter.isPresent()) {
             try {
-                detector.latch().await(10, TimeUnit.SECONDS);
+                detector.latch().await(100, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 // do nothing
             }
@@ -106,7 +106,7 @@ public final class TestingHelper {
         sub.assertUnsubscribed();
         if (c.checkSourceUnsubscribed)
             try {
-                detector.latch().await(3, TimeUnit.SECONDS);
+                detector.latch().await(100, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 // do nothing
             }
@@ -133,6 +133,7 @@ public final class TestingHelper {
         @Override
         public void onError(Throwable e) {
             errors++;
+            e.printStackTrace();
         }
 
         @Override
