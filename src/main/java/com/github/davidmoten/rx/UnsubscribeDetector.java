@@ -31,8 +31,8 @@ public final class UnsubscribeDetector<T> implements Operator<T, T> {
 
             @Override
             public void unsubscribe() {
-                latch.countDown();
                 subscribed.set(false);
+                latch.countDown();
             }
 
             @Override
