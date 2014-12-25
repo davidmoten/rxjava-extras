@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -16,6 +15,7 @@ import junit.framework.TestSuite;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -36,18 +36,16 @@ public final class TestingHelper {
         final boolean checkSourceUnsubscribed;
         final Func1<Observable<T>, Observable<R>> function;
         final Optional<Integer> unsubscribeAfter;
-        final Optional<Integer> expectAtMost;
 
         Case(List<T> from, Optional<List<R>> expected, boolean checkSourceUnsubscribed,
                 Func1<Observable<T>, Observable<R>> function, String name,
-                Optional<Integer> unsubscribeAfter, Optional<Integer> expectAtLeast) {
+                Optional<Integer> unsubscribeAfter) {
             this.from = from;
             this.expected = expected;
             this.checkSourceUnsubscribed = checkSourceUnsubscribed;
             this.function = function;
             this.name = name;
             this.unsubscribeAfter = unsubscribeAfter;
-            this.expectAtMost = expectAtLeast;
         }
     }
 
@@ -79,12 +77,12 @@ public final class TestingHelper {
         public Builder<T, R> expect(List<T> from, List<R> expected,
                 boolean checkSourceUnsubscribed, String name, Optional<Integer> unsubscribeAfter) {
             cases.add(new Case<T, R>(from, Optional.of(expected), checkSourceUnsubscribed,
-                    function, name, unsubscribeAfter, Optional.<Integer> absent()));
+                    function, name, unsubscribeAfter));
             return this;
         }
 
-        public TestSuite testSuite() {
-            return new AbstractTestSuite<T, R>(new ArrayList<Case<T, R>>(this.cases));
+        public TestSuite testSuite(Class<?> cls) {
+            return new AbstractTestSuite<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
         }
 
     }
@@ -116,8 +114,15 @@ public final class TestingHelper {
 
     private static class MyTestSubscriber<T> extends Subscriber<T> {
 
+        private final Optional<Integer> unsubscribeAfter;
+
+        MyTestSubscriber(Optional<Integer> unsubscribeAfter) {
+            this.unsubscribeAfter = unsubscribeAfter;
+        }
+
         int completed = 0;
         int errors = 0;
+        int count = 0;
         final List<T> next = new ArrayList<T>();
 
         @Override
@@ -133,6 +138,9 @@ public final class TestingHelper {
         @Override
         public void onNext(T t) {
             next.add(t);
+            count++;
+            if (unsubscribeAfter.isPresent() && count == unsubscribeAfter.get())
+                unsubscribe();
         }
 
         public void assertReceivedOnNext(List<T> expected) {
@@ -165,72 +173,46 @@ public final class TestingHelper {
         }
     }
 
+    private static <T> MyTestSubscriber<T> createTestSubscriber(
+            final Optional<Integer> unsubscribeAfter, final Optional<Long> onStartRequest,
+            final Optional<Long> onNextRequest) {
+        return new MyTestSubscriber<T>(unsubscribeAfter) {
+
+            @Override
+            public void onStart() {
+                if (onStartRequest.isPresent())
+                    request(onStartRequest.get());
+            }
+
+            @Override
+            public void onNext(T t) {
+                super.onNext(t);
+                if (onNextRequest.isPresent())
+                    request(onNextRequest.get());
+            }
+
+        };
+
+    }
+
     private static <T> MyTestSubscriber<T> createTestSubscriber(TestType testType,
             final Optional<Integer> unsubscribeAfter) {
 
         if (testType == TestType.WITHOUT_BACKP)
-            return new MyTestSubscriber<T>();
+            return new MyTestSubscriber<T>(unsubscribeAfter);
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX)
-            return new MyTestSubscriber<T>() {
-                AtomicInteger count = new AtomicInteger();
-
-                @Override
-                public void onStart() {
-                    request(Long.MAX_VALUE);
-                }
-
-                @Override
-                public void onNext(T t) {
-                    super.onNext(t);
-                    if (unsubscribeAfter.isPresent()
-                            && count.incrementAndGet() == unsubscribeAfter.get())
-                        unsubscribe();
-                }
-
-            };
+            return createTestSubscriber(unsubscribeAfter, Optional.of(Long.MAX_VALUE),
+                    Optional.<Long> absent());
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE)
-            return new MyTestSubscriber<T>() {
-                AtomicInteger count = new AtomicInteger(0);
-
-                @Override
-                public void onStart() {
-                    request(Long.MAX_VALUE);
-                }
-
-                @Override
-                public void onNext(T t) {
-                    super.onNext(t);
-                    if (unsubscribeAfter.isPresent()
-                            && count.incrementAndGet() == unsubscribeAfter.get())
-                        unsubscribe();
-                    // Hopefully doesn't cause a problem (for example by 1
-                    // getting added to Long.MAX_VALUE making it a negative
-                    // value because of overflow)
-                    request(1);
-                }
-
-            };
+            // Hopefully doesn't cause a problem (for example by 1
+            // getting added to Long.MAX_VALUE making it a negative
+            // value because of overflow)
+            return createTestSubscriber(unsubscribeAfter, Optional.of(Long.MAX_VALUE),
+                    Optional.of(1L));
         else if (testType == TestType.BACKP_ONE_BY_ONE)
-            return new MyTestSubscriber<T>() {
-                AtomicInteger count = new AtomicInteger();
-
-                @Override
-                public void onStart() {
-                    request(1);
-                }
-
-                @Override
-                public void onNext(T t) {
-                    super.onNext(t);
-                    if (unsubscribeAfter.isPresent()
-                            && count.incrementAndGet() == unsubscribeAfter.get())
-                        unsubscribe();
-                    request(1);
-                }
-            };
+            return createTestSubscriber(unsubscribeAfter, Optional.of(1L), Optional.of(1L));
         else if (testType == TestType.BACKP_REQUEST_ZERO)
-            return new MyTestSubscriber<T>() {
-                AtomicInteger count = new AtomicInteger();
+            return new MyTestSubscriber<T>(unsubscribeAfter) {
 
                 @Override
                 public void onStart() {
@@ -241,15 +223,11 @@ public final class TestingHelper {
                 @Override
                 public void onNext(T t) {
                     super.onNext(t);
-                    if (unsubscribeAfter.isPresent()
-                            && count.incrementAndGet() == unsubscribeAfter.get())
-                        unsubscribe();
                     request(1);
                 }
             };
         else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
-            return new MyTestSubscriber<T>() {
-                AtomicInteger count = new AtomicInteger();
+            return new MyTestSubscriber<T>(unsubscribeAfter) {
 
                 @Override
                 public void onStart() {
@@ -260,15 +238,11 @@ public final class TestingHelper {
                 @Override
                 public void onNext(T t) {
                     super.onNext(t);
-                    if (unsubscribeAfter.isPresent()
-                            && count.incrementAndGet() == unsubscribeAfter.get())
-                        unsubscribe();
                     request(1);
                 }
             };
         else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
-            return new MyTestSubscriber<T>() {
-                AtomicInteger count = new AtomicInteger();
+            return new MyTestSubscriber<T>(unsubscribeAfter) {
 
                 @Override
                 public void onStart() {
@@ -279,9 +253,6 @@ public final class TestingHelper {
                 @Override
                 public void onNext(T t) {
                     super.onNext(t);
-                    if (unsubscribeAfter.isPresent()
-                            && count.incrementAndGet() == unsubscribeAfter.get())
-                        unsubscribe();
                     request(1);
                 }
             };
@@ -300,8 +271,7 @@ public final class TestingHelper {
 
     private static <T> MyTestSubscriber<T> createTestSubscriberWithBackpNbyN(final int requestSize,
             final Optional<Integer> unsubscribeAfter) {
-        return new MyTestSubscriber<T>() {
-            AtomicInteger count = new AtomicInteger();
+        return new MyTestSubscriber<T>(unsubscribeAfter) {
             long expecting = 0;
 
             @Override
@@ -316,15 +286,9 @@ public final class TestingHelper {
                 super.onNext(t);
                 if (expecting < 0)
                     onError(new DeliveredMoreThanRequestedException());
-                else {
-                    if (unsubscribeAfter.isPresent()
-                            && count.incrementAndGet() == unsubscribeAfter.get())
-                        unsubscribe();
-                    else if (expecting == 0)
-                        request(requestSize);
-                }
+                else if (expecting == 0)
+                    request(requestSize);
             }
-
         };
     }
 
@@ -386,10 +350,11 @@ public final class TestingHelper {
     }
 
     @RunWith(Suite.class)
+    @SuiteClasses({})
     public static class AbstractTestSuite<T, R> extends TestSuite {
 
-        AbstractTestSuite(List<Case<T, R>> cases) {
-            super();
+        AbstractTestSuite(Class<?> cls, List<Case<T, R>> cases) {
+            super(cls);
             int i = 0;
             for (Case<T, R> c : cases) {
                 for (TestType testType : TestType.values())

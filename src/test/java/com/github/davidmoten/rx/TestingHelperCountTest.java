@@ -7,7 +7,7 @@ import rx.functions.Func1;
 
 import com.github.davidmoten.rx.testing.TestingHelper;
 
-public class OperatorCountTest extends TestCase {
+public class TestingHelperCountTest extends TestCase {
 
     private static final Func1<Observable<String>, Observable<Integer>> COUNT = new Func1<Observable<String>, Observable<Integer>>() {
         @Override
@@ -28,7 +28,11 @@ public class OperatorCountTest extends TestCase {
                 // unsub before completion
                 .name("testTwoUnsubscribeAfterOne").from("a", "b", "c").expect(3)
                 // get test suites
-                .testSuite();
+                .testSuite(TestingHelperCountTest.class);
+    }
+
+    public void testDummy() {
+        // just here to fool eclipse
     }
 
 }
