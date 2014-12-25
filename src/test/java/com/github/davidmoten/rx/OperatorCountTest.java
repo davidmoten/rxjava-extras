@@ -17,15 +17,14 @@ public class OperatorCountTest extends TestCase {
     public static TestSuite suite() {
 
         return TestingHelper.function(COUNT)
-                // test empty
+        // test empty
                 .name("testEmpty").fromEmpty().expect(0)
                 // test non-empty count
                 .name("testTwo").from("a", "b").expect(2)
                 // test single input
                 .name("testOne").from("a").expect(1)
                 // unsub before completion
-                .name("testTwoUnsubscribeAfterOne").from("a", "b", "c").unsubscribeAfter(1)
-                .expect(3)
+                .name("testTwoUnsubscribeAfterOne").from("a", "b", "c").expect(3)
                 // get test suites
                 .testSuite();
     }

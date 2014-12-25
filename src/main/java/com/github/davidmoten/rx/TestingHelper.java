@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -58,16 +59,16 @@ public final class TestingHelper {
 
         private Func1<Observable<T>, Observable<R>> function;
 
-        public ExpectBuilder<T, R> fromEmpty() {
-            return new ExpectBuilder<T, R>(this, Collections.<T> emptyList(), TEST_UNNAMED);
+        public CaseBuilder<T, R> fromEmpty() {
+            return new CaseBuilder<T, R>(this, Collections.<T> emptyList(), TEST_UNNAMED);
         }
 
-        public ExpectBuilder<T, R> name(String name) {
-            return new ExpectBuilder<T, R>(this, Collections.<T> emptyList(), name);
+        public CaseBuilder<T, R> name(String name) {
+            return new CaseBuilder<T, R>(this, Collections.<T> emptyList(), name);
         }
 
-        public ExpectBuilder<T, R> from(T... items) {
-            return new ExpectBuilder<T, R>(this, Arrays.asList(items), TEST_UNNAMED);
+        public CaseBuilder<T, R> from(T... items) {
+            return new CaseBuilder<T, R>(this, Arrays.asList(items), TEST_UNNAMED);
         }
 
         public Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
@@ -83,7 +84,7 @@ public final class TestingHelper {
         }
 
         public TestSuite testSuite() {
-            return new AbstractTestSuite<T, R>(this);
+            return new AbstractTestSuite<T, R>(new ArrayList<Case<T, R>>(this.cases));
         }
 
     }
@@ -98,8 +99,10 @@ public final class TestingHelper {
             } catch (InterruptedException e) {
                 // do nothing
             }
+            assertEquals(0, sub.getOnCompletedEvents().size());
         } else {
             sub.awaitTerminalEvent(10, TimeUnit.SECONDS);
+            assertEquals(1, sub.getOnCompletedEvents().size());
         }
         sub.assertNoErrors();
         if (c.expected.isPresent())
@@ -268,25 +271,25 @@ public final class TestingHelper {
         };
     }
 
-    public static class ExpectBuilder<T, R> {
+    public static class CaseBuilder<T, R> {
         private List<T> list;
         private final Builder<T, R> builder;
         private boolean checkSourceUnsubscribed = true;
         private Optional<Integer> unsubscribeAfter = Optional.absent();
         private String name;
 
-        private ExpectBuilder(Builder<T, R> builder, List<T> list, String name) {
+        private CaseBuilder(Builder<T, R> builder, List<T> list, String name) {
             this.builder = builder;
             this.list = list;
             this.name = name;
         }
 
-        public ExpectBuilder<T, R> skipUnsubscribedCheck() {
+        public CaseBuilder<T, R> skipUnsubscribedCheck() {
             this.checkSourceUnsubscribed = false;
             return this;
         }
 
-        public ExpectBuilder<T, R> name(String name) {
+        public CaseBuilder<T, R> name(String name) {
             this.name = name;
             return this;
         }
@@ -308,17 +311,17 @@ public final class TestingHelper {
             throw new RuntimeException();
         }
 
-        public ExpectBuilder<T, R> fromEmpty() {
+        public CaseBuilder<T, R> fromEmpty() {
             list = Collections.emptyList();
             return this;
         }
 
-        public ExpectBuilder<T, R> from(T... items) {
+        public CaseBuilder<T, R> from(T... items) {
             list = Arrays.asList(items);
             return this;
         }
 
-        public ExpectBuilder<T, R> unsubscribeAfter(int n) {
+        public CaseBuilder<T, R> unsubscribeAfter(int n) {
             unsubscribeAfter = Optional.of(n);
             return this;
         }
@@ -328,10 +331,10 @@ public final class TestingHelper {
     @RunWith(Suite.class)
     public static class AbstractTestSuite<T, R> extends TestSuite {
 
-        AbstractTestSuite(Builder<T, R> builder) {
+        AbstractTestSuite(List<Case<T, R>> cases) {
             super();
             int i = 0;
-            for (Case<T, R> c : builder.cases) {
+            for (Case<T, R> c : cases) {
                 for (TestType testType : TestType.values())
                     addTest(new MyTestCase<T, R>(c.name + "_" + testType.name(), c, testType));
             }
