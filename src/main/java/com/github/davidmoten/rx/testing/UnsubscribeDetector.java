@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx;
+package com.github.davidmoten.rx.testing;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;

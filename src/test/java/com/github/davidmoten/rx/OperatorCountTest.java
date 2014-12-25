@@ -5,6 +5,8 @@ import junit.framework.TestSuite;
 import rx.Observable;
 import rx.functions.Func1;
 
+import com.github.davidmoten.rx.testing.TestingHelper;
+
 public class OperatorCountTest extends TestCase {
 
     private static final Func1<Observable<String>, Observable<Integer>> COUNT = new Func1<Observable<String>, Observable<Integer>>() {

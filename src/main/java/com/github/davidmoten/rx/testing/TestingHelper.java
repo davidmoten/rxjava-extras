@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx;
+package com.github.davidmoten.rx.testing;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -119,7 +119,7 @@ public final class TestingHelper {
     }
 
     private enum TestType {
-        WITHOUT_BACKP, BACKP_INITIAL_REQUEST_MAX, BACKP_ONE_BY_ONE, BACKP_TWO_BY_TWO, BACKP_REQUEST_ZERO, BACKP_REQUEST_NEGATIVE, BACKP_FIVE_BY_FIVE, BACKP_FIFTY_BY_FIFTY, BACKP_THOUSAND_BY_THOUSAND;
+        WITHOUT_BACKP, BACKP_INITIAL_REQUEST_MAX, BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE, BACKP_ONE_BY_ONE, BACKP_TWO_BY_TWO, BACKP_REQUEST_ZERO, BACKP_REQUEST_NEGATIVE, BACKP_FIVE_BY_FIVE, BACKP_FIFTY_BY_FIFTY, BACKP_THOUSAND_BY_THOUSAND;
     }
 
     public static class DeliveredMoreThanRequestedException extends RuntimeException {
@@ -150,6 +150,28 @@ public final class TestingHelper {
                     if (unsubscribeAfter.isPresent()
                             && count.incrementAndGet() == unsubscribeAfter.get())
                         unsubscribe();
+                }
+
+            };
+        else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE)
+            return new TestSubscriber<T>() {
+                AtomicInteger count = new AtomicInteger();
+
+                @Override
+                public void onStart() {
+                    request(Long.MAX_VALUE);
+                }
+
+                @Override
+                public void onNext(T t) {
+                    super.onNext(t);
+                    if (unsubscribeAfter.isPresent()
+                            && count.incrementAndGet() == unsubscribeAfter.get())
+                        unsubscribe();
+                    // Hopefully doesn't cause a problem (for example by 1
+                    // getting added to Long.MAX_VALUE making it a negative
+                    // value because of overflow)
+                    request(1);
                 }
 
             };
