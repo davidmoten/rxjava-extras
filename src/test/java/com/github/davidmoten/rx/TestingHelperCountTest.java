@@ -1,31 +1,5 @@
-rxjava-extras
-=============
+package com.github.davidmoten.rx;
 
-<a href="https://travis-ci.org/davidmoten/rxjava-extras"><img src="https://travis-ci.org/davidmoten/rxjava-extras.svg"/></a><br/>
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras)<br/>
-[![Dependency Status](https://gemnasium.com/com.github.davidmoten/rxjava-extras.svg)](https://gemnasium.com/com.github.davidmoten/rxjava-extras)
-
-
-Utilities for use with rxjava (some were struck out of RxJava core for 1.0.0):
-
-* ```Functions.identity```
-* ```Functions.alwaysTrue```
-* ```Functions.alwaysFalse```
-* ```Functions.constant```
-* ```Functions.not```
-* ```TestingHelper```
-
-
-Status: *released to Maven Central*
-
-Maven site reports are [here](http://davidmoten.github.io/rxjava-extras/index.html) including [javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/index.html).
-
-
-TestingHelper
------------------
-An example that performs 10 unit tests per named case:
-
-```java
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import rx.Observable;
@@ -62,6 +36,3 @@ public class TestingHelperCountTest extends TestCase {
     }
 
 }
-```
-
-
