@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
@@ -94,6 +95,7 @@ public final class TestingHelper {
         if (c.unsubscribeAfter.isPresent()) {
             waitForUnsubscribe(detector);
         } else {
+            sub.awaitTerminalEvent();
             assertEquals(1, sub.numOnCompletedEvents());
         }
         sub.assertNoErrors();
@@ -115,9 +117,18 @@ public final class TestingHelper {
     private static class MyTestSubscriber<T> extends Subscriber<T> {
 
         private final Optional<Integer> unsubscribeAfter;
+        private final CountDownLatch terminalLatch;
 
         MyTestSubscriber(Optional<Integer> unsubscribeAfter) {
             this.unsubscribeAfter = unsubscribeAfter;
+            this.terminalLatch = new CountDownLatch(1);
+        }
+
+        public void awaitTerminalEvent() {
+            try {
+                terminalLatch.await();
+            } catch (InterruptedException e) {
+            }
         }
 
         int completed = 0;
@@ -128,11 +139,13 @@ public final class TestingHelper {
         @Override
         public void onCompleted() {
             completed++;
+            terminalLatch.countDown();
         }
 
         @Override
         public void onError(Throwable e) {
             errors++;
+            terminalLatch.countDown();
             e.printStackTrace();
         }
 
