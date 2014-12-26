@@ -362,7 +362,6 @@ public final class TestingHelper {
 
         AbstractTestSuite(Class<?> cls, List<Case<T, R>> cases) {
             super(cls);
-            int i = 0;
             for (Case<T, R> c : cases) {
                 for (TestType testType : TestType.values())
                     addTest(new MyTestCase<T, R>(c.name + "_" + testType.name(), c, testType));
