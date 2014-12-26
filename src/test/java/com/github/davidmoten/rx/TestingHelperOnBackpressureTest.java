@@ -12,22 +12,21 @@ public class TestingHelperOnBackpressureTest extends TestCase {
     private static final Func1<Observable<String>, Observable<String>> onBufferBackpressure = new Func1<Observable<String>, Observable<String>>() {
         @Override
         public Observable<String> call(Observable<String> o) {
-            return o.repeat(2);
+            return o;
         }
     };
 
     public static TestSuite suite() {
 
         return TestingHelper.function(onBufferBackpressure)
-                // test empty
+        // test empty
                 .name("testEmpty").fromEmpty().expectEmpty()
                 // test non-empty count
-                .name("testTwo").from("a", "b").expect("a", "b", "a", "b")
+                .name("testTwo").from("a", "b").expect("a", "b")
                 // test single input
-                .name("testOne").from("a").expect("a", "a")
+                .name("testOne").from("a").expect("a")
                 // unsub before completion
-                .name("testSomeUnsubscribeAfterOne").from("a", "b", "c", "d").unsubscribeAfter(1)
-                .expect("a")
+                .name("testSomeUnsubscribeAfterOne").from("a", "b").unsubscribeAfter(1).expect("a")
                 // get test suites
                 .testSuite(TestingHelperOnBackpressureTest.class);
     }

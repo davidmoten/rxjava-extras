@@ -1,5 +1,7 @@
 package com.github.davidmoten.util;
 
+import rx.Observable;
+
 public class Optional<T> {
 
     private final T value;
@@ -26,6 +28,20 @@ public class Optional<T> {
             return value;
         else
             return alternative;
+    }
+
+    public Observable<T> toObservable() {
+        if (present)
+            return Observable.just(value);
+        else
+            return Observable.empty();
+    }
+
+    public static <T> Optional<T> fromNullable(T t) {
+        if (t == null)
+            return Optional.absent();
+        else
+            return Optional.of(t);
     }
 
     public static <T> Optional<T> of(T t) {

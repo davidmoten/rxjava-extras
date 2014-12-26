@@ -92,11 +92,7 @@ public final class TestingHelper {
         MyTestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
         c.function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
         if (c.unsubscribeAfter.isPresent()) {
-            try {
-                detector.latch().await(100, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                // do nothing
-            }
+            waitForUnsubscribe(detector);
         } else {
             assertEquals(1, sub.numOnCompletedEvents());
         }
@@ -105,11 +101,15 @@ public final class TestingHelper {
             sub.assertReceivedOnNext(c.expected.get());
         sub.assertUnsubscribed();
         if (c.checkSourceUnsubscribed)
-            try {
-                detector.latch().await(100, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                // do nothing
-            }
+            waitForUnsubscribe(detector);
+    }
+
+    private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector) {
+        try {
+            detector.latch().await(100, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            // do nothing
+        }
     }
 
     private static class MyTestSubscriber<T> extends Subscriber<T> {
@@ -273,22 +273,28 @@ public final class TestingHelper {
     private static <T> MyTestSubscriber<T> createTestSubscriberWithBackpNbyN(final int requestSize,
             final Optional<Integer> unsubscribeAfter) {
         return new MyTestSubscriber<T>(unsubscribeAfter) {
-            long expecting = 0;
+            long expected = 0;
 
             @Override
             public void onStart() {
-                expecting += requestSize;
+                requestMore();
+            }
+
+            private void requestMore() {
+                if (expected != Long.MAX_VALUE)
+                    expected += requestSize;
                 request(requestSize);
             }
 
             @Override
             public void onNext(T t) {
-                expecting--;
+                if (expected != Long.MAX_VALUE)
+                    expected--;
                 super.onNext(t);
-                if (expecting < 0)
+                if (expected < 0)
                     onError(new DeliveredMoreThanRequestedException());
-                else if (expecting == 0)
-                    request(requestSize);
+                else if (expected == 0)
+                    requestMore();
             }
         };
     }
