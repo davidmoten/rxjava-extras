@@ -96,6 +96,8 @@ public final class TestingHelper {
             waitForUnsubscribe(detector);
         } else {
             sub.awaitTerminalEvent();
+            // TODO might need a pause here to detect more completed events for
+            // asynchronous sources
             assertEquals(1, sub.numOnCompletedEvents());
         }
         sub.assertNoErrors();
