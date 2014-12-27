@@ -77,4 +77,8 @@ public class CountTest extends TestCase {
 }
 ```
 
+When you run ```CountTest``` as a JUnit test in Eclipse you see the test variations described as below:
+
+<img src="src/docs/eclipse-junit.png?raw=true" />
+
 
