@@ -10,12 +10,7 @@ import com.github.davidmoten.rx.testing.TestingHelper;
 
 public class TestingHelperMergeTest extends TestCase {
 
-    private static final Func1<Observable<Integer>, Observable<Integer>> merge = new Func1<Observable<Integer>, Observable<Integer>>() {
-        @Override
-        public Observable<Integer> call(Observable<Integer> o) {
-            return o.mergeWith(Observable.from(asList(7, 8, 9)));
-        }
-    };
+    private static final Observable<Integer> MERGE_WITH = Observable.from(asList(7, 8, 9));
 
     public static TestSuite suite() {
 
@@ -35,4 +30,12 @@ public class TestingHelperMergeTest extends TestCase {
     public void testDummy() {
         // just here to fool eclipse
     }
+
+    private static final Func1<Observable<Integer>, Observable<Integer>> merge = new Func1<Observable<Integer>, Observable<Integer>>() {
+        @Override
+        public Observable<Integer> call(Observable<Integer> o) {
+            return o.mergeWith(MERGE_WITH);
+        }
+    };
+
 }
