@@ -13,13 +13,13 @@ public class TestingHelperCountTest extends TestCase {
 
         return TestingHelper.function(COUNT)
         // test empty
-                .name("testEmpty").fromEmpty().expect(0)
+                .name("testCountOfEmptyReturnsEmpty").fromEmpty().expect(0)
                 // test non-empty count
-                .name("testTwo").from(5, 6).expect(2)
+                .name("testCountOfTwoReturnsTwo").from(5, 6).expect(2)
                 // test single input
-                .name("testOne").from(5).expect(1)
-                // unsub before completion
-                .name("testTwoUnsubscribeAfterOne").from(5, 6, 7).expect(3)
+                .name("testCountOfOneReturnsOne").from(5).expect(1)
+                // unsub before completions
+                .name("testCountofTwoReturnsOneWhenUnsubscribedAfterOne").from(5, 6, 7).expect(3)
                 // get test suites
                 .testSuite(TestingHelperCountTest.class);
     }

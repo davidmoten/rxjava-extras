@@ -14,15 +14,22 @@ public class TestingHelperMergeTest extends TestCase {
 
     public static TestSuite suite() {
 
-        return TestingHelper.function(merge)
-        // test empty
-                .name("testEmpty").fromEmpty().expect(7, 8, 9)
+        return TestingHelper
+                .function(merge)
+                // test empty
+                .name("testEmptyWithOtherReturnsOther")
+                .fromEmpty()
+                .expect(7, 8, 9)
                 // test non-empty count
-                .name("testTwo").from(1, 2).expectAnyOrder(1, 7, 8, 9, 2)
+                .name("testTwoWithOtherReturnsTwoAndOtherInAnyOrder")
+                .from(1, 2)
+                .expectAnyOrder(1, 7, 8, 9, 2)
                 // test single input
-                .name("testOne").from(1).expectAnyOrder(7, 1, 8, 9)
+                .name("testOneWithOtherReturnsOneAndOtherInAnyOrder").from(1)
+                .expectAnyOrder(7, 1, 8, 9)
                 // unsub before completion
-                .name("testSomeUnsubscribeAfterOne").from(1, 2).unsubscribeAfter(1).expectSize(1)
+                .name("testTwoWithOtherUnsubscribedAfterOneReturnsOneItemOnly").from(1, 2)
+                .unsubscribeAfter(1).expectSize(1)
                 // get test suites
                 .testSuite(TestingHelperMergeTest.class);
     }
