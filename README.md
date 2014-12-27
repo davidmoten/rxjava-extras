@@ -50,7 +50,6 @@ An example that tests all of the above variations and aspects for the ```Observa
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import rx.Observable;
-import rx.functions.Func1;
 
 import com.github.davidmoten.rx.testing.TestingHelper;
 
