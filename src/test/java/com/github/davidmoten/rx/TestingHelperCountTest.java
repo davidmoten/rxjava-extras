@@ -14,6 +14,8 @@ public class TestingHelperCountTest extends TestCase {
         return TestingHelper.function(COUNT)
         // test empty
                 .name("testCountOfEmptyReturnsEmpty").fromEmpty().expect(0)
+                // test error
+                .name("testCountErrorReturnsError").fromError().expectError()
                 // test non-empty count
                 .name("testCountOfTwoReturnsTwo").from(5, 6).expect(2)
                 // test single input
