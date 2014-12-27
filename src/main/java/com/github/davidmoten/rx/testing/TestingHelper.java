@@ -40,15 +40,15 @@ public final class TestingHelper {
         private Func1<Observable<T>, Observable<R>> function;
 
         public CaseBuilder<T, R> fromEmpty() {
-            return new CaseBuilder<T, R>(this, Collections.<T> emptyList(), TEST_UNNAMED);
+            return new CaseBuilder<T, R>(this, Observable.<T> empty(), TEST_UNNAMED);
         }
 
         public CaseBuilder<T, R> name(String name) {
-            return new CaseBuilder<T, R>(this, Collections.<T> emptyList(), name);
+            return new CaseBuilder<T, R>(this, Observable.<T> empty(), name);
         }
 
         public CaseBuilder<T, R> from(T... items) {
-            return new CaseBuilder<T, R>(this, Arrays.asList(items), TEST_UNNAMED);
+            return new CaseBuilder<T, R>(this, Observable.from(items), TEST_UNNAMED);
         }
 
         public Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
@@ -56,7 +56,7 @@ public final class TestingHelper {
             return this;
         }
 
-        public Builder<T, R> expect(List<T> from, List<R> expected, boolean ordered,
+        public Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed, String name,
                 Optional<Integer> unsubscribeAfter) {
             cases.add(new Case<T, R>(from, Optional.of(expected), ordered, expectSize,
@@ -71,15 +71,15 @@ public final class TestingHelper {
     }
 
     public static class CaseBuilder<T, R> {
-        private List<T> list;
+        private Observable<T> from;
         private final Builder<T, R> builder;
         private boolean checkSourceUnsubscribed = true;
         private Optional<Integer> unsubscribeAfter = Optional.absent();
         private String name;
 
-        private CaseBuilder(Builder<T, R> builder, List<T> list, String name) {
+        private CaseBuilder(Builder<T, R> builder, Observable<T> from, String name) {
             this.builder = builder;
-            this.list = list;
+            this.from = from;
             this.name = name;
         }
 
@@ -102,7 +102,7 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> expectSize(long n) {
-            return builder.expect(list, Collections.<R> emptyList(), true, Optional.of(n),
+            return builder.expect(from, Collections.<R> emptyList(), true, Optional.of(n),
                     checkSourceUnsubscribed, name, unsubscribeAfter);
         }
 
@@ -111,7 +111,7 @@ public final class TestingHelper {
         }
 
         private Builder<T, R> expect(List<R> items, boolean ordered) {
-            return builder.expect(list, items, ordered, Optional.<Long> absent(),
+            return builder.expect(from, items, ordered, Optional.<Long> absent(),
                     checkSourceUnsubscribed, name, unsubscribeAfter);
         }
 
@@ -120,12 +120,12 @@ public final class TestingHelper {
         }
 
         public CaseBuilder<T, R> fromEmpty() {
-            list = Collections.emptyList();
+            from = Observable.empty();
             return this;
         }
 
         public CaseBuilder<T, R> from(T... items) {
-            list = Arrays.asList(items);
+            from = Observable.from(items);
             return this;
         }
 
@@ -142,7 +142,7 @@ public final class TestingHelper {
 
     private static class Case<T, R> {
         final String name;
-        final List<T> from;
+        final Observable<T> from;
         final Optional<List<R>> expected;
         final boolean checkSourceUnsubscribed;
         final Func1<Observable<T>, Observable<R>> function;
@@ -150,9 +150,10 @@ public final class TestingHelper {
         final boolean ordered;
         private final Optional<Long> expectSize;
 
-        Case(List<T> from, Optional<List<R>> expected, boolean ordered, Optional<Long> expectSize,
-                boolean checkSourceUnsubscribed, Func1<Observable<T>, Observable<R>> function,
-                String name, Optional<Integer> unsubscribeAfter) {
+        Case(Observable<T> from, Optional<List<R>> expected, boolean ordered,
+                Optional<Long> expectSize, boolean checkSourceUnsubscribed,
+                Func1<Observable<T>, Observable<R>> function, String name,
+                Optional<Integer> unsubscribeAfter) {
             this.from = from;
             this.expected = expected;
             this.ordered = ordered;
@@ -167,7 +168,7 @@ public final class TestingHelper {
     private static <T, R> void runTest(Case<T, R> c, TestType testType) {
         UnsubscribeDetector<T> detector = UnsubscribeDetector.create();
         MyTestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
-        c.function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
+        c.function.call(c.from.lift(detector)).subscribe(sub);
         if (c.unsubscribeAfter.isPresent()) {
             waitForUnsubscribe(detector);
             sub.assertNoErrors();
