@@ -94,13 +94,15 @@ public final class TestingHelper {
         c.function.call(Observable.from(c.from).lift(detector)).subscribe(sub);
         if (c.unsubscribeAfter.isPresent()) {
             waitForUnsubscribe(detector);
+            sub.assertNoErrors();
         } else {
             sub.awaitTerminalEvent();
+            sub.assertNoErrors();
             // TODO might need a pause here to detect more completed events for
             // asynchronous sources
             assertEquals(1, sub.numOnCompletedEvents());
         }
-        sub.assertNoErrors();
+
         if (c.expected.isPresent())
             sub.assertReceivedOnNext(c.expected.get());
         sub.assertUnsubscribed();
