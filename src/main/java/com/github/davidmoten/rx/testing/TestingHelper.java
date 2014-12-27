@@ -141,7 +141,7 @@ public final class TestingHelper {
         }
 
         public CaseBuilder<T, R> fromError() {
-            from = Observable.error(new RuntimeException("error test"));
+            from = Observable.error(new TestingException());
             return this;
         }
 
@@ -193,7 +193,7 @@ public final class TestingHelper {
         } else {
             sub.awaitTerminalEvent();
             if (c.expectError)
-                sub.assertError();
+                sub.assertError(TestingException.class);
             else {
                 sub.assertNoErrors();
                 // TODO might need a pause here to detect more completed events
@@ -221,6 +221,12 @@ public final class TestingHelper {
         }
     }
 
+    private static class TestingException extends RuntimeException {
+
+        private static final long serialVersionUID = 1L;
+
+    }
+
     public static class DeliveredMoreThanRequestedException extends RuntimeException {
         private static final long serialVersionUID = 1369440545774454215L;
 
@@ -239,8 +245,9 @@ public final class TestingHelper {
             this.terminalLatch = new CountDownLatch(1);
         }
 
-        public void assertError() {
+        public void assertError(Class<?> cls) {
             Assert.assertEquals(1, errors);
+            Assert.assertTrue(cls.isInstance(lastError.get()));
         }
 
         public void assertReceivedCountIs(long count) {
@@ -256,6 +263,7 @@ public final class TestingHelper {
 
         int completed = 0;
         int errors = 0;
+        Optional<Throwable> lastError = Optional.absent();
         int count = 0;
         final List<T> next = new ArrayList<T>();
 
@@ -268,6 +276,7 @@ public final class TestingHelper {
         @Override
         public void onError(Throwable e) {
             errors++;
+            lastError = Optional.of(e);
             terminalLatch.countDown();
             e.printStackTrace();
         }
