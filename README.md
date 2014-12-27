@@ -41,7 +41,8 @@ For each variation the following aspects are tested:
 * expected onNext items received
 * unsubscribe from source occurs
 * unsubscribe from downstream subscriber occurs
-* onCompleted called
+* onCompleted called 
+* onErrors not called
 
 An example that tests all of the above variations and aspects for the ```Observable.count()``` method:
 
@@ -55,24 +56,17 @@ import com.github.davidmoten.rx.testing.TestingHelper;
 
 public class TestingHelperCountTest extends TestCase {
 
-    private static final Func1<Observable<String>, Observable<Integer>> COUNT = new Func1<Observable<String>, Observable<Integer>>() {
-        @Override
-        public Observable<Integer> call(Observable<String> o) {
-            return o.count();
-        }
-    };
-
     public static TestSuite suite() {
 
-        return TestingHelper.function(COUNT)
-        // test empty
-                .name("testEmpty").fromEmpty().expect(0)
+        return TestingHelper.function(o -> o.count())
+                // test empty
+                .name("testCountOfEmptyReturnsEmpty").fromEmpty().expect(0)
                 // test non-empty count
-                .name("testTwo").from("a", "b").expect(2)
+                .name("testCountOfTwoReturnsTwo").from(5, 6).expect(2)
                 // test single input
-                .name("testOne").from("a").expect(1)
-                // unsub before completion
-                .name("testTwoUnsubscribeAfterOne").from("a", "b", "c").expect(3)
+                .name("testCountOfOneReturnsOne").from(5).expect(1)
+                // unsub before completions
+                .name("testCountofTwoReturnsOneWhenUnsubscribedAfterOne").from(5, 6, 7).expect(3)
                 // get test suites
                 .testSuite(TestingHelperCountTest.class);
     }
