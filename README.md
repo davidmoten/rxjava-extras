@@ -43,6 +43,7 @@ For each variation the following aspects are tested:
 * unsubscribe from downstream subscriber occurs
 * onCompleted called (if unsubscribe not requested before completion)
 * onErrors not called
+* should not deliver more than requested
 
 An example that tests all of the above variations and aspects for the ```Observable.count()``` method:
 
