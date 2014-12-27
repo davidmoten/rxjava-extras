@@ -9,24 +9,17 @@ import com.github.davidmoten.rx.testing.TestingHelper;
 
 public class TestingHelperCountTest extends TestCase {
 
-    private static final Func1<Observable<String>, Observable<Integer>> COUNT = new Func1<Observable<String>, Observable<Integer>>() {
-        @Override
-        public Observable<Integer> call(Observable<String> o) {
-            return o.count();
-        }
-    };
-
     public static TestSuite suite() {
 
         return TestingHelper.function(COUNT)
         // test empty
                 .name("testEmpty").fromEmpty().expect(0)
                 // test non-empty count
-                .name("testTwo").from("a", "b").expect(2)
+                .name("testTwo").from(5, 6).expect(2)
                 // test single input
-                .name("testOne").from("a").expect(1)
+                .name("testOne").from(5).expect(1)
                 // unsub before completion
-                .name("testTwoUnsubscribeAfterOne").from("a", "b", "c").expect(3)
+                .name("testTwoUnsubscribeAfterOne").from(5, 6, 7).expect(3)
                 // get test suites
                 .testSuite(TestingHelperCountTest.class);
     }
@@ -34,5 +27,12 @@ public class TestingHelperCountTest extends TestCase {
     public void testDummy() {
         // just here to fool eclipse
     }
+
+    private static final Func1<Observable<Integer>, Observable<Integer>> COUNT = new Func1<Observable<Integer>, Observable<Integer>>() {
+        @Override
+        public Observable<Integer> call(Observable<Integer> o) {
+            return o.count();
+        }
+    };
 
 }
