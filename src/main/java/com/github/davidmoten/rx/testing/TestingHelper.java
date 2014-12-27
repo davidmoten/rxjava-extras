@@ -110,11 +110,11 @@ public final class TestingHelper {
         }
 
         if (c.expected.isPresent())
-            if (c.expectSize.isPresent())
-                sub.assertReceived(c.expectSize.get());
-            else
-                sub.assertReceivedOnNext(c.expected.get(), c.ordered);
-        sub.assertUnsubscribed();
+            sub.assertReceivedOnNext(c.expected.get(), c.ordered);
+        else if (c.expectSize.isPresent())
+            sub.assertReceivedCountIs(c.expectSize.get());
+        else
+            sub.assertUnsubscribed();
         if (c.checkSourceUnsubscribed)
             waitForUnsubscribe(detector);
     }
@@ -137,7 +137,7 @@ public final class TestingHelper {
             this.terminalLatch = new CountDownLatch(1);
         }
 
-        public void assertReceived(long count) {
+        public void assertReceivedCountIs(long count) {
             Assert.assertEquals(count, next.size());
         }
 

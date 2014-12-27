@@ -5,6 +5,7 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import rx.Observable;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 import com.github.davidmoten.rx.testing.TestingHelper;
 
@@ -41,7 +42,8 @@ public class TestingHelperMergeTest extends TestCase {
     private static final Func1<Observable<Integer>, Observable<Integer>> merge = new Func1<Observable<Integer>, Observable<Integer>>() {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return o.mergeWith(MERGE_WITH);
+            return o.mergeWith(MERGE_WITH.subscribeOn(Schedulers.computation())).subscribeOn(
+                    Schedulers.computation());
         }
     };
 
