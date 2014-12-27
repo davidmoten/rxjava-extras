@@ -39,13 +39,15 @@ public final class TestingHelper {
         final Func1<Observable<T>, Observable<R>> function;
         final Optional<Integer> unsubscribeAfter;
         final boolean ordered;
+        private final Optional<Long> expectSize;
 
-        Case(List<T> from, Optional<List<R>> expected, boolean ordered,
+        Case(List<T> from, Optional<List<R>> expected, boolean ordered, Optional<Long> expectSize,
                 boolean checkSourceUnsubscribed, Func1<Observable<T>, Observable<R>> function,
                 String name, Optional<Integer> unsubscribeAfter) {
             this.from = from;
             this.expected = expected;
             this.ordered = ordered;
+            this.expectSize = expectSize;
             this.checkSourceUnsubscribed = checkSourceUnsubscribed;
             this.function = function;
             this.name = name;
@@ -78,11 +80,11 @@ public final class TestingHelper {
             return this;
         }
 
-        public Builder<T, R> expect(List<T> from, List<R> expected,
-                boolean checkSourceUnsubscribed, boolean ordered, String name,
+        public Builder<T, R> expect(List<T> from, List<R> expected, boolean ordered,
+                Optional<Long> expectSize, boolean checkSourceUnsubscribed, String name,
                 Optional<Integer> unsubscribeAfter) {
-            cases.add(new Case<T, R>(from, Optional.of(expected), ordered, checkSourceUnsubscribed,
-                    function, name, unsubscribeAfter));
+            cases.add(new Case<T, R>(from, Optional.of(expected), ordered, expectSize,
+                    checkSourceUnsubscribed, function, name, unsubscribeAfter));
             return this;
         }
 
@@ -108,7 +110,10 @@ public final class TestingHelper {
         }
 
         if (c.expected.isPresent())
-            sub.assertReceivedOnNext(c.expected.get(), c.ordered);
+            if (c.expectSize.isPresent())
+                sub.assertReceived(c.expectSize.get());
+            else
+                sub.assertReceivedOnNext(c.expected.get(), c.ordered);
         sub.assertUnsubscribed();
         if (c.checkSourceUnsubscribed)
             waitForUnsubscribe(detector);
@@ -130,6 +135,10 @@ public final class TestingHelper {
         MyTestSubscriber(Optional<Integer> unsubscribeAfter) {
             this.unsubscribeAfter = unsubscribeAfter;
             this.terminalLatch = new CountDownLatch(1);
+        }
+
+        public void assertReceived(long count) {
+            Assert.assertEquals(count, next.size());
         }
 
         public void awaitTerminalEvent() {
@@ -344,12 +353,16 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> expectEmpty() {
-            return builder.expect(list, Collections.<R> emptyList(), true, checkSourceUnsubscribed,
-                    name, unsubscribeAfter);
+            return expect(Collections.<R> emptyList());
         }
 
         public Builder<T, R> expect(R... items) {
             return expect(Arrays.asList(items));
+        }
+
+        public Builder<T, R> expectSize(long n) {
+            return builder.expect(list, Collections.<R> emptyList(), true, Optional.of(n),
+                    checkSourceUnsubscribed, name, unsubscribeAfter);
         }
 
         public Builder<T, R> expect(List<R> items) {
@@ -357,8 +370,8 @@ public final class TestingHelper {
         }
 
         private Builder<T, R> expect(List<R> items, boolean ordered) {
-            return builder.expect(list, items, ordered, checkSourceUnsubscribed, name,
-                    unsubscribeAfter);
+            return builder.expect(list, items, ordered, Optional.<Long> absent(),
+                    checkSourceUnsubscribed, name, unsubscribeAfter);
         }
 
         public Builder<T, R> expect(Set<R> set) {

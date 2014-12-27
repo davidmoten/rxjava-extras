@@ -20,14 +20,15 @@ public class TestingHelperMergeTest extends TestCase {
     public static TestSuite suite() {
 
         return TestingHelper.function(onBufferBackpressure)
-        // test empty
+                // test empty
                 .name("testEmpty").fromEmpty().expect("x", "y", "z")
                 // test non-empty count
                 .name("testTwo").from("a", "b").expectAnyOrder("x", "y", "z", "a", "b")
                 // test single input
                 .name("testOne").from("a").expectAnyOrder("x", "y", "z", "a")
                 // unsub before completion
-                .name("testSomeUnsubscribeAfterOne").from("a", "b").unsubscribeAfter(1).expect("a")
+                .name("testSomeUnsubscribeAfterOne").from("a", "b").unsubscribeAfter(1)
+                .expectSize(1)
                 // get test suites
                 .testSuite(TestingHelperMergeTest.class);
     }
