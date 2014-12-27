@@ -54,7 +54,7 @@ import rx.functions.Func1;
 
 import com.github.davidmoten.rx.testing.TestingHelper;
 
-public class TestingHelperCountTest extends TestCase {
+public class CountTest extends TestCase {
 
     public static TestSuite suite() {
 
