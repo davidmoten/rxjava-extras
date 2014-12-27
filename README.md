@@ -23,7 +23,27 @@ Maven site reports are [here](http://davidmoten.github.io/rxjava-extras/index.ht
 
 TestingHelper
 -----------------
-An example that performs 10 unit tests per named case:
+This helper class still in development. For a given named test the following variations  are tested:
+
+* without backpressure
+* intiial request maximum, no further request 
+* initial request maximum, keep requesting single 
+* backpressure, initial request 0 then 1, then by 1 
+* backpressure, initial request -1 then 1, then by 1
+* backpressure, initial request 1, then by 1 
+* backpressure, initial request 2, then by 2 
+* backpressure, initial request 5, then by 5 
+* backpressure, initial request 100, then by 100 
+* backpressure, initial request 1000, then by 1000 
+
+For each variation the following aspects are tested:
+
+* expected onNext items received
+* unsubscribe from source occurs
+* unsubscribe from downstream subscriber occurs
+* onCompleted called
+
+An example that tests all of the above variations and aspects for the ```Observable.count()``` method:
 
 ```java
 import junit.framework.TestCase;
