@@ -19,8 +19,9 @@ public class TestingHelperMergeTest extends TestCase {
                 .function(merge)
                 // test empty
                 .name("testEmptyWithOtherReturnsOther").fromEmpty().expect(7, 8, 9)
-                .name("testMergeErrorReturnsError")
-                .fromError()
+                .name("testMergeErrorReturnsError").fromError().expectError()
+                .name("testMergeErrorAfter3ReturnsError")
+                .fromErrorAfter(1, 2)
                 .expectError()
                 // test non-empty count
                 .name("testTwoWithOtherReturnsTwoAndOtherInAnyOrder")

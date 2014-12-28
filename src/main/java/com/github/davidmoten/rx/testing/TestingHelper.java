@@ -159,6 +159,11 @@ public final class TestingHelper {
             return this;
         }
 
+        public CaseBuilder<T, R> fromErrorAfter(Observable<T> items) {
+            from = items;
+            return this;
+        }
+
         public CaseBuilder<T, R> unsubscribeAfter(int n) {
             unsubscribeAfter = of(n);
             return this;
