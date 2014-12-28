@@ -26,8 +26,6 @@ public class TestingHelperCountTest extends TestCase {
                 .name("testCountOfTwoReturnsTwo").from(5, 6).expect(2)
                 // test single input
                 .name("testCountOfOneReturnsOne").from(5).expect(1)
-                // unsub before completions
-                .name("testCountofTwoReturnsOneWhenUnsubscribedAfterOne").from(5, 6, 7).expect(3)
                 // count many
                 .name("testCountOfManyDoesNotGiveStackOverflow").from(Observable.range(1, 1000000))
                 .expect(1000000)
