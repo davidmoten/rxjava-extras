@@ -12,10 +12,13 @@ public class TestingHelperCountTest extends TestCase {
     public static TestSuite suite() {
 
         return TestingHelper.function(COUNT)
-        // test empty
+                // test empty
                 .name("testCountOfEmptyReturnsEmpty").fromEmpty().expect(0)
                 // test error
                 .name("testCountErrorReturnsError").fromError().expectError()
+                // test error after some emission
+                .name("testCountErrorAfterTwoEmissionsReturnsError").fromErrorAfter(5, 6)
+                .expectError()
                 // test non-empty count
                 .name("testCountOfTwoReturnsTwo").from(5, 6).expect(2)
                 // test single input

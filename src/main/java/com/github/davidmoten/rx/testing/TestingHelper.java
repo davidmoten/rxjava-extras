@@ -154,6 +154,11 @@ public final class TestingHelper {
             return this;
         }
 
+        public CaseBuilder<T, R> fromErrorAfter(T... items) {
+            from = Observable.from(items).concatWith(Observable.<T> error(new TestingException()));
+            return this;
+        }
+
         public CaseBuilder<T, R> unsubscribeAfter(int n) {
             unsubscribeAfter = of(n);
             return this;
