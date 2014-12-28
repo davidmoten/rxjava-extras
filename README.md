@@ -39,7 +39,7 @@ This helper class still in development. For a given named test the following var
 For each variation the following aspects are tested:
 
 * expected onNext items received
-* unsubscribe from source occurs
+* unsubscribe from source occurs (for completion, error or downstream unsubscription)
 * unsubscribe from downstream subscriber occurs
 * onCompleted called (if unsubscribe not requested before completion)
 * onErrors not called
