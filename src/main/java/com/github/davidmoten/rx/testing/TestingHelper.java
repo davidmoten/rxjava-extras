@@ -1,6 +1,8 @@
 package com.github.davidmoten.rx.testing;
 
+import static com.github.davidmoten.util.Optional.of;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,8 +60,8 @@ public final class TestingHelper {
 
         public Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed, String name,
-                Optional<Integer> unsubscribeAfter, boolean expectError) {
-            cases.add(new Case<T, R>(from, Optional.of(expected), ordered, expectSize,
+                Optional<Integer> unsubscribeAfter, Optional<Class<? extends Throwable>> expectError) {
+            cases.add(new Case<T, R>(from, of(expected), ordered, expectSize,
                     checkSourceUnsubscribed, function, name, unsubscribeAfter, expectError));
             return this;
         }
@@ -98,9 +100,14 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> expectError() {
-            return builder
-                    .expect(from, Collections.<R> emptyList(), true, Optional.<Long> absent(),
-                            checkSourceUnsubscribed, name, unsubscribeAfter, true);
+            return expectError(TestingException.class);
+        }
+
+        @SuppressWarnings("unchecked")
+        public Builder<T, R> expectError(Class<? extends Throwable> cls) {
+            return builder.expect(from, Collections.<R> emptyList(), true,
+                    Optional.<Long> absent(), checkSourceUnsubscribed, name, unsubscribeAfter,
+                    (Optional<Class<? extends Throwable>>) (Optional<?>) Optional.of(cls));
         }
 
         public Builder<T, R> expect(R... items) {
@@ -108,8 +115,9 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> expectSize(long n) {
-            return builder.expect(from, Collections.<R> emptyList(), true, Optional.of(n),
-                    checkSourceUnsubscribed, name, unsubscribeAfter, false);
+            return builder.expect(from, Collections.<R> emptyList(), true, of(n),
+                    checkSourceUnsubscribed, name, unsubscribeAfter,
+                    Optional.<Class<? extends Throwable>> absent());
         }
 
         public Builder<T, R> expect(List<R> items) {
@@ -118,7 +126,8 @@ public final class TestingHelper {
 
         private Builder<T, R> expect(List<R> items, boolean ordered) {
             return builder.expect(from, items, ordered, Optional.<Long> absent(),
-                    checkSourceUnsubscribed, name, unsubscribeAfter, false);
+                    checkSourceUnsubscribed, name, unsubscribeAfter,
+                    Optional.<Class<? extends Throwable>> absent());
         }
 
         public Builder<T, R> expect(Set<R> set) {
@@ -146,7 +155,7 @@ public final class TestingHelper {
         }
 
         public CaseBuilder<T, R> unsubscribeAfter(int n) {
-            unsubscribeAfter = Optional.of(n);
+            unsubscribeAfter = of(n);
             return this;
         }
 
@@ -165,12 +174,12 @@ public final class TestingHelper {
         final Optional<Integer> unsubscribeAfter;
         final boolean ordered;
         private final Optional<Long> expectSize;
-        private final boolean expectError;
+        private Optional<Class<? extends Throwable>> expectError = Optional.absent();
 
         Case(Observable<T> from, Optional<List<R>> expected, boolean ordered,
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed,
                 Func1<Observable<T>, Observable<R>> function, String name,
-                Optional<Integer> unsubscribeAfter, boolean expectError) {
+                Optional<Integer> unsubscribeAfter, Optional<Class<? extends Throwable>> expectError) {
             this.from = from;
             this.expected = expected;
             this.ordered = ordered;
@@ -192,13 +201,12 @@ public final class TestingHelper {
             sub.assertNoErrors();
         } else {
             sub.awaitTerminalEvent();
-            if (c.expectError)
-                sub.assertError(TestingException.class);
+            if (c.expectError.isPresent())
+                sub.assertError(c.expectError.get());
             else {
                 sub.assertNoErrors();
                 // TODO might need a pause here to detect more completed events
-                // for
-                // asynchronous sources
+                // for asynchronous sources
                 assertEquals(1, sub.numOnCompletedEvents());
             }
         }
@@ -276,9 +284,8 @@ public final class TestingHelper {
         @Override
         public void onError(Throwable e) {
             errors++;
-            lastError = Optional.of(e);
+            lastError = of(e);
             terminalLatch.countDown();
-            e.printStackTrace();
         }
 
         @Override
@@ -294,7 +301,7 @@ public final class TestingHelper {
         }
 
         public void assertUnsubscribed() {
-            Assert.assertTrue(super.isUnsubscribed());
+            assertTrue(super.isUnsubscribed());
         }
 
         public int numOnCompletedEvents() {
@@ -302,7 +309,9 @@ public final class TestingHelper {
         }
 
         public void assertNoErrors() {
-            Assert.assertEquals(0, errors);
+            if (errors > 0)
+                lastError.get().printStackTrace();
+            assertEquals(0, errors);
         }
 
     }
@@ -339,16 +348,15 @@ public final class TestingHelper {
         if (testType == TestType.WITHOUT_BACKP)
             return new MyTestSubscriber<T>(unsubscribeAfter);
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX)
-            return createTestSubscriber(unsubscribeAfter, Optional.of(Long.MAX_VALUE),
+            return createTestSubscriber(unsubscribeAfter, of(Long.MAX_VALUE),
                     Optional.<Long> absent());
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE)
             // Hopefully doesn't cause a problem (for example by 1
             // getting added to Long.MAX_VALUE making it a negative
             // value because of overflow)
-            return createTestSubscriber(unsubscribeAfter, Optional.of(Long.MAX_VALUE),
-                    Optional.of(1L));
+            return createTestSubscriber(unsubscribeAfter, of(Long.MAX_VALUE), of(1L));
         else if (testType == TestType.BACKP_ONE_BY_ONE)
-            return createTestSubscriber(unsubscribeAfter, Optional.of(1L), Optional.of(1L));
+            return createTestSubscriber(unsubscribeAfter, of(1L), of(1L));
         else if (testType == TestType.BACKP_REQUEST_ZERO)
             return new MyTestSubscriber<T>(unsubscribeAfter) {
 
