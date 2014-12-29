@@ -263,22 +263,6 @@ public final class TestingHelper {
             this.terminalLatch = new CountDownLatch(1);
         }
 
-        public void assertError(Class<?> cls) {
-            Assert.assertEquals(1, errors);
-            Assert.assertTrue(cls.isInstance(lastError.get()));
-        }
-
-        public void assertReceivedCountIs(long count) {
-            Assert.assertEquals(count, next.size());
-        }
-
-        public void awaitTerminalEvent() {
-            try {
-                terminalLatch.await();
-            } catch (InterruptedException e) {
-            }
-        }
-
         int completed = 0;
         int errors = 0;
         Optional<Throwable> lastError = Optional.absent();
@@ -306,19 +290,35 @@ public final class TestingHelper {
                 unsubscribe();
         }
 
-        public void assertReceivedOnNext(List<T> expected, boolean ordered) {
+        void assertError(Class<?> cls) {
+            Assert.assertEquals(1, errors);
+            Assert.assertTrue(cls.isInstance(lastError.get()));
+        }
+
+        void assertReceivedCountIs(long count) {
+            Assert.assertEquals(count, next.size());
+        }
+
+        void awaitTerminalEvent() {
+            try {
+                terminalLatch.await();
+            } catch (InterruptedException e) {
+            }
+        }
+
+        void assertReceivedOnNext(List<T> expected, boolean ordered) {
             TestingHelper.equals(expected, next, ordered);
         }
 
-        public void assertUnsubscribed() {
+        void assertUnsubscribed() {
             assertTrue(super.isUnsubscribed());
         }
 
-        public int numOnCompletedEvents() {
+        int numOnCompletedEvents() {
             return completed;
         }
 
-        public void assertNoErrors() {
+        void assertNoErrors() {
             if (errors > 0)
                 lastError.get().printStackTrace();
             assertEquals(0, errors);
@@ -361,9 +361,6 @@ public final class TestingHelper {
             return createTestSubscriber(unsubscribeAfter, of(Long.MAX_VALUE),
                     Optional.<Long> absent());
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE)
-            // Hopefully doesn't cause a problem (for example by 1
-            // getting added to Long.MAX_VALUE making it a negative
-            // value because of overflow)
             return createTestSubscriber(unsubscribeAfter, of(Long.MAX_VALUE), of(1L));
         else if (testType == TestType.BACKP_ONE_BY_ONE)
             return createTestSubscriber(unsubscribeAfter, of(1L), of(1L));
