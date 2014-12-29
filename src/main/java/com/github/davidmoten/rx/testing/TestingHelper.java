@@ -394,21 +394,6 @@ public final class TestingHelper {
                     request(1);
                 }
             };
-        else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
-            return new MyTestSubscriber<T>(unsubscribeAfter) {
-
-                @Override
-                public void onStart() {
-                    request(-1);
-                    request(1);
-                }
-
-                @Override
-                public void onNext(T t) {
-                    super.onNext(t);
-                    request(1);
-                }
-            };
         else if (testType == TestType.BACKP_TWO_BY_TWO)
             return createTestSubscriberWithBackpNbyN(2, unsubscribeAfter);
         else if (testType == TestType.BACKP_FIVE_BY_FIVE)
