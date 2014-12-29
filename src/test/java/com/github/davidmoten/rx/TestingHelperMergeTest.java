@@ -20,7 +20,7 @@ public class TestingHelperMergeTest extends TestCase {
                 // test empty
                 .name("testEmptyWithOtherReturnsOther").fromEmpty().expect(7, 8, 9)
                 .name("testMergeErrorReturnsError").fromError().expectError()
-                .name("testMergeErrorAfter3ReturnsError")
+                .name("testMergeErrorAfter2ReturnsError")
                 .fromErrorAfter(1, 2)
                 .expectError()
                 // test non-empty count
