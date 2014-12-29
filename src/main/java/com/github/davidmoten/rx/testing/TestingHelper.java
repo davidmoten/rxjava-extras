@@ -207,17 +207,21 @@ public final class TestingHelper {
         MyTestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
         c.function.call(c.from.lift(detector)).subscribe(sub);
         if (c.unsubscribeAfter.isPresent()) {
-            waitForUnsubscribe(detector);
+            waitForUnsubscribe(detector, 100, TimeUnit.MILLISECONDS);
             sub.assertNoErrors();
         } else {
-            sub.awaitTerminalEvent();
-            if (c.expectError.isPresent())
+            sub.awaitTerminalEvent(10, TimeUnit.SECONDS);
+            if (c.expectError.isPresent()) {
                 sub.assertError(c.expectError.get());
-            else {
+                // wait for more terminal events
+                pause(50, TimeUnit.MILLISECONDS);
+                assertEquals(0, sub.numOnCompletedEvents());
+            } else {
                 sub.assertNoErrors();
                 // wait for more terminal events
-                pause(100, TimeUnit.MILLISECONDS);
+                pause(50, TimeUnit.MILLISECONDS);
                 assertEquals(1, sub.numOnCompletedEvents());
+                sub.assertNoErrors();
             }
         }
 
@@ -228,7 +232,7 @@ public final class TestingHelper {
         else
             sub.assertUnsubscribed();
         if (c.checkSourceUnsubscribed)
-            waitForUnsubscribe(detector);
+            waitForUnsubscribe(detector, 100, TimeUnit.MILLISECONDS);
     }
 
     private static void pause(int duration, TimeUnit unit) {
@@ -239,9 +243,10 @@ public final class TestingHelper {
         }
     }
 
-    private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector) {
+    private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector, int duration,
+            TimeUnit unit) {
         try {
-            detector.latch().await(100, TimeUnit.MILLISECONDS);
+            detector.latch().await(duration, unit);
         } catch (InterruptedException e) {
             // do nothing
         }
@@ -307,9 +312,9 @@ public final class TestingHelper {
             Assert.assertEquals(count, next.size());
         }
 
-        void awaitTerminalEvent() {
+        void awaitTerminalEvent(int duration, TimeUnit unit) {
             try {
-                terminalLatch.await();
+                assertTrue(terminalLatch.await(duration, unit));
             } catch (InterruptedException e) {
             }
         }
