@@ -1,6 +1,9 @@
 package com.github.davidmoten.rx;
 
 import static java.util.Arrays.asList;
+
+import java.util.concurrent.TimeUnit;
+
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import rx.Observable;
@@ -17,9 +20,18 @@ public class TestingHelperMergeTest extends TestCase {
 
         return TestingHelper
                 .function(merge)
+                .waitForUnsubscribe(100, TimeUnit.MILLISECONDS)
+                .waitForTerminalEvent(10, TimeUnit.SECONDS)
+                .waitForMoreTerminalEvents(100, TimeUnit.MILLISECONDS)
                 // test empty
-                .name("testEmptyWithOtherReturnsOther").fromEmpty().expect(7, 8, 9)
-                .name("testMergeErrorReturnsError").fromError().expectError()
+                .name("testEmptyWithOtherReturnsOther")
+                .fromEmpty()
+                .expect(7, 8, 9)
+                // test error
+                .name("testMergeErrorReturnsError")
+                .fromError()
+                .expectError()
+                // test error after items
                 .name("testMergeErrorAfter2ReturnsError")
                 .fromErrorAfter(1, 2)
                 .expectError()

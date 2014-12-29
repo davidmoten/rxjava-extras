@@ -41,8 +41,9 @@ For each variation the following aspects are tested:
 * expected onNext items received
 * unsubscribe from source occurs (for completion, error or downstream unsubscription)
 * unsubscribe from downstream subscriber occurs
-* onCompleted called (if unsubscribe not requested before completion)
-* onErrors not called
+* onCompleted called (if unsubscribe not requested before completion and no errors expected)
+* onErrors not called unless error expected
+* if error expected onCompleted not called after onError
 * should not deliver more than requested
 
 An example that tests all of the above variations and aspects for the ```Observable.count()``` method:

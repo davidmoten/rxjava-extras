@@ -36,13 +36,33 @@ public final class TestingHelper {
     public static class Builder<T, R> {
 
         private static final String TEST_UNNAMED = "testUnnamed";
-
         private final List<Case<T, R>> cases = new ArrayList<Case<T, R>>();
-
         private Func1<Observable<T>, Observable<R>> function;
+        private long waitForUnusbscribeMs = 100;
+        private long waitForTerminalEventMs = 10000;
+        private long waitForMoreTerminalEventsMs = 50;
+
+        private Builder() {
+            // must instantiate via TestingHelper.function method above
+        }
 
         public Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
             this.function = function;
+            return this;
+        }
+
+        public Builder<T, R> waitForUnsubscribe(long duration, TimeUnit unit) {
+            waitForUnusbscribeMs = unit.toMillis(duration);
+            return this;
+        }
+
+        public Builder<T, R> waitForTerminalEvent(long duration, TimeUnit unit) {
+            waitForTerminalEventMs = unit.toMillis(duration);
+            return this;
+        }
+
+        public Builder<T, R> waitForMoreTerminalEvents(long duration, TimeUnit unit) {
+            waitForMoreTerminalEventsMs = unit.toMillis(duration);
             return this;
         }
 
@@ -62,7 +82,8 @@ public final class TestingHelper {
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed, String name,
                 Optional<Integer> unsubscribeAfter, Optional<Class<? extends Throwable>> expectError) {
             cases.add(new Case<T, R>(from, of(expected), ordered, expectSize,
-                    checkSourceUnsubscribed, function, name, unsubscribeAfter, expectError));
+                    checkSourceUnsubscribed, function, name, unsubscribeAfter, expectError,
+                    waitForUnusbscribeMs, waitForTerminalEventMs, waitForMoreTerminalEventsMs));
             return this;
         }
 
@@ -185,11 +206,16 @@ public final class TestingHelper {
         final boolean ordered;
         private final Optional<Long> expectSize;
         private Optional<Class<? extends Throwable>> expectError = Optional.absent();
+        private final long waitForUnusbscribeMs;
+        private final long waitForTerminalEventMs;
+        private final long waitForMoreTerminalEventsMs;
 
         Case(Observable<T> from, Optional<List<R>> expected, boolean ordered,
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed,
                 Func1<Observable<T>, Observable<R>> function, String name,
-                Optional<Integer> unsubscribeAfter, Optional<Class<? extends Throwable>> expectError) {
+                Optional<Integer> unsubscribeAfter,
+                Optional<Class<? extends Throwable>> expectError, long waitForUnusbscribeMs,
+                long waitForTerminalEventMs, long waitForMoreTerminalEventsMs) {
             this.from = from;
             this.expected = expected;
             this.ordered = ordered;
@@ -199,6 +225,9 @@ public final class TestingHelper {
             this.name = name;
             this.unsubscribeAfter = unsubscribeAfter;
             this.expectError = expectError;
+            this.waitForUnusbscribeMs = waitForUnusbscribeMs;
+            this.waitForTerminalEventMs = waitForTerminalEventMs;
+            this.waitForMoreTerminalEventsMs = waitForMoreTerminalEventsMs;
         }
     }
 
@@ -207,19 +236,19 @@ public final class TestingHelper {
         MyTestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
         c.function.call(c.from.lift(detector)).subscribe(sub);
         if (c.unsubscribeAfter.isPresent()) {
-            waitForUnsubscribe(detector, 100, TimeUnit.MILLISECONDS);
+            waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
             sub.assertNoErrors();
         } else {
-            sub.awaitTerminalEvent(10, TimeUnit.SECONDS);
+            sub.awaitTerminalEvent(c.waitForTerminalEventMs, TimeUnit.MILLISECONDS);
             if (c.expectError.isPresent()) {
                 sub.assertError(c.expectError.get());
                 // wait for more terminal events
-                pause(50, TimeUnit.MILLISECONDS);
+                pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
                 assertEquals(0, sub.numOnCompletedEvents());
             } else {
                 sub.assertNoErrors();
                 // wait for more terminal events
-                pause(50, TimeUnit.MILLISECONDS);
+                pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
                 assertEquals(1, sub.numOnCompletedEvents());
                 sub.assertNoErrors();
             }
@@ -232,10 +261,10 @@ public final class TestingHelper {
         else
             sub.assertUnsubscribed();
         if (c.checkSourceUnsubscribed)
-            waitForUnsubscribe(detector, 100, TimeUnit.MILLISECONDS);
+            waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
     }
 
-    private static void pause(int duration, TimeUnit unit) {
+    private static void pause(long duration, TimeUnit unit) {
         try {
             Thread.sleep(unit.toMillis(duration));
         } catch (InterruptedException e) {
@@ -243,10 +272,10 @@ public final class TestingHelper {
         }
     }
 
-    private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector, int duration,
+    private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector, long duration,
             TimeUnit unit) {
         try {
-            detector.latch().await(duration, unit);
+            assertTrue(detector.latch().await(duration, unit));
         } catch (InterruptedException e) {
             // do nothing
         }
@@ -312,7 +341,7 @@ public final class TestingHelper {
             Assert.assertEquals(count, next.size());
         }
 
-        void awaitTerminalEvent(int duration, TimeUnit unit) {
+        void awaitTerminalEvent(long duration, TimeUnit unit) {
             try {
                 assertTrue(terminalLatch.await(duration, unit));
             } catch (InterruptedException e) {
@@ -477,7 +506,6 @@ public final class TestingHelper {
         protected void runTest() throws Throwable {
             TestingHelper.runTest(c, testType);
         }
-
     }
 
     private static <T> boolean equals(Collection<T> a, Collection<T> b, boolean ordered) {
