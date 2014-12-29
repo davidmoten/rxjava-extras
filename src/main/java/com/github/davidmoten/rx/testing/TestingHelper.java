@@ -41,24 +41,24 @@ public final class TestingHelper {
 
         private Func1<Observable<T>, Observable<R>> function;
 
-        public CaseBuilder<T, R> fromEmpty() {
-            return new CaseBuilder<T, R>(this, Observable.<T> empty(), TEST_UNNAMED);
+        public Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
+            this.function = function;
+            return this;
         }
 
         public CaseBuilder<T, R> name(String name) {
             return new CaseBuilder<T, R>(this, Observable.<T> empty(), name);
         }
 
+        public CaseBuilder<T, R> fromEmpty() {
+            return new CaseBuilder<T, R>(this, Observable.<T> empty(), TEST_UNNAMED);
+        }
+
         public CaseBuilder<T, R> from(T... items) {
             return new CaseBuilder<T, R>(this, Observable.from(items), TEST_UNNAMED);
         }
 
-        public Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
-            this.function = function;
-            return this;
-        }
-
-        public Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
+        Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed, String name,
                 Optional<Integer> unsubscribeAfter, Optional<Class<? extends Throwable>> expectError) {
             cases.add(new Case<T, R>(from, of(expected), ordered, expectSize,
@@ -215,8 +215,8 @@ public final class TestingHelper {
                 sub.assertError(c.expectError.get());
             else {
                 sub.assertNoErrors();
-                // TODO might need a pause here to detect more completed events
-                // for asynchronous sources
+                // wait for more terminal events
+                pause(100, TimeUnit.MILLISECONDS);
                 assertEquals(1, sub.numOnCompletedEvents());
             }
         }
@@ -229,6 +229,14 @@ public final class TestingHelper {
             sub.assertUnsubscribed();
         if (c.checkSourceUnsubscribed)
             waitForUnsubscribe(detector);
+    }
+
+    private static void pause(int duration, TimeUnit unit) {
+        try {
+            Thread.sleep(unit.toMillis(duration));
+        } catch (InterruptedException e) {
+            // do nothing
+        }
     }
 
     private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector) {
