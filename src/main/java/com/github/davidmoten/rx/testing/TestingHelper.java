@@ -73,8 +73,8 @@ public final class TestingHelper {
     }
 
     public static class CaseBuilder<T, R> {
-        private Observable<T> from;
         private final Builder<T, R> builder;
+        private Observable<T> from;
         private boolean checkSourceUnsubscribed = true;
         private Optional<Integer> unsubscribeAfter = Optional.absent();
         private String name;
