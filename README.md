@@ -129,9 +129,7 @@ public class TestingHelperMergeTest extends TestCase {
     public void testDummy() {
         // just here to fool eclipse
     }
-
 }
-
 ```
 
 
