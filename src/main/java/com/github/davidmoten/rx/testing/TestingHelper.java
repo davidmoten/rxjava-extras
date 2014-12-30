@@ -455,7 +455,7 @@ public final class TestingHelper {
 
     @RunWith(Suite.class)
     @SuiteClasses({})
-    public static class AbstractTestSuite<T, R> extends TestSuite {
+    private static class AbstractTestSuite<T, R> extends TestSuite {
 
         AbstractTestSuite(Class<?> cls, List<Case<T, R>> cases) {
             super(cls);
