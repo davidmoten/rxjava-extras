@@ -161,7 +161,7 @@ public final class TestingHelper {
         public Builder<T, R> expectError(Class<? extends Throwable> cls) {
             return builder.expect(from, Collections.<R> emptyList(), true, ABSENT,
                     checkSourceUnsubscribed, name, unsubscribeAfter,
-                    (Optional<Class<? extends Throwable>>) (Optional<?>) Optional.of(cls));
+                    (Optional<Class<? extends Throwable>>) (Optional<?>) of(cls));
         }
 
         public Builder<T, R> expect(R... items) {
@@ -410,11 +410,9 @@ public final class TestingHelper {
         WITHOUT_BACKP, BACKP_INITIAL_REQUEST_MAX, BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE, BACKP_ONE_BY_ONE, BACKP_TWO_BY_TWO, BACKP_REQUEST_ZERO, BACKP_REQUEST_NEGATIVE, BACKP_FIVE_BY_FIVE, BACKP_FIFTY_BY_FIFTY, BACKP_THOUSAND_BY_THOUSAND;
     }
 
-    private static <T> MyTestSubscriber<T> createTestSubscriber(
-            final Optional<Integer> unsubscribeAfter, final Optional<Long> onStartRequest,
-            final Optional<Long> onNextRequest) {
-        return new MyTestSubscriber<T>(unsubscribeAfter, onStartRequest, ABSENT, onNextRequest);
-
+    private static <T> MyTestSubscriber<T> createTestSubscriber(Optional<Integer> unsubscribeAfter,
+            long onStartRequest, Optional<Long> onNextRequest) {
+        return new MyTestSubscriber<T>(unsubscribeAfter, of(onStartRequest), ABSENT, onNextRequest);
     }
 
     private static <T> MyTestSubscriber<T> createTestSubscriber(TestType testType,
@@ -423,11 +421,11 @@ public final class TestingHelper {
         if (testType == TestType.WITHOUT_BACKP)
             return new MyTestSubscriber<T>(unsubscribeAfter);
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX)
-            return createTestSubscriber(unsubscribeAfter, of(Long.MAX_VALUE), ABSENT);
+            return createTestSubscriber(unsubscribeAfter, Long.MAX_VALUE, ABSENT);
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE)
-            return createTestSubscriber(unsubscribeAfter, of(Long.MAX_VALUE), of(1L));
+            return createTestSubscriber(unsubscribeAfter, Long.MAX_VALUE, of(1L));
         else if (testType == TestType.BACKP_ONE_BY_ONE)
-            return createTestSubscriber(unsubscribeAfter, of(1L), of(1L));
+            return createTestSubscriber(unsubscribeAfter, 1L, of(1L));
         else if (testType == TestType.BACKP_REQUEST_ZERO)
             return new MyTestSubscriber<T>(unsubscribeAfter, of(0L), of(1L), of(1L));
         else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
