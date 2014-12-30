@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -28,6 +29,8 @@ import rx.functions.Func1;
 import com.github.davidmoten.util.Optional;
 
 public final class TestingHelper {
+
+    private static Optional<Long> ABSENT = Optional.absent();
 
     public static <T, R> Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
         return new Builder<T, R>().function(function);
@@ -78,6 +81,10 @@ public final class TestingHelper {
             return new CaseBuilder<T, R>(this, Observable.from(items), TEST_UNNAMED);
         }
 
+        public TestSuite testSuite(Class<?> cls) {
+            return new AbstractTestSuite<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
+        }
+
         Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed, String name,
                 Optional<Integer> unsubscribeAfter, Optional<Class<? extends Throwable>> expectError) {
@@ -87,18 +94,14 @@ public final class TestingHelper {
             return this;
         }
 
-        public TestSuite testSuite(Class<?> cls) {
-            return new AbstractTestSuite<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
-        }
-
     }
 
     public static class CaseBuilder<T, R> {
         private final Builder<T, R> builder;
+        private String name;
         private Observable<T> from;
         private boolean checkSourceUnsubscribed = true;
         private Optional<Integer> unsubscribeAfter = Optional.absent();
-        private String name;
 
         private CaseBuilder(Builder<T, R> builder, Observable<T> from, String name) {
             this.builder = builder;
@@ -106,53 +109,9 @@ public final class TestingHelper {
             this.name = name;
         }
 
-        public CaseBuilder<T, R> skipUnsubscribedCheck() {
-            this.checkSourceUnsubscribed = false;
-            return this;
-        }
-
         public CaseBuilder<T, R> name(String name) {
             this.name = name;
             return this;
-        }
-
-        public Builder<T, R> expectEmpty() {
-            return expect(Collections.<R> emptyList());
-        }
-
-        public Builder<T, R> expectError() {
-            return expectError(TestingException.class);
-        }
-
-        @SuppressWarnings("unchecked")
-        public Builder<T, R> expectError(Class<? extends Throwable> cls) {
-            return builder.expect(from, Collections.<R> emptyList(), true,
-                    Optional.<Long> absent(), checkSourceUnsubscribed, name, unsubscribeAfter,
-                    (Optional<Class<? extends Throwable>>) (Optional<?>) Optional.of(cls));
-        }
-
-        public Builder<T, R> expect(R... items) {
-            return expect(Arrays.asList(items));
-        }
-
-        public Builder<T, R> expectSize(long n) {
-            return builder.expect(from, Collections.<R> emptyList(), true, of(n),
-                    checkSourceUnsubscribed, name, unsubscribeAfter,
-                    Optional.<Class<? extends Throwable>> absent());
-        }
-
-        public Builder<T, R> expect(List<R> items) {
-            return expect(items, true);
-        }
-
-        private Builder<T, R> expect(List<R> items, boolean ordered) {
-            return builder.expect(from, items, ordered, Optional.<Long> absent(),
-                    checkSourceUnsubscribed, name, unsubscribeAfter,
-                    Optional.<Class<? extends Throwable>> absent());
-        }
-
-        public Builder<T, R> expect(Set<R> set) {
-            throw new RuntimeException();
         }
 
         public CaseBuilder<T, R> fromEmpty() {
@@ -185,13 +144,56 @@ public final class TestingHelper {
             return this;
         }
 
-        public CaseBuilder<T, R> unsubscribeAfter(int n) {
-            unsubscribeAfter = of(n);
+        public CaseBuilder<T, R> skipUnsubscribedCheck() {
+            this.checkSourceUnsubscribed = false;
             return this;
+        }
+
+        public Builder<T, R> expectEmpty() {
+            return expect(Collections.<R> emptyList());
+        }
+
+        public Builder<T, R> expectError() {
+            return expectError(TestingException.class);
+        }
+
+        @SuppressWarnings("unchecked")
+        public Builder<T, R> expectError(Class<? extends Throwable> cls) {
+            return builder.expect(from, Collections.<R> emptyList(), true, ABSENT,
+                    checkSourceUnsubscribed, name, unsubscribeAfter,
+                    (Optional<Class<? extends Throwable>>) (Optional<?>) Optional.of(cls));
+        }
+
+        public Builder<T, R> expect(R... items) {
+            return expect(Arrays.asList(items));
+        }
+
+        public Builder<T, R> expectSize(long n) {
+            return builder.expect(from, Collections.<R> emptyList(), true, of(n),
+                    checkSourceUnsubscribed, name, unsubscribeAfter,
+                    Optional.<Class<? extends Throwable>> absent());
+        }
+
+        public Builder<T, R> expect(List<R> items) {
+            return expect(items, true);
+        }
+
+        private Builder<T, R> expect(List<R> items, boolean ordered) {
+            return builder.expect(from, items, ordered, ABSENT, checkSourceUnsubscribed, name,
+                    unsubscribeAfter, Optional.<Class<? extends Throwable>> absent());
+        }
+
+        public Builder<T, R> expect(Set<R> set) {
+            throw new RuntimeException();
         }
 
         public Builder<T, R> expectAnyOrder(R... items) {
             return expect(Arrays.asList(items), false);
+        }
+
+        public CaseBuilder<T, R> unsubscribeAfter(int n) {
+            unsubscribeAfter = of(n);
+            return this;
         }
 
     }
@@ -204,11 +206,11 @@ public final class TestingHelper {
         final Func1<Observable<T>, Observable<R>> function;
         final Optional<Integer> unsubscribeAfter;
         final boolean ordered;
-        private final Optional<Long> expectSize;
-        private Optional<Class<? extends Throwable>> expectError = Optional.absent();
-        private final long waitForUnusbscribeMs;
-        private final long waitForTerminalEventMs;
-        private final long waitForMoreTerminalEventsMs;
+        final Optional<Long> expectSize;
+        final Optional<Class<? extends Throwable>> expectError;
+        final long waitForUnusbscribeMs;
+        final long waitForTerminalEventMs;
+        final long waitForMoreTerminalEventsMs;
 
         Case(Observable<T> from, Optional<List<R>> expected, boolean ordered,
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed,
@@ -256,7 +258,7 @@ public final class TestingHelper {
 
         if (c.expected.isPresent())
             sub.assertReceivedOnNext(c.expected.get(), c.ordered);
-        else if (c.expectSize.isPresent())
+        if (c.expectSize.isPresent())
             sub.assertReceivedCountIs(c.expectSize.get());
         else
             sub.assertUnsubscribed();
@@ -283,7 +285,7 @@ public final class TestingHelper {
 
     private static class TestingException extends RuntimeException {
 
-        private static final long serialVersionUID = 1L;
+        private static final long serialVersionUID = 4467514769366847747L;
 
     }
 
@@ -295,21 +297,48 @@ public final class TestingHelper {
         }
     }
 
-    private static class MyTestSubscriber<T> extends Subscriber<T> {
+    private static final class MyTestSubscriber<T> extends Subscriber<T> {
 
+        private final List<T> next = new ArrayList<T>();
+        private final Optional<Long> onStartRequest;
+        private final Optional<Long> onStartRequest2;
+        private final Optional<Long> onNextRequest;
         private final Optional<Integer> unsubscribeAfter;
         private final CountDownLatch terminalLatch;
+        private int completed = 0;
+        private int count = 0;
+        private int errors = 0;
+        private final AtomicLong expected = new AtomicLong();
+        private Optional<Throwable> lastError = Optional.absent();
 
-        MyTestSubscriber(Optional<Integer> unsubscribeAfter) {
+        MyTestSubscriber(Optional<Integer> unsubscribeAfter, final Optional<Long> onStartRequest,
+                final Optional<Long> onStartRequest2, final Optional<Long> onNextRequest) {
             this.unsubscribeAfter = unsubscribeAfter;
+            this.onStartRequest = onStartRequest;
+            this.onStartRequest2 = onStartRequest2;
+            this.onNextRequest = onNextRequest;
             this.terminalLatch = new CountDownLatch(1);
         }
 
-        int completed = 0;
-        int errors = 0;
-        Optional<Throwable> lastError = Optional.absent();
-        int count = 0;
-        final List<T> next = new ArrayList<T>();
+        MyTestSubscriber(Optional<Integer> unsubscribeAfter) {
+            this(unsubscribeAfter, ABSENT, ABSENT, ABSENT);
+        }
+
+        @Override
+        public void onStart() {
+            expected.set(Long.MAX_VALUE);
+            if (onStartRequest.isPresent())
+                requestMore(onStartRequest.get());
+            if (onStartRequest2.isPresent())
+                requestMore(onStartRequest2.get());
+        }
+
+        private void requestMore(long n) {
+            if (expected.get() != Long.MAX_VALUE) {
+                expected.addAndGet(n);
+                request(n);
+            }
+        }
 
         @Override
         public void onCompleted() {
@@ -326,10 +355,19 @@ public final class TestingHelper {
 
         @Override
         public void onNext(T t) {
+            final long exp;
+            if (expected.get() != Long.MAX_VALUE)
+                exp = expected.decrementAndGet();
+            else
+                exp = Long.MAX_VALUE;
             next.add(t);
             count++;
-            if (unsubscribeAfter.isPresent() && count == unsubscribeAfter.get())
+            if (exp < 0)
+                onError(new DeliveredMoreThanRequestedException());
+            else if (unsubscribeAfter.isPresent() && count == unsubscribeAfter.get())
                 unsubscribe();
+            else if (onNextRequest.isPresent() && exp == 0)
+                requestMore(onNextRequest.get());
         }
 
         void assertError(Class<?> cls) {
@@ -375,22 +413,7 @@ public final class TestingHelper {
     private static <T> MyTestSubscriber<T> createTestSubscriber(
             final Optional<Integer> unsubscribeAfter, final Optional<Long> onStartRequest,
             final Optional<Long> onNextRequest) {
-        return new MyTestSubscriber<T>(unsubscribeAfter) {
-
-            @Override
-            public void onStart() {
-                if (onStartRequest.isPresent())
-                    request(onStartRequest.get());
-            }
-
-            @Override
-            public void onNext(T t) {
-                super.onNext(t);
-                if (onNextRequest.isPresent())
-                    request(onNextRequest.get());
-            }
-
-        };
+        return new MyTestSubscriber<T>(unsubscribeAfter, onStartRequest, ABSENT, onNextRequest);
 
     }
 
@@ -400,42 +423,15 @@ public final class TestingHelper {
         if (testType == TestType.WITHOUT_BACKP)
             return new MyTestSubscriber<T>(unsubscribeAfter);
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX)
-            return createTestSubscriber(unsubscribeAfter, of(Long.MAX_VALUE),
-                    Optional.<Long> absent());
+            return createTestSubscriber(unsubscribeAfter, of(Long.MAX_VALUE), ABSENT);
         else if (testType == TestType.BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE)
             return createTestSubscriber(unsubscribeAfter, of(Long.MAX_VALUE), of(1L));
         else if (testType == TestType.BACKP_ONE_BY_ONE)
             return createTestSubscriber(unsubscribeAfter, of(1L), of(1L));
         else if (testType == TestType.BACKP_REQUEST_ZERO)
-            return new MyTestSubscriber<T>(unsubscribeAfter) {
-
-                @Override
-                public void onStart() {
-                    request(0);
-                    request(1);
-                }
-
-                @Override
-                public void onNext(T t) {
-                    super.onNext(t);
-                    request(1);
-                }
-            };
+            return new MyTestSubscriber<T>(unsubscribeAfter, of(0L), of(1L), of(1L));
         else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
-            return new MyTestSubscriber<T>(unsubscribeAfter) {
-
-                @Override
-                public void onStart() {
-                    request(-1000);
-                    request(1);
-                }
-
-                @Override
-                public void onNext(T t) {
-                    super.onNext(t);
-                    request(1);
-                }
-            };
+            return new MyTestSubscriber<T>(unsubscribeAfter, of(-1000L), of(1L), of(1L));
         else if (testType == TestType.BACKP_TWO_BY_TWO)
             return createTestSubscriberWithBackpNbyN(2, unsubscribeAfter);
         else if (testType == TestType.BACKP_FIVE_BY_FIVE)
@@ -449,33 +445,9 @@ public final class TestingHelper {
 
     }
 
-    private static <T> MyTestSubscriber<T> createTestSubscriberWithBackpNbyN(final int requestSize,
-            final Optional<Integer> unsubscribeAfter) {
-        return new MyTestSubscriber<T>(unsubscribeAfter) {
-            long expected = 0;
-
-            @Override
-            public void onStart() {
-                requestMore();
-            }
-
-            private void requestMore() {
-                if (expected != Long.MAX_VALUE)
-                    expected += requestSize;
-                request(requestSize);
-            }
-
-            @Override
-            public void onNext(T t) {
-                if (expected != Long.MAX_VALUE)
-                    expected--;
-                super.onNext(t);
-                if (expected < 0)
-                    onError(new DeliveredMoreThanRequestedException());
-                else if (expected == 0)
-                    requestMore();
-            }
-        };
+    private static <T> MyTestSubscriber<T> createTestSubscriberWithBackpNbyN(
+            final long requestSize, final Optional<Integer> unsubscribeAfter) {
+        return new MyTestSubscriber<T>(unsubscribeAfter, of(requestSize), ABSENT, of(requestSize));
     }
 
     @RunWith(Suite.class)
