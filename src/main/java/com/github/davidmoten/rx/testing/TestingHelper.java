@@ -326,7 +326,11 @@ public final class TestingHelper {
 
         @Override
         public void onStart() {
-            expected.set(Long.MAX_VALUE);
+            if (!onStartRequest.isPresent() && !onStartRequest2.isPresent())
+                // if nothing requested in onStart then must be requesting all
+                expected.set(Long.MAX_VALUE);
+            else
+                expected.set(0);
             if (onStartRequest.isPresent())
                 requestMore(onStartRequest.get());
             if (onStartRequest2.isPresent())
@@ -335,7 +339,8 @@ public final class TestingHelper {
 
         private void requestMore(long n) {
             if (expected.get() != Long.MAX_VALUE) {
-                expected.addAndGet(n);
+                if (n > 0)
+                    expected.addAndGet(n);
                 request(n);
             }
         }
@@ -359,7 +364,7 @@ public final class TestingHelper {
             if (expected.get() != Long.MAX_VALUE)
                 exp = expected.decrementAndGet();
             else
-                exp = Long.MAX_VALUE;
+                exp = expected.get();
             next.add(t);
             count++;
             if (exp < 0)
