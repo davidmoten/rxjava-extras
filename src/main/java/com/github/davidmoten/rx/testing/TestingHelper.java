@@ -28,10 +28,20 @@ import rx.functions.Func1;
 
 import com.github.davidmoten.util.Optional;
 
+/**
+ * Testing utility functions.
+ */
 public final class TestingHelper {
 
     private static Optional<Long> ABSENT = Optional.absent();
 
+    /**
+     * Sets the transformation to be tested.
+     * 
+     * @param function
+     *            the transformation to be tested
+     * @return builder
+     */
     public static <T, R> Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
         return new Builder<T, R>().function(function);
     }
