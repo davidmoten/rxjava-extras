@@ -60,17 +60,24 @@ public class CountTest extends TestCase {
 
     public static TestSuite suite() {
 
-        return TestingHelper.function(o -> o.count())
+        return TestingHelper
+                .function(COUNT)
                 // test empty
-                .name("testCountOfEmptyReturnsEmpty").fromEmpty().expect(0)
+                .name("testCountOfEmptyReturnsEmpty").fromEmpty()
+                .expect(0)
                 // test error
-                .name("testCountErrorReturnsError").fromError().expectError()
+                .name("testCountErrorReturnsError").fromError()
+                .expectError()
+                // test error after some emission
+                .name("testCountErrorAfterTwoEmissionsReturnsError").fromErrorAfter(5, 6)
+                .expectError()
                 // test non-empty count
                 .name("testCountOfTwoReturnsTwo").from(5, 6).expect(2)
                 // test single input
                 .name("testCountOfOneReturnsOne").from(5).expect(1)
-                // unsub before completions
-                .name("testCountofThreeReturnsOneWhenUnsubscribedAfterOne").from(5, 6, 7).expect(3)
+                // count many
+                .name("testCountOfManyDoesNotGiveStackOverflow").from(Observable.range(1, 1000000))
+                .expect(1000000)
                 // get test suites
                 .testSuite(TestingHelperCountTest.class);
     }
