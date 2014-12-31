@@ -42,6 +42,7 @@ For each variation the following aspects are tested:
 * unsubscribe from source occurs (for completion, error or explicit downstream unsubscription (optional))
 * unsubscribe from downstream subscriber occurs
 * ```onCompleted``` called (if unsubscribe not requested before completion and no errors expected)
+* if ```onCompleted``` expected is only called once
 * ```onError``` not called unless error expected
 * if error expected ```onCompleted``` not called after ```onError```
 * should not deliver more than requested
