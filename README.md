@@ -61,7 +61,7 @@ public class CountTest extends TestCase {
     public static TestSuite suite() {
 
         return TestingHelper
-                .function(COUNT)
+                .function(o -> o.count())
                 // test empty
                 .name("testCountOfEmptyReturnsEmpty")
                 .fromEmpty()
