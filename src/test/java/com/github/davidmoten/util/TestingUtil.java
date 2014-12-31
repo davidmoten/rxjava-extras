@@ -9,8 +9,6 @@ import java.lang.reflect.Modifier;
 /**
  * Utility methods for unit tests.
  * 
- * @author dave
- * 
  */
 public class TestingUtil {
 
