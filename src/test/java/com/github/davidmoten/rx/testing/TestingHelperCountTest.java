@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx;
+package com.github.davidmoten.rx.testing;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;

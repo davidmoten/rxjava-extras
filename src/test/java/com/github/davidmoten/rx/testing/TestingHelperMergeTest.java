@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx;
+package com.github.davidmoten.rx.testing;
 
 import static java.util.Arrays.asList;
 
