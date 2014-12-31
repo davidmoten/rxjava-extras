@@ -27,6 +27,7 @@ import rx.Subscriber;
 import rx.functions.Func1;
 
 import com.github.davidmoten.util.Optional;
+import com.github.davidmoten.util.Preconditions;
 
 /**
  * Testing utility functions.
@@ -48,7 +49,6 @@ public final class TestingHelper {
 
     public static class Builder<T, R> {
 
-        private static final String TEST_UNNAMED = "testUnnamed";
         private final List<Case<T, R>> cases = new ArrayList<Case<T, R>>();
         private Func1<Observable<T>, Observable<R>> function;
         private long waitForUnusbscribeMs = 100;
@@ -81,14 +81,6 @@ public final class TestingHelper {
 
         public CaseBuilder<T, R> name(String name) {
             return new CaseBuilder<T, R>(this, Observable.<T> empty(), name);
-        }
-
-        public CaseBuilder<T, R> fromEmpty() {
-            return new CaseBuilder<T, R>(this, Observable.<T> empty(), TEST_UNNAMED);
-        }
-
-        public CaseBuilder<T, R> from(T... items) {
-            return new CaseBuilder<T, R>(this, Observable.from(items), TEST_UNNAMED);
         }
 
         public TestSuite testSuite(Class<?> cls) {
@@ -228,6 +220,13 @@ public final class TestingHelper {
                 Optional<Integer> unsubscribeAfter,
                 Optional<Class<? extends Throwable>> expectError, long waitForUnusbscribeMs,
                 long waitForTerminalEventMs, long waitForMoreTerminalEventsMs) {
+            Preconditions.checkNotNull(from);
+            Preconditions.checkNotNull(expected);
+            Preconditions.checkNotNull(expectSize);
+            Preconditions.checkNotNull(function);
+            Preconditions.checkNotNull(name);
+            Preconditions.checkNotNull(unsubscribeAfter);
+            Preconditions.checkNotNull(expectError);
             this.from = from;
             this.expected = expected;
             this.ordered = ordered;
@@ -494,7 +493,11 @@ public final class TestingHelper {
     }
 
     private static <T> boolean equals(Collection<T> a, Collection<T> b, boolean ordered) {
-        if (a.size() != b.size())
+        if (a == null)
+            return b == null;
+        else if (b == null)
+            return a == null;
+        else if (a.size() != b.size())
             return false;
         else if (ordered)
             return a.equals(b);
