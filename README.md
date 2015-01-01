@@ -39,9 +39,10 @@ This helper class still in development. For a given named test the following var
 For each variation the following aspects are tested:
 
 * expected *onNext* items received
-* unsubscribe from source occurs (for completion, error or explicit downstream unsubscription)
+* unsubscribe from source occurs (for completion, error or explicit downstream unsubscription (optional))
 * unsubscribe from downstream subscriber occurs
 * ```onCompleted``` called (if unsubscribe not requested before completion and no errors expected)
+* if ```onCompleted``` expected is only called once
 * ```onError``` not called unless error expected
 * if error expected ```onCompleted``` not called after ```onError```
 * should not deliver more than requested
@@ -59,17 +60,32 @@ public class CountTest extends TestCase {
 
     public static TestSuite suite() {
 
-        return TestingHelper.function(o -> o.count())
+        return TestingHelper
+                .function(o -> o.count())
                 // test empty
-                .name("testCountOfEmptyReturnsEmpty").fromEmpty().expect(0)
+                .name("testCountOfEmptyReturnsEmpty")
+                .fromEmpty()
+                .expect(0)
                 // test error
-                .name("testCountErrorReturnsError").fromError().expectError()
+                .name("testCountErrorReturnsError")
+                .fromError()
+                .expectError()
+                // test error after some emission
+                .name("testCountErrorAfterTwoEmissionsReturnsError")
+                .fromErrorAfter(5, 6)
+                .expectError()
                 // test non-empty count
-                .name("testCountOfTwoReturnsTwo").from(5, 6).expect(2)
+                .name("testCountOfTwoReturnsTwo")
+                .from(5, 6)
+                .expect(2)
                 // test single input
-                .name("testCountOfOneReturnsOne").from(5).expect(1)
-                // unsub before completions
-                .name("testCountofThreeReturnsOneWhenUnsubscribedAfterOne").from(5, 6, 7).expect(3)
+                .name("testCountOfOneReturnsOne")
+                .from(5)
+                .expect(1)
+                // count many
+                .name("testCountOfManyDoesNotGiveStackOverflow")
+                .from(Observable.range(1, 1000000))
+                .expect(1000000)
                 // get test suites
                 .testSuite(TestingHelperCountTest.class);
     }
