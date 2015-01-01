@@ -23,7 +23,7 @@ Maven site reports are [here](http://davidmoten.github.io/rxjava-extras/index.ht
 
 TestingHelper
 -----------------
-This helper class still in development. For a given named test the following variations  are tested:
+This [helper class](src/main/java/com/github/davidmoten/rx/testing/TestingHelper.java) still in development. For a given named test the following variations  are tested:
 
 * without backpressure
 * intiial request maximum, no further request 
