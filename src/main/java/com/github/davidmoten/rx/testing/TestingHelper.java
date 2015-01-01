@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import org.junit.Assert;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
@@ -399,12 +398,12 @@ public final class TestingHelper {
         }
 
         void assertError(Class<?> cls) {
-            Assert.assertEquals(1, errors);
-            Assert.assertTrue(cls.isInstance(lastError.get()));
+            assertEquals(1, errors);
+            assertTrue(cls.isInstance(lastError.get()));
         }
 
         void assertReceivedCountIs(long count) {
-            Assert.assertEquals(count, next.size());
+            assertEquals(count, next.size());
         }
 
         void awaitTerminalEvent(long duration, TimeUnit unit) {
