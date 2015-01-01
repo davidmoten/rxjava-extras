@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -37,11 +36,12 @@ public final class TestingHelper {
     private static Optional<Long> ABSENT = Optional.absent();
 
     /**
-     * Sets the transformation to be tested.
+     * Sets the transformation to be tested and returns a builder to create test
+     * cases.
      * 
      * @param function
      *            the transformation to be tested
-     * @return builder
+     * @return builder for creating test cases
      */
     public static <T, R> Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
         return new Builder<T, R>().function(function);
@@ -60,30 +60,36 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
+            Preconditions.checkNotNull(function);
             this.function = function;
             return this;
         }
 
         public Builder<T, R> waitForUnsubscribe(long duration, TimeUnit unit) {
+            Preconditions.checkNotNull(unit);
             waitForUnusbscribeMs = unit.toMillis(duration);
             return this;
         }
 
         public Builder<T, R> waitForTerminalEvent(long duration, TimeUnit unit) {
+            Preconditions.checkNotNull(unit);
             waitForTerminalEventMs = unit.toMillis(duration);
             return this;
         }
 
         public Builder<T, R> waitForMoreTerminalEvents(long duration, TimeUnit unit) {
+            Preconditions.checkNotNull(unit);
             waitForMoreTerminalEventsMs = unit.toMillis(duration);
             return this;
         }
 
         public CaseBuilder<T, R> name(String name) {
+            Preconditions.checkNotNull(name);
             return new CaseBuilder<T, R>(this, Observable.<T> empty(), name);
         }
 
         public TestSuite testSuite(Class<?> cls) {
+            Preconditions.checkNotNull(cls);
             return new AbstractTestSuite<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
         }
 
@@ -106,12 +112,16 @@ public final class TestingHelper {
         private Optional<Integer> unsubscribeAfter = Optional.absent();
 
         private CaseBuilder(Builder<T, R> builder, Observable<T> from, String name) {
+            Preconditions.checkNotNull(builder);
+            Preconditions.checkNotNull(from);
+            Preconditions.checkNotNull(name);
             this.builder = builder;
             this.from = from;
             this.name = name;
         }
 
         public CaseBuilder<T, R> name(String name) {
+            Preconditions.checkNotNull(name);
             this.name = name;
             return this;
         }
@@ -122,11 +132,13 @@ public final class TestingHelper {
         }
 
         public CaseBuilder<T, R> from(T... items) {
+            Preconditions.checkNotNull(items);
             from = Observable.from(items);
             return this;
         }
 
         public CaseBuilder<T, R> from(Observable<T> items) {
+            Preconditions.checkNotNull(items);
             from = items;
             return this;
         }
@@ -137,11 +149,13 @@ public final class TestingHelper {
         }
 
         public CaseBuilder<T, R> fromErrorAfter(T... items) {
+            Preconditions.checkNotNull(items);
             from = Observable.from(items).concatWith(Observable.<T> error(new TestingException()));
             return this;
         }
 
         public CaseBuilder<T, R> fromErrorAfter(Observable<T> items) {
+            Preconditions.checkNotNull(items);
             from = items;
             return this;
         }
@@ -161,12 +175,14 @@ public final class TestingHelper {
 
         @SuppressWarnings("unchecked")
         public Builder<T, R> expectError(Class<? extends Throwable> cls) {
+            Preconditions.checkNotNull(cls);
             return builder.expect(from, Collections.<R> emptyList(), true, ABSENT,
                     checkSourceUnsubscribed, name, unsubscribeAfter,
                     (Optional<Class<? extends Throwable>>) (Optional<?>) of(cls));
         }
 
         public Builder<T, R> expect(R... items) {
+            Preconditions.checkNotNull(items);
             return expect(Arrays.asList(items));
         }
 
@@ -177,6 +193,7 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> expect(List<R> items) {
+            Preconditions.checkNotNull(items);
             return expect(items, true);
         }
 
@@ -185,11 +202,8 @@ public final class TestingHelper {
                     unsubscribeAfter, Optional.<Class<? extends Throwable>> absent());
         }
 
-        public Builder<T, R> expect(Set<R> set) {
-            throw new RuntimeException();
-        }
-
         public Builder<T, R> expectAnyOrder(R... items) {
+            Preconditions.checkNotNull(items);
             return expect(Arrays.asList(items), false);
         }
 
@@ -445,20 +459,20 @@ public final class TestingHelper {
         else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
             return new MyTestSubscriber<T>(unsubscribeAfter, of(-1000L), of(1L), of(1L));
         else if (testType == TestType.BACKP_TWO_BY_TWO)
-            return createTestSubscriberWithBackpNbyN(2, unsubscribeAfter);
+            return createTestSubscriberWithBackpNbyN(unsubscribeAfter, 2);
         else if (testType == TestType.BACKP_FIVE_BY_FIVE)
-            return createTestSubscriberWithBackpNbyN(5, unsubscribeAfter);
+            return createTestSubscriberWithBackpNbyN(unsubscribeAfter, 5);
         else if (testType == TestType.BACKP_FIFTY_BY_FIFTY)
-            return createTestSubscriberWithBackpNbyN(2, unsubscribeAfter);
+            return createTestSubscriberWithBackpNbyN(unsubscribeAfter, 50);
         else if (testType == TestType.BACKP_THOUSAND_BY_THOUSAND)
-            return createTestSubscriberWithBackpNbyN(2, unsubscribeAfter);
+            return createTestSubscriberWithBackpNbyN(unsubscribeAfter, 1000);
         else
             throw new RuntimeException(testType + " not implemented");
 
     }
 
     private static <T> MyTestSubscriber<T> createTestSubscriberWithBackpNbyN(
-            final long requestSize, final Optional<Integer> unsubscribeAfter) {
+            final Optional<Integer> unsubscribeAfter, final long requestSize) {
         return new MyTestSubscriber<T>(unsubscribeAfter, of(requestSize), ABSENT, of(requestSize));
     }
 
