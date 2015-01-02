@@ -100,7 +100,7 @@ public final class TestingHelper {
             return new AbstractTestSuite<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
         }
 
-        Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
+        private Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed, String name,
                 Optional<Integer> unsubscribeAfter, Optional<Class<? extends Throwable>> expectError) {
             cases.add(new Case<T, R>(from, of(expected), ordered, expectSize,
