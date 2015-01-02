@@ -32,7 +32,7 @@ import com.github.davidmoten.util.Preconditions;
  */
 public final class TestingHelper {
 
-    private static Optional<Long> ABSENT = Optional.absent();
+    private static final Optional<Long> ABSENT = Optional.absent();
 
     /**
      * Sets the transformation to be tested and returns a builder to create test
@@ -46,6 +46,14 @@ public final class TestingHelper {
         return new Builder<T, R>().function(function);
     }
 
+    /**
+     * Defines test cases and builds a JUnit test suite.
+     * 
+     * @param <T>
+     *            type of the from side of the transformation being tested
+     * @param <R>
+     *            type of the to side of the transformation being tested
+     */
     public static class Builder<T, R> {
 
         private final List<Case<T, R>> cases = new ArrayList<Case<T, R>>();
@@ -311,6 +319,10 @@ public final class TestingHelper {
 
     }
 
+    /**
+     * RuntimeException implementation to represent the situation of more items
+     * being delivered by a source than are requested via backpressure.
+     */
     public static class DeliveredMoreThanRequestedException extends RuntimeException {
         private static final long serialVersionUID = 1369440545774454215L;
 
@@ -363,6 +375,7 @@ public final class TestingHelper {
             if (expected.get() != Long.MAX_VALUE) {
                 if (n > 0)
                     expected.addAndGet(n);
+                // allow zero or negative requests to pass through as a test
                 request(n);
             }
         }
