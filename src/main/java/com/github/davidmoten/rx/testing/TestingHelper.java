@@ -67,36 +67,36 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
-            Preconditions.checkNotNull(function);
+            Preconditions.checkNotNull(function, "function cannot be null");
             this.function = function;
             return this;
         }
 
         public Builder<T, R> waitForUnsubscribe(long duration, TimeUnit unit) {
-            Preconditions.checkNotNull(unit);
+            Preconditions.checkNotNull(unit, "unit cannot be null");
             waitForUnusbscribeMs = unit.toMillis(duration);
             return this;
         }
 
         public Builder<T, R> waitForTerminalEvent(long duration, TimeUnit unit) {
-            Preconditions.checkNotNull(unit);
+            Preconditions.checkNotNull(unit, "unit cannot be null");
             waitForTerminalEventMs = unit.toMillis(duration);
             return this;
         }
 
         public Builder<T, R> waitForMoreTerminalEvents(long duration, TimeUnit unit) {
-            Preconditions.checkNotNull(unit);
+            Preconditions.checkNotNull(unit, "unit cannot be null");
             waitForMoreTerminalEventsMs = unit.toMillis(duration);
             return this;
         }
 
         public CaseBuilder<T, R> name(String name) {
-            Preconditions.checkNotNull(name);
+            Preconditions.checkNotNull(name, "name cannot be null");
             return new CaseBuilder<T, R>(this, Observable.<T> empty(), name);
         }
 
         public TestSuite testSuite(Class<?> cls) {
-            Preconditions.checkNotNull(cls);
+            Preconditions.checkNotNull(cls, "cls cannot be null");
             return new AbstractTestSuite<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
         }
 
@@ -128,7 +128,7 @@ public final class TestingHelper {
         }
 
         public CaseBuilder<T, R> name(String name) {
-            Preconditions.checkNotNull(name);
+            Preconditions.checkNotNull(name, "name cannot be null");
             this.name = name;
             return this;
         }
@@ -138,15 +138,15 @@ public final class TestingHelper {
             return this;
         }
 
-        public CaseBuilder<T, R> from(T... items) {
-            Preconditions.checkNotNull(items);
-            from = Observable.from(items);
+        public CaseBuilder<T, R> from(T... source) {
+            Preconditions.checkNotNull(source, "source cannot be null");
+            from = Observable.from(source);
             return this;
         }
 
-        public CaseBuilder<T, R> from(Observable<T> items) {
-            Preconditions.checkNotNull(items);
-            from = items;
+        public CaseBuilder<T, R> from(Observable<T> source) {
+            Preconditions.checkNotNull(source, "source cannot be null");
+            from = source;
             return this;
         }
 
@@ -155,15 +155,15 @@ public final class TestingHelper {
             return this;
         }
 
-        public CaseBuilder<T, R> fromErrorAfter(T... items) {
-            Preconditions.checkNotNull(items);
-            from = Observable.from(items).concatWith(Observable.<T> error(new TestingException()));
+        public CaseBuilder<T, R> fromErrorAfter(T... source) {
+            Preconditions.checkNotNull(source, "source cannot be null");
+            from = Observable.from(source).concatWith(Observable.<T> error(new TestingException()));
             return this;
         }
 
-        public CaseBuilder<T, R> fromErrorAfter(Observable<T> items) {
-            Preconditions.checkNotNull(items);
-            from = items;
+        public CaseBuilder<T, R> fromErrorAfter(Observable<T> source) {
+            Preconditions.checkNotNull(source, "source cannot be null");
+            from = source;
             return this;
         }
 
@@ -182,15 +182,15 @@ public final class TestingHelper {
 
         @SuppressWarnings("unchecked")
         public Builder<T, R> expectError(Class<? extends Throwable> cls) {
-            Preconditions.checkNotNull(cls);
+            Preconditions.checkNotNull(cls, "cls cannot be null");
             return builder.expect(from, Collections.<R> emptyList(), true, ABSENT,
                     checkSourceUnsubscribed, name, unsubscribeAfter,
                     (Optional<Class<? extends Throwable>>) (Optional<?>) of(cls));
         }
 
-        public Builder<T, R> expect(R... items) {
-            Preconditions.checkNotNull(items);
-            return expect(Arrays.asList(items));
+        public Builder<T, R> expect(R... source) {
+            Preconditions.checkNotNull(source, "source cannot be null");
+            return expect(Arrays.asList(source));
         }
 
         public Builder<T, R> expectSize(long n) {
@@ -199,9 +199,9 @@ public final class TestingHelper {
                     Optional.<Class<? extends Throwable>> absent());
         }
 
-        public Builder<T, R> expect(List<R> items) {
-            Preconditions.checkNotNull(items);
-            return expect(items, true);
+        public Builder<T, R> expect(List<R> source) {
+            Preconditions.checkNotNull(source, "source cannot be null");
+            return expect(source, true);
         }
 
         private Builder<T, R> expect(List<R> items, boolean ordered) {
@@ -209,9 +209,9 @@ public final class TestingHelper {
                     unsubscribeAfter, Optional.<Class<? extends Throwable>> absent());
         }
 
-        public Builder<T, R> expectAnyOrder(R... items) {
-            Preconditions.checkNotNull(items);
-            return expect(Arrays.asList(items), false);
+        public Builder<T, R> expectAnyOrder(R... source) {
+            Preconditions.checkNotNull(source, "source cannot be null");
+            return expect(Arrays.asList(source), false);
         }
 
         public CaseBuilder<T, R> unsubscribeAfter(int n) {
