@@ -97,7 +97,7 @@ public final class TestingHelper {
 
         public TestSuite testSuite(Class<?> cls) {
             Preconditions.checkNotNull(cls, "cls cannot be null");
-            return new AbstractTestSuite<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
+            return new TestSuiteFromCases<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
         }
 
         private Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
@@ -269,7 +269,8 @@ public final class TestingHelper {
         c.function.call(c.from.lift(detector)).subscribe(sub);
         if (c.unsubscribeAfter.isPresent()) {
             waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
-            sub.assertNoErrors();
+            // if unsubscribe has occurred there is no mandated behaviour in
+            // terms of terminal events so we don't check them
         } else {
             sub.awaitTerminalEvent(c.waitForTerminalEventMs, TimeUnit.MILLISECONDS);
             if (c.expectError.isPresent()) {
@@ -290,8 +291,7 @@ public final class TestingHelper {
             sub.assertReceivedOnNext(c.expected.get(), c.ordered);
         if (c.expectSize.isPresent())
             sub.assertReceivedCountIs(c.expectSize.get());
-        else
-            sub.assertUnsubscribed();
+        sub.assertUnsubscribed();
         if (c.checkSourceUnsubscribed)
             waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
     }
@@ -310,24 +310,6 @@ public final class TestingHelper {
             assertTrue(detector.latch().await(duration, unit));
         } catch (InterruptedException e) {
             // do nothing
-        }
-    }
-
-    private static class TestingException extends RuntimeException {
-
-        private static final long serialVersionUID = 4467514769366847747L;
-
-    }
-
-    /**
-     * RuntimeException implementation to represent the situation of more items
-     * being delivered by a source than are requested via backpressure.
-     */
-    public static class DeliveredMoreThanRequestedException extends RuntimeException {
-        private static final long serialVersionUID = 1369440545774454215L;
-
-        public DeliveredMoreThanRequestedException() {
-            super("more items arrived than requested");
         }
     }
 
@@ -490,9 +472,9 @@ public final class TestingHelper {
 
     @RunWith(Suite.class)
     @SuiteClasses({})
-    private static class AbstractTestSuite<T, R> extends TestSuite {
+    private static class TestSuiteFromCases<T, R> extends TestSuite {
 
-        AbstractTestSuite(Class<?> cls, List<Case<T, R>> cases) {
+        TestSuiteFromCases(Class<?> cls, List<Case<T, R>> cases) {
             super(cls);
             for (Case<T, R> c : cases) {
                 for (TestType testType : TestType.values())
@@ -534,6 +516,24 @@ public final class TestingHelper {
                     return false;
             }
             return true;
+        }
+    }
+
+    private static class TestingException extends RuntimeException {
+
+        private static final long serialVersionUID = 4467514769366847747L;
+
+    }
+
+    /**
+     * RuntimeException implementation to represent the situation of more items
+     * being delivered by a source than are requested via backpressure.
+     */
+    public static class DeliveredMoreThanRequestedException extends RuntimeException {
+        private static final long serialVersionUID = 1369440545774454215L;
+
+        public DeliveredMoreThanRequestedException() {
+            super("more items arrived than requested");
         }
     }
 }
