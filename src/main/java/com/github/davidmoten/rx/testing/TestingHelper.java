@@ -1,8 +1,6 @@
 package com.github.davidmoten.rx.testing;
 
 import static com.github.davidmoten.util.Optional.of;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -98,6 +96,10 @@ public final class TestingHelper {
         public TestSuite testSuite(Class<?> cls) {
             Preconditions.checkNotNull(cls, "cls cannot be null");
             return new TestSuiteFromCases<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
+        }
+
+        public List<Case<T, R>> cases() {
+            return new ArrayList<Case<T, R>>(this.cases);
         }
 
         private Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
@@ -277,12 +279,14 @@ public final class TestingHelper {
                 sub.assertError(c.expectError.get());
                 // wait for more terminal events
                 pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
-                assertEquals(0, sub.numOnCompletedEvents());
+                int n = sub.numOnCompletedEvents();
+                assertEquals(0, n, "number of onCompleted events was expected to be 0 but was " + n);
             } else {
                 sub.assertNoErrors();
                 // wait for more terminal events
                 pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
-                assertEquals(1, sub.numOnCompletedEvents());
+                int n = sub.numOnCompletedEvents();
+                assertEquals(1, n, "number of onCompleted events was expected to be 1 but was " + n);
                 sub.assertNoErrors();
             }
         }
@@ -296,6 +300,10 @@ public final class TestingHelper {
             waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
     }
 
+    private static void assertEquals(long expected, long value, String message) {
+        assertTrue(expected == value, message + ", expected=" + expected + ", actual=" + value);
+    }
+
     private static void pause(long duration, TimeUnit unit) {
         try {
             Thread.sleep(unit.toMillis(duration));
@@ -307,10 +315,16 @@ public final class TestingHelper {
     private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector, long duration,
             TimeUnit unit) {
         try {
-            assertTrue(detector.latch().await(duration, unit));
+            assertTrue(detector.latch().await(duration, unit),
+                    "source unsubscription did not occur within timeout " + duration + " " + unit);
         } catch (InterruptedException e) {
             // do nothing
         }
+    }
+
+    private static void assertTrue(boolean value, String message) {
+        if (!value)
+            throw new AssertionException(message);
     }
 
     private static final class MyTestSubscriber<T> extends Subscriber<T> {
@@ -393,17 +407,21 @@ public final class TestingHelper {
         }
 
         void assertError(Class<?> cls) {
-            assertEquals(1, errors);
-            assertTrue(cls.isInstance(lastError.get()));
+            int n = errors;
+            assertEquals(1, n, "expected 1 error but was " + errors);
+            assertTrue(cls.isInstance(lastError.get()), "expected error of type " + cls
+                    + " but was " + lastError.get());
         }
 
         void assertReceivedCountIs(long count) {
-            assertEquals(count, next.size());
+            assertEquals(count, next.size(), "expected to receive " + count + " items but was "
+                    + next.size());
         }
 
         void awaitTerminalEvent(long duration, TimeUnit unit) {
             try {
-                assertTrue(terminalLatch.await(duration, unit));
+                assertTrue(terminalLatch.await(duration, unit),
+                        "timed out waiting for terminal event after " + duration + " " + unit);
             } catch (InterruptedException e) {
             }
         }
@@ -413,7 +431,7 @@ public final class TestingHelper {
         }
 
         void assertUnsubscribed() {
-            assertTrue(super.isUnsubscribed());
+            assertTrue(super.isUnsubscribed(), "subscriber was not unsubscribed");
         }
 
         int numOnCompletedEvents() {
@@ -423,7 +441,7 @@ public final class TestingHelper {
         void assertNoErrors() {
             if (errors > 0)
                 lastError.get().printStackTrace();
-            assertEquals(0, errors);
+            assertEquals(0, errors, "expecting 0 errors but there were " + errors);
         }
 
     }
@@ -535,5 +553,15 @@ public final class TestingHelper {
         public DeliveredMoreThanRequestedException() {
             super("more items arrived than requested");
         }
+    }
+
+    public static class AssertionException extends RuntimeException {
+
+        private static final long serialVersionUID = -6846674323693517388L;
+
+        public AssertionException(String message) {
+            super(message);
+        }
+
     }
 }
