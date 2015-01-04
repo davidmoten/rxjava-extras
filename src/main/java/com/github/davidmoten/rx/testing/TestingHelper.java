@@ -272,7 +272,7 @@ public final class TestingHelper {
 
     }
 
-    private static class Case<T, R> {
+    static class Case<T, R> {
         final String name;
         final Observable<T> from;
         final Optional<List<R>> expected;
