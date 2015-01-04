@@ -23,7 +23,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.target>1.6</maven.compiler.target>
-		<rxjava.version>1.0.3</rxjava.version>
+		<rxjava.version>1.0.4</rxjava.version>
 
 		<cobertura.version>2.6</cobertura.version>
 		<checkstyle.version>2.11</checkstyle.version>

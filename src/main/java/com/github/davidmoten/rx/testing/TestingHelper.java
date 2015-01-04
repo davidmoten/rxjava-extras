@@ -312,6 +312,11 @@ public final class TestingHelper {
         }
     }
 
+    private static void assertTrue(boolean value, String message) {
+        if (!value)
+            throw new AssertionException(message);
+    }
+
     private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector, long duration,
             TimeUnit unit) {
         try {
@@ -320,11 +325,6 @@ public final class TestingHelper {
         } catch (InterruptedException e) {
             // do nothing
         }
-    }
-
-    private static void assertTrue(boolean value, String message) {
-        if (!value)
-            throw new AssertionException(message);
     }
 
     private static final class MyTestSubscriber<T> extends Subscriber<T> {
