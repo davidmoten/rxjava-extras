@@ -64,42 +64,91 @@ public final class TestingHelper {
             // must instantiate via TestingHelper.function method above
         }
 
+        /**
+         * Sets transformation to be tested and returns the current builder.
+         * 
+         * @param function
+         *            transformation to be tested
+         * @return builder
+         */
         public Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
             Preconditions.checkNotNull(function, "function cannot be null");
             this.function = function;
             return this;
         }
 
+        /**
+         * Sets duration to wait for unusubscription to occur (either of source
+         * or of downstream subscriber).
+         * 
+         * @param duration
+         *            number of time units
+         * @param unit
+         *            time unit
+         * @return builder
+         */
         public Builder<T, R> waitForUnsubscribe(long duration, TimeUnit unit) {
             Preconditions.checkNotNull(unit, "unit cannot be null");
             waitForUnusbscribeMs = unit.toMillis(duration);
             return this;
         }
 
+        /**
+         * Sets duration to wait for a terminal event (completed or error) when
+         * one is expected.
+         * 
+         * @param duration
+         *            number of time units
+         * @param unit
+         *            time unit
+         * @return builder
+         */
         public Builder<T, R> waitForTerminalEvent(long duration, TimeUnit unit) {
             Preconditions.checkNotNull(unit, "unit cannot be null");
             waitForTerminalEventMs = unit.toMillis(duration);
             return this;
         }
 
+        /**
+         * Sets duration to wait for more terminal events after one has been
+         * received.
+         * 
+         * @param duration
+         *            number of time units
+         * @param unit
+         *            time unit
+         * @return builder
+         */
         public Builder<T, R> waitForMoreTerminalEvents(long duration, TimeUnit unit) {
             Preconditions.checkNotNull(unit, "unit cannot be null");
             waitForMoreTerminalEventsMs = unit.toMillis(duration);
             return this;
         }
 
+        /**
+         * Sets the name of the test which is used in the name of a junit test.
+         * 
+         * @param name
+         *            name of the test
+         * @return case builder
+         */
         public CaseBuilder<T, R> name(String name) {
             Preconditions.checkNotNull(name, "name cannot be null");
             return new CaseBuilder<T, R>(this, Observable.<T> empty(), name);
         }
 
+        /**
+         * Returns the JUnit {@link TestSuite} comprised of the test cases
+         * created so far. The cases will be listed under the root test named
+         * according to the given class.
+         * 
+         * @param cls
+         *            class corresponding to the tests root
+         * @return test suite
+         */
         public TestSuite testSuite(Class<?> cls) {
             Preconditions.checkNotNull(cls, "cls cannot be null");
             return new TestSuiteFromCases<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
-        }
-
-        public List<Case<T, R>> cases() {
-            return new ArrayList<Case<T, R>>(this.cases);
         }
 
         private Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
@@ -304,14 +353,6 @@ public final class TestingHelper {
         assertTrue(expected == value, message + ", expected=" + expected + ", actual=" + value);
     }
 
-    private static void pause(long duration, TimeUnit unit) {
-        try {
-            Thread.sleep(unit.toMillis(duration));
-        } catch (InterruptedException e) {
-            // do nothing
-        }
-    }
-
     private static void assertTrue(boolean value, String message) {
         if (!value)
             throw new AssertionException(message);
@@ -322,6 +363,14 @@ public final class TestingHelper {
         try {
             assertTrue(detector.latch().await(duration, unit),
                     "source unsubscription did not occur within timeout " + duration + " " + unit);
+        } catch (InterruptedException e) {
+            // do nothing
+        }
+    }
+
+    private static void pause(long duration, TimeUnit unit) {
+        try {
+            Thread.sleep(unit.toMillis(duration));
         } catch (InterruptedException e) {
             // do nothing
         }
@@ -408,14 +457,13 @@ public final class TestingHelper {
 
         void assertError(Class<?> cls) {
             int n = errors;
-            assertEquals(1, n, "expected 1 error but was " + errors);
+            assertEquals(1, n, "should be no errors");
             assertTrue(cls.isInstance(lastError.get()), "expected error of type " + cls
                     + " but was " + lastError.get());
         }
 
         void assertReceivedCountIs(long count) {
-            assertEquals(count, next.size(), "expected to receive " + count + " items but was "
-                    + next.size());
+            assertEquals(count, next.size(), "received count wrong");
         }
 
         void awaitTerminalEvent(long duration, TimeUnit unit) {
