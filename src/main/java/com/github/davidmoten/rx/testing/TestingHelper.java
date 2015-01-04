@@ -603,8 +603,10 @@ public final class TestingHelper {
         }
     }
 
+    /**
+     * RuntimeException implementation to represent an assertion failure.
+     */
     public static class AssertionException extends RuntimeException {
-
         private static final long serialVersionUID = -6846674323693517388L;
 
         public AssertionException(String message) {
