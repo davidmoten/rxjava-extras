@@ -329,14 +329,14 @@ public final class TestingHelper {
                 sub.assertError(c.expectError.get());
                 // wait for more terminal events
                 pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
-                int n = sub.numOnCompletedEvents();
-                assertEquals(0, n, "number of onCompleted events was expected to be 0 but was " + n);
+                if (sub.numOnCompletedEvents() > 0)
+                    throw new UnexpectedOnCompletedException();
             } else {
                 sub.assertNoErrors();
                 // wait for more terminal events
                 pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
-                int n = sub.numOnCompletedEvents();
-                assertEquals(1, n, "number of onCompleted events was expected to be 1 but was " + n);
+                if (sub.numOnCompletedEvents() > 1)
+                    throw new TooManyOnCompletedException();
                 sub.assertNoErrors();
             }
         }
@@ -362,12 +362,10 @@ public final class TestingHelper {
     private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector, long duration,
             TimeUnit unit) {
         try {
-            assertTrue(detector.latch().await(duration, unit),
-                    "source unsubscription did not occur within timeout " + duration + " " + unit);
+            if (!detector.latch().await(duration, unit))
+                throw new UnsubscriptionFromSourceTimeoutException();
         } catch (InterruptedException e) {
             // do nothing
-        } catch (AssertionException e) {
-            throw new UnsubscriptionFromSourceTimeoutException();
         }
     }
 
@@ -495,9 +493,10 @@ public final class TestingHelper {
         }
 
         void assertNoErrors() {
-            if (errors > 0)
+            if (errors > 0) {
                 lastError.get().printStackTrace();
-            assertEquals(0, errors, "expecting 0 errors but there were " + errors);
+                throw new UnexpectedOnErrorException();
+            }
         }
 
     }
@@ -512,6 +511,18 @@ public final class TestingHelper {
 
     public static class WrongOnNextCountException extends RuntimeException {
         private static final long serialVersionUID = 984672575527784559L;
+    }
+
+    public static class UnexpectedOnCompletedException extends RuntimeException {
+        private static final long serialVersionUID = 7164517608988798969L;
+    }
+
+    public static class UnexpectedOnErrorException extends RuntimeException {
+        private static final long serialVersionUID = -813740137771756205L;
+    }
+
+    public static class TooManyOnCompletedException extends RuntimeException {
+        private static final long serialVersionUID = -405328882928962333L;
     }
 
     public static class UnexpectedOnNextException extends RuntimeException {
