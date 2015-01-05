@@ -372,7 +372,7 @@ public final class TestingHelper {
     }
 
     public static class UnsubscriptionFromSourceTimeoutException extends RuntimeException {
-
+        private static final long serialVersionUID = -1142604414390722544L;
     }
 
     private static void pause(long duration, TimeUnit unit) {
@@ -503,18 +503,19 @@ public final class TestingHelper {
     }
 
     public static class TerminalEventTimeoutException extends RuntimeException {
-
+        private static final long serialVersionUID = -7355281653999339840L;
     }
 
     public static class ExpectedErrorNotThrownException extends RuntimeException {
-
+        private static final long serialVersionUID = -567146145612029349L;
     }
 
     public static class WrongOnNextCountException extends RuntimeException {
-
+        private static final long serialVersionUID = 984672575527784559L;
     }
 
     public static class UnexpectedOnNextException extends RuntimeException {
+        private static final long serialVersionUID = -3656406263739222767L;
 
         public UnexpectedOnNextException(String message) {
             super(message);
