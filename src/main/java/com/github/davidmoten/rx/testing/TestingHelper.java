@@ -350,10 +350,6 @@ public final class TestingHelper {
             waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
     }
 
-    private static void assertEquals(long expected, long value, String message) {
-        assertTrue(expected == value, message + ", expected=" + expected + ", actual=" + value);
-    }
-
     private static void assertTrue(boolean value, String message) {
         if (!value)
             throw new AssertionException(message);
@@ -485,7 +481,8 @@ public final class TestingHelper {
         }
 
         void assertUnsubscribed() {
-            assertTrue(super.isUnsubscribed(), "subscriber was not unsubscribed");
+            if (!isUnsubscribed())
+                throw new DownstreamUnsubscriptionDidNotOccurException();
         }
 
         int numOnCompletedEvents() {
@@ -523,6 +520,10 @@ public final class TestingHelper {
 
     public static class TooManyOnCompletedException extends RuntimeException {
         private static final long serialVersionUID = -405328882928962333L;
+    }
+
+    public static class DownstreamUnsubscriptionDidNotOccurException extends RuntimeException {
+        private static final long serialVersionUID = 7218646111664183642L;
     }
 
     public static class UnexpectedOnNextException extends RuntimeException {
