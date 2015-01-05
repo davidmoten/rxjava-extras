@@ -157,10 +157,10 @@ public final class TestingHelper {
                 Optional<Class<? extends Throwable>> expectError) {
             cases.add(new Case<T, R>(from, expected, ordered, expectSize, checkSourceUnsubscribed,
                     function, name, unsubscribeAfter, expectError, waitForUnusbscribeMs,
-                    waitForTerminalEventMs, waitForMoreTerminalEventsMs));
+                    waitForTerminalEventMs, waitForMoreTerminalEventsMs, Optional
+                            .<Class<? extends RuntimeException>> absent()));
             return this;
         }
-
     }
 
     public static class CaseBuilder<T, R> {
@@ -286,13 +286,15 @@ public final class TestingHelper {
         final long waitForUnusbscribeMs;
         final long waitForTerminalEventMs;
         final long waitForMoreTerminalEventsMs;
+        final Optional<Class<? extends RuntimeException>> expectedException;
 
         Case(Observable<T> from, Optional<List<R>> expected, boolean ordered,
                 Optional<Long> expectSize, boolean checkSourceUnsubscribed,
                 Func1<Observable<T>, Observable<R>> function, String name,
                 Optional<Integer> unsubscribeAfter,
                 Optional<Class<? extends Throwable>> expectError, long waitForUnusbscribeMs,
-                long waitForTerminalEventMs, long waitForMoreTerminalEventsMs) {
+                long waitForTerminalEventMs, long waitForMoreTerminalEventsMs,
+                Optional<Class<? extends RuntimeException>> expectedException) {
             Preconditions.checkNotNull(from);
             Preconditions.checkNotNull(expected);
             Preconditions.checkNotNull(expectSize);
@@ -300,6 +302,7 @@ public final class TestingHelper {
             Preconditions.checkNotNull(name);
             Preconditions.checkNotNull(unsubscribeAfter);
             Preconditions.checkNotNull(expectError);
+            Preconditions.checkNotNull(expectedException);
             this.from = from;
             this.expected = expected;
             this.ordered = ordered;
@@ -312,6 +315,7 @@ public final class TestingHelper {
             this.waitForUnusbscribeMs = waitForUnusbscribeMs;
             this.waitForTerminalEventMs = waitForTerminalEventMs;
             this.waitForMoreTerminalEventsMs = waitForMoreTerminalEventsMs;
+            this.expectedException = expectedException;
         }
     }
 
