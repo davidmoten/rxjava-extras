@@ -350,11 +350,6 @@ public final class TestingHelper {
             waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
     }
 
-    private static void assertTrue(boolean value, String message) {
-        if (!value)
-            throw new AssertionException(message);
-    }
-
     private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector, long duration,
             TimeUnit unit) {
         try {
