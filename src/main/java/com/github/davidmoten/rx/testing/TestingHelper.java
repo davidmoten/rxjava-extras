@@ -151,12 +151,13 @@ public final class TestingHelper {
             return new TestSuiteFromCases<T, R>(cls, new ArrayList<Case<T, R>>(this.cases));
         }
 
-        private Builder<T, R> expect(Observable<T> from, List<R> expected, boolean ordered,
-                Optional<Long> expectSize, boolean checkSourceUnsubscribed, String name,
-                Optional<Integer> unsubscribeAfter, Optional<Class<? extends Throwable>> expectError) {
-            cases.add(new Case<T, R>(from, of(expected), ordered, expectSize,
-                    checkSourceUnsubscribed, function, name, unsubscribeAfter, expectError,
-                    waitForUnusbscribeMs, waitForTerminalEventMs, waitForMoreTerminalEventsMs));
+        private Builder<T, R> expect(Observable<T> from, Optional<List<R>> expected,
+                boolean ordered, Optional<Long> expectSize, boolean checkSourceUnsubscribed,
+                String name, Optional<Integer> unsubscribeAfter,
+                Optional<Class<? extends Throwable>> expectError) {
+            cases.add(new Case<T, R>(from, expected, ordered, expectSize, checkSourceUnsubscribed,
+                    function, name, unsubscribeAfter, expectError, waitForUnusbscribeMs,
+                    waitForTerminalEventMs, waitForMoreTerminalEventsMs));
             return this;
         }
 
@@ -234,7 +235,7 @@ public final class TestingHelper {
         @SuppressWarnings("unchecked")
         public Builder<T, R> expectError(Class<? extends Throwable> cls) {
             Preconditions.checkNotNull(cls, "cls cannot be null");
-            return builder.expect(from, Collections.<R> emptyList(), true, ABSENT,
+            return builder.expect(from, Optional.<List<R>> absent(), true, ABSENT,
                     checkSourceUnsubscribed, name, unsubscribeAfter,
                     (Optional<Class<? extends Throwable>>) (Optional<?>) of(cls));
         }
@@ -245,7 +246,7 @@ public final class TestingHelper {
         }
 
         public Builder<T, R> expectSize(long n) {
-            return builder.expect(from, Collections.<R> emptyList(), true, of(n),
+            return builder.expect(from, Optional.<List<R>> absent(), true, of(n),
                     checkSourceUnsubscribed, name, unsubscribeAfter,
                     Optional.<Class<? extends Throwable>> absent());
         }
@@ -256,7 +257,7 @@ public final class TestingHelper {
         }
 
         private Builder<T, R> expect(List<R> items, boolean ordered) {
-            return builder.expect(from, items, ordered, ABSENT, checkSourceUnsubscribed, name,
+            return builder.expect(from, of(items), ordered, ABSENT, checkSourceUnsubscribed, name,
                     unsubscribeAfter, Optional.<Class<? extends Throwable>> absent());
         }
 
@@ -272,7 +273,7 @@ public final class TestingHelper {
 
     }
 
-    static class Case<T, R> {
+    private static class Case<T, R> {
         final String name;
         final Observable<T> from;
         final Optional<List<R>> expected;
@@ -365,7 +366,13 @@ public final class TestingHelper {
                     "source unsubscription did not occur within timeout " + duration + " " + unit);
         } catch (InterruptedException e) {
             // do nothing
+        } catch (AssertionException e) {
+            throw new UnsubscriptionFromSourceTimeoutException();
         }
+    }
+
+    public static class UnsubscriptionFromSourceTimeoutException extends RuntimeException {
+
     }
 
     private static void pause(long duration, TimeUnit unit) {
@@ -456,26 +463,27 @@ public final class TestingHelper {
         }
 
         void assertError(Class<?> cls) {
-            int n = errors;
-            assertEquals(1, n, "should be no errors");
-            assertTrue(cls.isInstance(lastError.get()), "expected error of type " + cls
-                    + " but was " + lastError.get());
+            if (errors != 1 || !cls.isInstance(lastError.get()))
+                throw new ExpectedErrorNotThrownException();
         }
 
         void assertReceivedCountIs(long count) {
-            assertEquals(count, next.size(), "received count wrong");
+            if (count != next.size())
+                throw new WrongOnNextCountException();
         }
 
         void awaitTerminalEvent(long duration, TimeUnit unit) {
             try {
-                assertTrue(terminalLatch.await(duration, unit),
-                        "timed out waiting for terminal event after " + duration + " " + unit);
+                if (!terminalLatch.await(duration, unit))
+                    throw new TerminalEventTimeoutException();
             } catch (InterruptedException e) {
+                // do nothing
             }
         }
 
         void assertReceivedOnNext(List<T> expected, boolean ordered) {
-            TestingHelper.equals(expected, next, ordered);
+            if (!TestingHelper.equals(expected, next, ordered))
+                throw new UnexpectedOnNextException("expected=" + expected + ", actual=" + next);
         }
 
         void assertUnsubscribed() {
@@ -490,6 +498,26 @@ public final class TestingHelper {
             if (errors > 0)
                 lastError.get().printStackTrace();
             assertEquals(0, errors, "expecting 0 errors but there were " + errors);
+        }
+
+    }
+
+    public static class TerminalEventTimeoutException extends RuntimeException {
+
+    }
+
+    public static class ExpectedErrorNotThrownException extends RuntimeException {
+
+    }
+
+    public static class WrongOnNextCountException extends RuntimeException {
+
+    }
+
+    public static class UnexpectedOnNextException extends RuntimeException {
+
+        public UnexpectedOnNextException(String message) {
+            super(message);
         }
 
     }

@@ -2,9 +2,6 @@ package com.github.davidmoten.rx.testing;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
-
-import org.junit.Test;
-
 import rx.Observable;
 import rx.functions.Func1;
 
@@ -24,8 +21,7 @@ public class TestingHelperUnsubscribeFromSourceTest extends TestCase {
                 .testSuite(TestingHelperUnsubscribeFromSourceTest.class);
     }
 
-    @Test
     public void testDummy() {
-        // help eclipse out
     }
+
 }
