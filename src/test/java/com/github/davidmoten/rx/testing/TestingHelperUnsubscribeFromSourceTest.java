@@ -5,6 +5,8 @@ import junit.framework.TestSuite;
 import rx.Observable;
 import rx.functions.Func1;
 
+import com.github.davidmoten.rx.testing.TestingHelper.UnsubscriptionFromSourceTimeoutException;
+
 public class TestingHelperUnsubscribeFromSourceTest extends TestCase {
 
     private static final Func1<Observable<Integer>, Observable<Integer>> NO_UNSUBSCRIBE = new Func1<Observable<Integer>, Observable<Integer>>() {
@@ -17,7 +19,7 @@ public class TestingHelperUnsubscribeFromSourceTest extends TestCase {
 
     public static TestSuite suite() {
         return TestingHelper.function(NO_UNSUBSCRIBE).name("testUnsubscribeSource").from(1, 2)
-                .skipUnsubscribedCheck().expect(1)
+                .expectException(UnsubscriptionFromSourceTimeoutException.class)
                 .testSuite(TestingHelperUnsubscribeFromSourceTest.class);
     }
 

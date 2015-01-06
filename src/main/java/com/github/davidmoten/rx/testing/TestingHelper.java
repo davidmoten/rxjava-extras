@@ -154,11 +154,11 @@ public final class TestingHelper {
         private Builder<T, R> expect(Observable<T> from, Optional<List<R>> expected,
                 boolean ordered, Optional<Long> expectSize, boolean checkSourceUnsubscribed,
                 String name, Optional<Integer> unsubscribeAfter,
-                Optional<Class<? extends Throwable>> expectError) {
+                Optional<Class<? extends Throwable>> expectError,
+                Optional<Class<? extends RuntimeException>> expectException) {
             cases.add(new Case<T, R>(from, expected, ordered, expectSize, checkSourceUnsubscribed,
                     function, name, unsubscribeAfter, expectError, waitForUnusbscribeMs,
-                    waitForTerminalEventMs, waitForMoreTerminalEventsMs, Optional
-                            .<Class<? extends RuntimeException>> absent()));
+                    waitForTerminalEventMs, waitForMoreTerminalEventsMs, expectException));
             return this;
         }
     }
@@ -237,7 +237,8 @@ public final class TestingHelper {
             Preconditions.checkNotNull(cls, "cls cannot be null");
             return builder.expect(from, Optional.<List<R>> absent(), true, ABSENT,
                     checkSourceUnsubscribed, name, unsubscribeAfter,
-                    (Optional<Class<? extends Throwable>>) (Optional<?>) of(cls));
+                    (Optional<Class<? extends Throwable>>) (Optional<?>) of(cls),
+                    Optional.<Class<? extends RuntimeException>> absent());
         }
 
         public Builder<T, R> expect(R... source) {
@@ -248,7 +249,8 @@ public final class TestingHelper {
         public Builder<T, R> expectSize(long n) {
             return builder.expect(from, Optional.<List<R>> absent(), true, of(n),
                     checkSourceUnsubscribed, name, unsubscribeAfter,
-                    Optional.<Class<? extends Throwable>> absent());
+                    Optional.<Class<? extends Throwable>> absent(),
+                    Optional.<Class<? extends RuntimeException>> absent());
         }
 
         public Builder<T, R> expect(List<R> source) {
@@ -258,7 +260,8 @@ public final class TestingHelper {
 
         private Builder<T, R> expect(List<R> items, boolean ordered) {
             return builder.expect(from, of(items), ordered, ABSENT, checkSourceUnsubscribed, name,
-                    unsubscribeAfter, Optional.<Class<? extends Throwable>> absent());
+                    unsubscribeAfter, Optional.<Class<? extends Throwable>> absent(),
+                    Optional.<Class<? extends RuntimeException>> absent());
         }
 
         public Builder<T, R> expectAnyOrder(R... source) {
@@ -269,6 +272,14 @@ public final class TestingHelper {
         public CaseBuilder<T, R> unsubscribeAfter(int n) {
             unsubscribeAfter = of(n);
             return this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public Builder<T, R> expectException(Class<? extends RuntimeException> cls) {
+            return builder.expect(from, Optional.<List<R>> absent(), true, ABSENT,
+                    checkSourceUnsubscribed, name, unsubscribeAfter,
+                    Optional.<Class<? extends Throwable>> absent(),
+                    (Optional<Class<? extends RuntimeException>>) (Optional<?>) Optional.of(cls));
         }
 
     }
@@ -320,38 +331,46 @@ public final class TestingHelper {
     }
 
     private static <T, R> void runTest(Case<T, R> c, TestType testType) {
-        UnsubscribeDetector<T> detector = UnsubscribeDetector.create();
-        MyTestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
-        c.function.call(c.from.lift(detector)).subscribe(sub);
-        if (c.unsubscribeAfter.isPresent()) {
-            waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
-            // if unsubscribe has occurred there is no mandated behaviour in
-            // terms of terminal events so we don't check them
-        } else {
-            sub.awaitTerminalEvent(c.waitForTerminalEventMs, TimeUnit.MILLISECONDS);
-            if (c.expectError.isPresent()) {
-                sub.assertError(c.expectError.get());
-                // wait for more terminal events
-                pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
-                if (sub.numOnCompletedEvents() > 0)
-                    throw new UnexpectedOnCompletedException();
+        try {
+            UnsubscribeDetector<T> detector = UnsubscribeDetector.create();
+            MyTestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
+            c.function.call(c.from.lift(detector)).subscribe(sub);
+            if (c.unsubscribeAfter.isPresent()) {
+                waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
+                // if unsubscribe has occurred there is no mandated behaviour in
+                // terms of terminal events so we don't check them
             } else {
-                sub.assertNoErrors();
-                // wait for more terminal events
-                pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
-                if (sub.numOnCompletedEvents() > 1)
-                    throw new TooManyOnCompletedException();
-                sub.assertNoErrors();
+                sub.awaitTerminalEvent(c.waitForTerminalEventMs, TimeUnit.MILLISECONDS);
+                if (c.expectError.isPresent()) {
+                    sub.assertError(c.expectError.get());
+                    // wait for more terminal events
+                    pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
+                    if (sub.numOnCompletedEvents() > 0)
+                        throw new UnexpectedOnCompletedException();
+                } else {
+                    sub.assertNoErrors();
+                    // wait for more terminal events
+                    pause(c.waitForMoreTerminalEventsMs, TimeUnit.MILLISECONDS);
+                    if (sub.numOnCompletedEvents() > 1)
+                        throw new TooManyOnCompletedException();
+                    sub.assertNoErrors();
+                }
             }
-        }
 
-        if (c.expected.isPresent())
-            sub.assertReceivedOnNext(c.expected.get(), c.ordered);
-        if (c.expectSize.isPresent())
-            sub.assertReceivedCountIs(c.expectSize.get());
-        sub.assertUnsubscribed();
-        if (c.checkSourceUnsubscribed)
-            waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
+            if (c.expected.isPresent())
+                sub.assertReceivedOnNext(c.expected.get(), c.ordered);
+            if (c.expectSize.isPresent())
+                sub.assertReceivedCountIs(c.expectSize.get());
+            sub.assertUnsubscribed();
+            if (c.checkSourceUnsubscribed)
+                waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
+            if (c.expectedException.isPresent())
+                throw new ExpectedExceptionNotThrownException();
+        } catch (RuntimeException e) {
+            if (!c.expectedException.isPresent() || !c.expectedException.get().isInstance(e))
+                throw e;
+            // otherwise was expected
+        }
     }
 
     private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector, long duration,
@@ -457,7 +476,7 @@ public final class TestingHelper {
 
         void assertError(Class<?> cls) {
             if (errors != 1 || !cls.isInstance(lastError.get()))
-                throw new ExpectedErrorNotThrownException();
+                throw new ExpectedErrorNotReceivedException();
         }
 
         void assertReceivedCountIs(long count) {
@@ -501,8 +520,12 @@ public final class TestingHelper {
         private static final long serialVersionUID = -7355281653999339840L;
     }
 
-    public static class ExpectedErrorNotThrownException extends RuntimeException {
+    public static class ExpectedErrorNotReceivedException extends RuntimeException {
         private static final long serialVersionUID = -567146145612029349L;
+    }
+
+    public static class ExpectedExceptionNotThrownException extends RuntimeException {
+        private static final long serialVersionUID = -104410457605712970L;
     }
 
     public static class WrongOnNextCountException extends RuntimeException {
