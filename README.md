@@ -63,7 +63,7 @@ public class CountTest extends TestCase {
         return TestingHelper
                 .function(o -> o.count())
                 // test empty
-                .name("testCountOfEmptyReturnsEmpty")
+                .name("testCountOfEmptyReturnsZero")
                 .fromEmpty()
                 .expect(0)
                 // test error
