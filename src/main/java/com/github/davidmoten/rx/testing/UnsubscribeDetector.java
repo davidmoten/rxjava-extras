@@ -46,7 +46,7 @@ public final class UnsubscribeDetector<T> implements Operator<T, T> {
     /**
      * Returns a latch that will be at zero if one unsubscribe has occurred.
      * 
-     * @return
+     * @return latch
      */
     public CountDownLatch latch() {
         return latch;
@@ -55,7 +55,7 @@ public final class UnsubscribeDetector<T> implements Operator<T, T> {
     /**
      * Factory method.
      * 
-     * @return
+     * @return detector
      */
     public static <T> UnsubscribeDetector<T> create() {
         return new UnsubscribeDetector<T>();
