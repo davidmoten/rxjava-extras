@@ -14,6 +14,7 @@ Utilities for use with rxjava (some were struck out of RxJava core for 1.0.0):
 * ```Functions.constant```
 * ```Functions.not```
 * ```TestingHelper```
+* ```OperatorUnsubscribeEagerly```
 
 
 Status: *released to Maven Central*
@@ -146,6 +147,13 @@ public class TestingHelperMergeTest extends TestCase {
         // just here to fool eclipse
     }
 }
+```
+
+How to use OperatorUnsubscribeEagerly
+---------------------------------------
+
+```java 
+Observable<T> o = Observable.using(....).lift(OperatorUnsubscribeEagerly.Singleton.<T>INSTANCE);
 ```
 
 
