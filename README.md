@@ -153,7 +153,10 @@ How to use OperatorUnsubscribeEagerly
 ---------------------------------------
 
 ```java 
-Observable<T> o = Observable.using(....).lift(OperatorUnsubscribeEagerly.Singleton.<T>INSTANCE);
+Observable<T> o;
+
+Observable<T> stream = 
+      o.lift(OperatorUnsubscribeEagerly.Singleton.<T>INSTANCE);
 ```
 
 
