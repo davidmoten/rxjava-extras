@@ -3,9 +3,9 @@ package com.github.davidmoten.rx.operators;
 import rx.Observable.Operator;
 import rx.Subscriber;
 
-public class OperatorUnsubscribeEagerly<T> implements Operator<T, T> {
+public final class OperatorUnsubscribeEagerly<T> implements Operator<T, T> {
 
-	public static class Singleton {
+	public static final class Singleton {
 		private static final OperatorUnsubscribeEagerly<?> INSTANCE = new OperatorUnsubscribeEagerly<Object>();
 
 		@SuppressWarnings("unchecked")
