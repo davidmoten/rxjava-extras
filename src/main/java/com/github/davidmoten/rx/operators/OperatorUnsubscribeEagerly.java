@@ -5,13 +5,17 @@ import rx.Subscriber;
 
 public final class OperatorUnsubscribeEagerly<T> implements Operator<T, T> {
 
-	public static final class Singleton {
-		private static final OperatorUnsubscribeEagerly<?> INSTANCE = new OperatorUnsubscribeEagerly<Object>();
+	private OperatorUnsubscribeEagerly() {
+		// no instantiation outside of this class
+	}
 
-		@SuppressWarnings("unchecked")
-		public static final <T> OperatorUnsubscribeEagerly<T> instance() {
-			return (OperatorUnsubscribeEagerly<T>) INSTANCE;
-		}
+	private static final class Singleton {
+		private static final OperatorUnsubscribeEagerly<?> INSTANCE = new OperatorUnsubscribeEagerly<Object>();
+	}
+
+	@SuppressWarnings("unchecked")
+	public static final <T> OperatorUnsubscribeEagerly<T> instance() {
+		return (OperatorUnsubscribeEagerly<T>) Singleton.INSTANCE;
 	}
 
 	@Override

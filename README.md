@@ -156,7 +156,7 @@ How to use OperatorUnsubscribeEagerly
 Observable<T> o;
 
 Observable<T> stream = 
-      o.lift(OperatorUnsubscribeEagerly.Singleton.<T>INSTANCE);
+      o.lift(OperatorUnsubscribeEagerly.<T>instance());
 ```
 
 

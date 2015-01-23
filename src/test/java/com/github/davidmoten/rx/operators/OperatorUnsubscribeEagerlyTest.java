@@ -35,8 +35,7 @@ public class OperatorUnsubscribeEagerlyTest extends TestCase {
 
 			@Override
 			public Observable<T> call(Observable<T> o) {
-				return o.lift(OperatorUnsubscribeEagerly.Singleton
-						.<T> instance());
+				return o.lift(OperatorUnsubscribeEagerly.<T> instance());
 			}
 		};
 	}
