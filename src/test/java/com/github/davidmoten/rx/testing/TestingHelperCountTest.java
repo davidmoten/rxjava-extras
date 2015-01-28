@@ -5,8 +5,6 @@ import junit.framework.TestSuite;
 import rx.Observable;
 import rx.functions.Func1;
 
-import com.github.davidmoten.rx.testing.TestingHelper;
-
 public class TestingHelperCountTest extends TestCase {
 
     public static TestSuite suite() {

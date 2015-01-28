@@ -399,7 +399,6 @@ public final class TestingHelper {
 
         private final List<T> next = new ArrayList<T>();
         private final Optional<Long> onStartRequest;
-        private final Optional<Long> onStartRequest2;
         private final Optional<Long> onNextRequest;
         private final Optional<Integer> unsubscribeAfter;
         private final CountDownLatch terminalLatch;
@@ -408,13 +407,14 @@ public final class TestingHelper {
         private int errors = 0;
         private final AtomicLong expected = new AtomicLong();
         private Optional<Throwable> lastError = Optional.absent();
+        private Optional<Long> onNextRequest2;
 
         MyTestSubscriber(Optional<Integer> unsubscribeAfter, final Optional<Long> onStartRequest,
-                final Optional<Long> onStartRequest2, final Optional<Long> onNextRequest) {
+                final Optional<Long> onNextRequest, final Optional<Long> onNextRequest2) {
             this.unsubscribeAfter = unsubscribeAfter;
             this.onStartRequest = onStartRequest;
-            this.onStartRequest2 = onStartRequest2;
             this.onNextRequest = onNextRequest;
+            this.onNextRequest2 = onNextRequest2;
             this.terminalLatch = new CountDownLatch(1);
         }
 
@@ -424,15 +424,13 @@ public final class TestingHelper {
 
         @Override
         public void onStart() {
-            if (!onStartRequest.isPresent() && !onStartRequest2.isPresent())
+            if (!onStartRequest.isPresent())
                 // if nothing requested in onStart then must be requesting all
                 expected.set(Long.MAX_VALUE);
             else
                 expected.set(0);
             if (onStartRequest.isPresent())
                 requestMore(onStartRequest.get());
-            if (onStartRequest2.isPresent())
-                requestMore(onStartRequest2.get());
         }
 
         private void requestMore(long n) {
@@ -470,8 +468,12 @@ public final class TestingHelper {
                 onError(new DeliveredMoreThanRequestedException());
             else if (unsubscribeAfter.isPresent() && count == unsubscribeAfter.get())
                 unsubscribe();
-            else if (onNextRequest.isPresent() && exp == 0)
-                requestMore(onNextRequest.get());
+            else {
+                if (onNextRequest.isPresent())
+                    requestMore(onNextRequest.get());
+                if (onNextRequest2.isPresent())
+                    requestMore(onNextRequest2.get());
+            }
         }
 
         void assertError(Class<?> cls) {
@@ -558,12 +560,12 @@ public final class TestingHelper {
     }
 
     private static enum TestType {
-        WITHOUT_BACKP, BACKP_INITIAL_REQUEST_MAX, BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE, BACKP_ONE_BY_ONE, BACKP_TWO_BY_TWO, BACKP_REQUEST_ZERO, BACKP_REQUEST_NEGATIVE, BACKP_FIVE_BY_FIVE, BACKP_FIFTY_BY_FIFTY, BACKP_THOUSAND_BY_THOUSAND;
+        WITHOUT_BACKP, BACKP_INITIAL_REQUEST_MAX, BACKP_INITIAL_REQUEST_MAX_THEN_BY_ONE, BACKP_ONE_BY_ONE, BACKP_TWO_BY_TWO, BACKP_REQUEST_ZERO, BACKP_REQUEST_NEGATIVE, BACKP_FIVE_BY_FIVE, BACKP_FIFTY_BY_FIFTY, BACKP_THOUSAND_BY_THOUSAND, BACKP_REQUEST_OVERFLOW;
     }
 
     private static <T> MyTestSubscriber<T> createTestSubscriber(Optional<Integer> unsubscribeAfter,
             long onStartRequest, Optional<Long> onNextRequest) {
-        return new MyTestSubscriber<T>(unsubscribeAfter, of(onStartRequest), ABSENT, onNextRequest);
+        return new MyTestSubscriber<T>(unsubscribeAfter, of(onStartRequest), onNextRequest, ABSENT);
     }
 
     private static <T> MyTestSubscriber<T> createTestSubscriber(TestType testType,
@@ -578,9 +580,11 @@ public final class TestingHelper {
         else if (testType == TestType.BACKP_ONE_BY_ONE)
             return createTestSubscriber(unsubscribeAfter, 1L, of(1L));
         else if (testType == TestType.BACKP_REQUEST_ZERO)
-            return new MyTestSubscriber<T>(unsubscribeAfter, of(0L), of(1L), of(1L));
+            return new MyTestSubscriber<T>(unsubscribeAfter, of(1L), of(0L), of(1L));
         else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
-            return new MyTestSubscriber<T>(unsubscribeAfter, of(-1000L), of(1L), of(1L));
+            return new MyTestSubscriber<T>(unsubscribeAfter, of(1L), of(-1000L), of(1L));
+        else if (testType == TestType.BACKP_REQUEST_OVERFLOW)
+            return new MyTestSubscriber<T>(unsubscribeAfter, of(Long.MAX_VALUE - 1), of(2L), ABSENT);
         else if (testType == TestType.BACKP_TWO_BY_TWO)
             return createTestSubscriberWithBackpNbyN(unsubscribeAfter, 2);
         else if (testType == TestType.BACKP_FIVE_BY_FIVE)

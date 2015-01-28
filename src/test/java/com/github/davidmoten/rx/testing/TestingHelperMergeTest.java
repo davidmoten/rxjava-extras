@@ -10,13 +10,11 @@ import rx.Observable;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
-import com.github.davidmoten.rx.testing.TestingHelper;
-
 public class TestingHelperMergeTest extends TestCase {
 
     private static final Observable<Integer> MERGE_WITH = Observable.from(asList(7, 8, 9));
 
-    public static TestSuite suite() {
+    public static TestSuite suiteDisabled() {
 
         return TestingHelper
                 .function(merge)
