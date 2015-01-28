@@ -29,8 +29,8 @@ This [helper class](src/main/java/com/github/davidmoten/rx/testing/TestingHelper
 * without backpressure
 * intiial request maximum, no further request 
 * initial request maximum, keep requesting single 
-* backpressure, initial request 0 then 1, then by 1 
-* backpressure, initial request -1000 then 1, then by 1
+* backpressure, initial request 1, then by 0 and 1 
+* backpressure, initial request 1 then 1, then by -10000 and 1
 * backpressure, initial request 1, then by 1 
 * backpressure, initial request 2, then by 2 
 * backpressure, initial request 5, then by 5 
