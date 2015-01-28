@@ -32,6 +32,10 @@ public final class TestingHelper {
 
 	private static final Optional<Long> ABSENT = Optional.absent();
 
+	// temporarily available until RxJava basics like OnSubscribeFromIterable
+	// handle overflow
+	public static boolean includeBackpressureRequestOverflowTest = true;
+
 	/**
 	 * Sets the transformation to be tested and returns a builder to create test
 	 * cases.
@@ -624,8 +628,8 @@ public final class TestingHelper {
 			return new MyTestSubscriber<T>(unsubscribeAfter, of(1L), of(0L),
 					of(1L));
 		else if (testType == TestType.BACKP_REQUEST_OVERFLOW)
-			return new MyTestSubscriber<T>(unsubscribeAfter, of(2L),
-					of(Long.MAX_VALUE - 1), ABSENT);
+			return new MyTestSubscriber<T>(unsubscribeAfter, of(1L),
+					of(Long.MAX_VALUE / 3 * 2), of(Long.MAX_VALUE / 3 * 2));
 		else if (testType == TestType.BACKP_TWO_BY_TWO)
 			return createTestSubscriberWithBackpNbyN(unsubscribeAfter, 2);
 		else if (testType == TestType.BACKP_FIVE_BY_FIVE)
@@ -653,8 +657,10 @@ public final class TestingHelper {
 			super(cls);
 			for (Case<T, R> c : cases) {
 				for (TestType testType : TestType.values())
-					addTest(new MyTestCase<T, R>(
-							c.name + "_" + testType.name(), c, testType));
+					if (testType != TestType.BACKP_REQUEST_OVERFLOW
+							|| includeBackpressureRequestOverflowTest)
+						addTest(new MyTestCase<T, R>(c.name + "_"
+								+ testType.name(), c, testType));
 			}
 		}
 	}

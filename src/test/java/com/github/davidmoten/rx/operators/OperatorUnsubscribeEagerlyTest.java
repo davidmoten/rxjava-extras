@@ -9,30 +9,33 @@ import com.github.davidmoten.rx.testing.TestingHelper;
 
 public class OperatorUnsubscribeEagerlyTest extends TestCase {
 
-    public static TestSuite suite() {
+	public static TestSuite suite() {
+		TestingHelper.includeBackpressureRequestOverflowTest = false;
+		return TestingHelper
+				.function(function())
+				// test empty
+				.name("testUnsubEagerOfEmptyReturnsEmpty").fromEmpty()
+				.expectEmpty()
+				// test error
+				.name("testUnsubEagerErrorReturnsError").fromError()
+				.expectError()
+				// test error after some emission
+				.name("testUnsubEagerReturnsUnchanged").from(5, 6).expect(5, 6)
+				// get test suites
+				.testSuite(OperatorUnsubscribeEagerlyTest.class);
+	}
 
-        return TestingHelper.function(function())
-        // test empty
-                .name("testUnsubEagerOfEmptyReturnsEmpty").fromEmpty().expectEmpty()
-                // test error
-                .name("testUnsubEagerErrorReturnsError").fromError().expectError()
-                // test error after some emission
-                .name("testUnsubEagerReturnsUnchanged").from(5, 6).expect(5, 6)
-                // get test suites
-                .testSuite(OperatorUnsubscribeEagerlyTest.class);
-    }
+	public void testDummy() {
+		// just here to fool eclipse
+	}
 
-    public void testDummy() {
-        // just here to fool eclipse
-    }
+	private static final <T> Func1<Observable<T>, Observable<T>> function() {
+		return new Func1<Observable<T>, Observable<T>>() {
 
-    private static final <T> Func1<Observable<T>, Observable<T>> function() {
-        return new Func1<Observable<T>, Observable<T>>() {
-
-            @Override
-            public Observable<T> call(Observable<T> o) {
-                return o.lift(OperatorUnsubscribeEagerly.<T> instance());
-            }
-        };
-    }
+			@Override
+			public Observable<T> call(Observable<T> o) {
+				return o.lift(OperatorUnsubscribeEagerly.<T> instance());
+			}
+		};
+	}
 }
