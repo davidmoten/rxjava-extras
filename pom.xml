@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>rxjava-extras</artifactId>
-	<version>0.4.7-SNAPSHOT</version>
+	<version>0.4.7</version>
 
 	<name>${project.artifactId}</name>
 	<description>RxJava utilities</description>
@@ -76,7 +76,7 @@
 		<connection>scm:git:git@github.com:davidmoten/rxjava-extras.git</connection>
 		<developerConnection>scm:git:git@github.com:davidmoten/rxjava-extras.git</developerConnection>
 		<url>scm:git:git@github.com:davidmoten/rxjava-extras.git</url>
-		<tag>HEAD</tag>
+		<tag>0.4.7</tag>
 	</scm>
 
 	<dependencies>
