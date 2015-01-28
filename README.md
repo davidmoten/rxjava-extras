@@ -30,13 +30,14 @@ This [helper class](src/main/java/com/github/davidmoten/rx/testing/TestingHelper
 * intiial request maximum, no further request 
 * initial request maximum, keep requesting single 
 * backpressure, initial request 1, then by 0 and 1 
-* backpressure, initial request 1 then 1, then by -10000 and 1
 * backpressure, initial request 1, then by 1 
 * backpressure, initial request 2, then by 2 
 * backpressure, initial request 5, then by 5 
 * backpressure, initial request 100, then by 100 
 * backpressure, initial request 1000, then by 1000 
 * backpressure, initial request 2, then Long.MAX_VALUE-1 (checks for request overflow)
+
+Note that the above list no longer contains a check for negative request because that situation is covered by ```Subscriber.request``` throwing an ```IllegalArgumentException```.
 
 For each variation the following aspects are tested:
 
