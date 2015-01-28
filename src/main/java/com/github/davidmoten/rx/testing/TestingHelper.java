@@ -584,7 +584,7 @@ public final class TestingHelper {
         else if (testType == TestType.BACKP_REQUEST_NEGATIVE)
             return new MyTestSubscriber<T>(unsubscribeAfter, of(1L), of(-1000L), of(1L));
         else if (testType == TestType.BACKP_REQUEST_OVERFLOW)
-            return new MyTestSubscriber<T>(unsubscribeAfter, of(Long.MAX_VALUE - 1), of(2L), ABSENT);
+            return new MyTestSubscriber<T>(unsubscribeAfter, of(2L), of(Long.MAX_VALUE - 1), ABSENT);
         else if (testType == TestType.BACKP_TWO_BY_TWO)
             return createTestSubscriberWithBackpNbyN(unsubscribeAfter, 2);
         else if (testType == TestType.BACKP_FIVE_BY_FIVE)

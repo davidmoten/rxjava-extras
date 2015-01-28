@@ -7,7 +7,7 @@ import rx.functions.Func1;
 
 public class TestingHelperCountTest extends TestCase {
 
-    public static TestSuite suite() {
+    public static TestSuite suiteDisabled() {
 
         return TestingHelper
                 .function(COUNT)

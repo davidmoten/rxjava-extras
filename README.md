@@ -36,6 +36,7 @@ This [helper class](src/main/java/com/github/davidmoten/rx/testing/TestingHelper
 * backpressure, initial request 5, then by 5 
 * backpressure, initial request 100, then by 100 
 * backpressure, initial request 1000, then by 1000 
+* backpressure, initial request 2, then Long.MAX_VALUE-1 (checks for request overflow)
 
 For each variation the following aspects are tested:
 
