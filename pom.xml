@@ -76,7 +76,6 @@
 		<connection>scm:git:https://github.com/davidmoten/rxjava-extras.git</connection>
 		<developerConnection>scm:git:https://github.com/davidmoten/rxjava-extras.git</developerConnection>
 		<url>scm:git:https://github.com:davidmoten/rxjava-extras.git</url>
-		<tag>0.4.9-SNAPSHOT</tag>
 	</scm>
 
 	<dependencies>
