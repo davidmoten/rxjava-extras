@@ -10,6 +10,6 @@ import rx.functions.Func1;
  * @param <T>
  *            item type
  */
-public interface Flattener<T> extends Func1<T, Observable<T>> {
+public interface Multiplier<T> extends Func1<T, Observable<T>> {
 
 }
