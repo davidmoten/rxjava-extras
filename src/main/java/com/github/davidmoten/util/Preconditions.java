@@ -11,4 +11,9 @@ public final class Preconditions {
             throw new NullPointerException(message);
     }
 
+    public static void checkArgument(boolean b, String message) {
+        if (!b)
+            throw new IllegalArgumentException(message);
+    }
+
 }
