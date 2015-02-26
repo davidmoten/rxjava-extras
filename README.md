@@ -15,6 +15,7 @@ Utilities for use with rxjava (some were struck out of RxJava core for 1.0.0):
 * ```Functions.not```
 * ```TestingHelper```
 * ```OperatorUnsubscribeEagerly```
+* ```Checked``` provides lambda helpers for dealing with checked exceptions in functions and actions
 
 
 Status: *released to Maven Central*
@@ -161,4 +162,28 @@ Observable<T> stream =
       o.lift(OperatorUnsubscribeEagerly.<T>instance());
 ```
 
+Checked
+------------------
+
+Checked exceptions can be annoying. If you are happy to wrap a checked exception with a ```RuntimeException``` then the function and action helpers in ```Checked``` are great:
+
+Instead of 
+```java
+OutputStream os =  ...;
+Observable<String> source = ...;
+source.doOnNext(s -> {
+	    try {
+	        os.write(s.getBytes());
+	    } catch (IOException e) {
+	        throw new RuntimeException(e);
+	    }
+    })
+    .subscribe();
+```
+
+you can write:
+```java
+source.doOnNext(Checked.a1(s -> os.write(s.getBytes())))
+    .subscribe();
+```
 
