@@ -184,6 +184,6 @@ source.doOnNext(s -> {
 you can write:
 ```java
 source.doOnNext(Checked.a1(s -> os.write(s.getBytes())))
-    .subscribe();
+      .subscribe();
 ```
 
