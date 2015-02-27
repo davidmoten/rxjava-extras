@@ -9,6 +9,31 @@ import rx.functions.Func2;
 /**
  * Utility functions that are useful for brevity when using checked exceptions
  * in lambdas with RxJava.
+ * 
+ * <p>
+ * Instead of
+ * </p>
+ * 
+ * <pre>
+ * OutputStream os =  ...;
+ * Observable<String> source = ...;
+ * source.doOnNext(s -> {
+ *         try {
+ *             os.write(s.getBytes());
+ *         } catch (IOException e) {
+ *             throw new RuntimeException(e);
+ *         }
+ *     })
+ *     .subscribe();
+ * </pre>
+ * 
+ * <p>
+ * you can write:
+ * </p>
+ * 
+ * <pre>
+ * source.doOnNext(Checked.a1(s -&gt; os.write(s.getBytes()))).subscribe();
+ * </pre>
  */
 public final class Checked {
 
