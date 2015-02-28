@@ -22,6 +22,17 @@ Status: *released to Maven Central*
 
 Maven site reports are [here](http://davidmoten.github.io/rxjava-extras/index.html) including [javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/index.html).
 
+Getting started
+-----------------
+Add this to your pom.xml:
+
+```xml
+<dependency>
+  <groupId>com.github.davidmoten</groupId>
+  <artifactId>rxjava-extras</artifactId>
+  <version>0.5</version>
+</dependency>
+```
 
 TestingHelper
 -----------------
