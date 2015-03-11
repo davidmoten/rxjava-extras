@@ -20,6 +20,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 import rx.Observable;
 import rx.Subscriber;
+import rx.functions.Action0;
 import rx.functions.Func1;
 
 import com.github.davidmoten.util.Optional;
@@ -332,11 +333,12 @@ public final class TestingHelper {
 
     private static <T, R> void runTest(Case<T, R> c, TestType testType) {
         try {
-            UnsubscribeDetector<T> detector = UnsubscribeDetector.create();
+            CountDownLatch sourceUnsubscribeLatch = new CountDownLatch(1);
             MyTestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
-            c.function.call(c.from.lift(detector)).subscribe(sub);
+            c.function.call(c.from.doOnUnsubscribe(countDown(sourceUnsubscribeLatch))).subscribe(
+                    sub);
             if (c.unsubscribeAfter.isPresent()) {
-                waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
+                waitForUnsubscribe(sourceUnsubscribeLatch, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
                 // if unsubscribe has occurred there is no mandated behaviour in
                 // terms of terminal events so we don't check them
             } else {
@@ -363,7 +365,7 @@ public final class TestingHelper {
                 sub.assertReceivedCountIs(c.expectSize.get());
             sub.assertUnsubscribed();
             if (c.checkSourceUnsubscribed)
-                waitForUnsubscribe(detector, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
+                waitForUnsubscribe(sourceUnsubscribeLatch, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
             if (c.expectedException.isPresent())
                 throw new ExpectedExceptionNotThrownException();
         } catch (RuntimeException e) {
@@ -373,10 +375,19 @@ public final class TestingHelper {
         }
     }
 
-    private static <T> void waitForUnsubscribe(UnsubscribeDetector<T> detector, long duration,
+    private static Action0 countDown(final CountDownLatch latch) {
+        return new Action0() {
+            @Override
+            public void call() {
+                latch.countDown();
+            }
+        };
+    }
+
+    private static <T> void waitForUnsubscribe(CountDownLatch latch, long duration,
             TimeUnit unit) {
         try {
-            if (!detector.latch().await(duration, unit))
+            if (!latch.await(duration, unit))
                 throw new UnsubscriptionFromSourceTimeoutException();
         } catch (InterruptedException e) {
             // do nothing
