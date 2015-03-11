@@ -1,9 +1,15 @@
 package com.github.davidmoten.rx.testing;
 
+import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import rx.Observable;
+import rx.functions.Action0;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 public class TestingHelperCountTest extends TestCase {
 
@@ -32,6 +38,18 @@ public class TestingHelperCountTest extends TestCase {
 
     public void testDummy() {
         // just here to fool eclipse
+    }
+
+    public void testCountUnsubscribe() throws InterruptedException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        Observable.from(Arrays.asList(1, 2)).doOnUnsubscribe(new Action0() {
+
+            @Override
+            public void call() {
+                latch.countDown();
+            }
+        }).count().subscribe();
+        assertTrue(latch.await(100, TimeUnit.MILLISECONDS));
     }
 
     private static final Func1<Observable<Integer>, Observable<Integer>> COUNT = new Func1<Observable<Integer>, Observable<Integer>>() {
