@@ -2,6 +2,7 @@ package com.github.davidmoten.rx;
 
 import rx.Observable;
 import rx.functions.Func1;
+import rx.functions.Func2;
 
 public final class Functions {
 
@@ -63,4 +64,32 @@ public final class Functions {
         };
     }
 
+    /**
+     * Returns a Func2 that adds numbers. Useful for Observable.reduce but not
+     * particularly performant as it does instanceOf checks.
+     * 
+     * @return Func2 that adds numbers
+     */
+    public static <T extends Number> Func2<T, T, T> add() {
+        return new Func2<T, T, T>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public T call(T a, T b) {
+                if (a instanceof Integer)
+                    return (T) (Number) (a.intValue() + b.intValue());
+                else if (a instanceof Long)
+                    return (T) (Number) (a.longValue() + b.longValue());
+                else if (a instanceof Double)
+                    return (T) (Number) (a.doubleValue() + b.doubleValue());
+                else if (a instanceof Float)
+                    return (T) (Number) (a.floatValue() + b.floatValue());
+                else if (a instanceof Byte)
+                    return (T) (Number) (a.byteValue() + b.byteValue());
+                else if (a instanceof Short)
+                    return (T) (Number) (a.shortValue() + b.shortValue());
+                else
+                    throw new RuntimeException("not implemented");
+            }
+        };
+    }
 }
