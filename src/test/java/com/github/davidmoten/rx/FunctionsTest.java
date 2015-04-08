@@ -6,6 +6,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import rx.Observable;
+
+import com.github.davidmoten.rx.Functions.Statistics;
 import com.github.davidmoten.util.TestingUtil;
 
 public class FunctionsTest {
@@ -38,5 +41,15 @@ public class FunctionsTest {
     @Test
     public void testConstructorIsPrivate() {
         TestingUtil.callConstructorAndCheckIsPrivate(Functions.class);
+    }
+
+    @Test
+    public void testStatistics() {
+        Observable<Integer> nums = Observable.just(1, 4, 10, 20);
+        Statistics s = nums.compose(Functions.collectStats()).last().toBlocking().single();
+        assertEquals(4, s.count());
+        assertEquals(35.0, s.sum(), 0.0001);
+        assertEquals(8.75, s.mean(), 0.00001);
+        assertEquals(7.258615570478987, s.sd(), 0.00001);
     }
 }
