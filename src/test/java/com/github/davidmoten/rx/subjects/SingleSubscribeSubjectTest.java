@@ -12,8 +12,6 @@ import rx.Notification.Kind;
 import rx.Subscriber;
 import rx.functions.Action1;
 
-import com.github.davidmoten.rx.subjects.SingleSubscribeSubject;
-
 public class SingleSubscribeSubjectTest {
 
     @Test
@@ -84,6 +82,6 @@ public class SingleSubscribeSubjectTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testThrowsExceptionWhenSubscribedWithNull() {
-        SingleSubscribeSubject.create().subscribe((Subscriber) null);
+        SingleSubscribeSubject.create().subscribe((Subscriber<Object>) null);
     }
 }

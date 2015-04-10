@@ -9,7 +9,6 @@ import junit.framework.TestSuite;
 import rx.Observable;
 import rx.functions.Action0;
 import rx.functions.Func1;
-import rx.schedulers.Schedulers;
 
 public class TestingHelperCountTest extends TestCase {
 
