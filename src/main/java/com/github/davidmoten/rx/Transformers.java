@@ -6,11 +6,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.github.davidmoten.rx.operators.OperatorFromTransformer;
+
 import rx.Observable;
+import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.functions.Func1;
 
-public final class Transformations {
+public final class Transformers {
+
+    public static <T, R> Operator<R, T> toOperator(Transformer<T, R> transformer) {
+        return OperatorFromTransformer.toOperator(transformer);
+    }
 
     public static <T extends Number> Transformer<T, Statistics> collectStats() {
         return new Transformer<T, Statistics>() {
