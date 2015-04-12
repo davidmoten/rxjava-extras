@@ -6,7 +6,7 @@ rxjava-extras
 [![Dependency Status](https://gemnasium.com/com.github.davidmoten/rxjava-extras.svg)](https://gemnasium.com/com.github.davidmoten/rxjava-extras)
 
 
-Utilities for use with rxjava (some were struck out of RxJava core for 1.0.0):
+Utilities for use with rxjava:
 
 * ```Functions.identity```
 * ```Functions.alwaysTrue```
