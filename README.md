@@ -16,6 +16,8 @@ Utilities for use with rxjava (some were struck out of RxJava core for 1.0.0):
 * ```TestingHelper```
 * ```OperatorUnsubscribeEagerly```
 * ```Checked``` provides lambda helpers for dealing with checked exceptions in functions and actions
+* ```Transformers.toOperator```
+* ```SingleSubscribeSubject```
 
 
 Status: *released to Maven Central*
