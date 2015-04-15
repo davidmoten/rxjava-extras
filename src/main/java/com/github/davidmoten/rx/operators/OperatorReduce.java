@@ -29,6 +29,9 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
 
     @SuppressWarnings("unchecked")
     private OperatorReduce(Func2<R, ? super T, R> reduction) {
+        // this does not throw a ClassCastException at runtime even though
+        // NO_INITIAL_VALUE may not be of type R because R is a generic type and
+        // its type is erased at runtime (R -> Object).
         this((R) NO_INITIAL_VALUE, reduction);
     }
 
@@ -54,10 +57,11 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
         }
 
         private final Subscriber<? super R> child;
+        private final Func2<R, ? super T, R> reduction;
         private R value;
+
         private final AtomicReference<State> state = new AtomicReference<State>(
                 State.NOT_REQUESTED_NOT_COMPLETED);
-        private final Func2<R, ? super T, R> reduction;
 
         ParentSubscriber(Subscriber<? super R> child, Func2<R, ? super T, R> reduction,
                 R initialValue) {
