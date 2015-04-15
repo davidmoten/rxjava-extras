@@ -4,6 +4,7 @@ import org.openjdk.jmh.annotations.Benchmark;
 
 import rx.Observable;
 import rx.functions.Func2;
+import rx.schedulers.Schedulers;
 
 import com.github.davidmoten.rx.operators.OperatorReduce;
 
@@ -17,6 +18,18 @@ public class Benchmarks {
     @Benchmark
     public void reduceManyFromExtras() {
         Observable.range(1, 1000000).lift(OperatorReduce.create(0, COUNT)).subscribe();
+    }
+
+    @Benchmark
+    public void reduceManyFromRxJavaLibraryAsync() {
+        Observable.range(1, 1000000).reduce(0, COUNT).subscribeOn(Schedulers.computation())
+                .toBlocking().single();
+    }
+
+    @Benchmark
+    public void reduceManyFromExtrasAsync() {
+        Observable.range(1, 1000000).lift(OperatorReduce.create(0, COUNT))
+                .subscribeOn(Schedulers.computation()).toBlocking().single();
     }
 
     @Benchmark
