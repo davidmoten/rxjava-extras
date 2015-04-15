@@ -31,7 +31,7 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
     private OperatorReduce(Func2<R, ? super T, R> reduction) {
         // this does not throw a ClassCastException at runtime even though
         // NO_INITIAL_VALUE may not be of type R because R is a generic type and
-        // its type is erased at runtime (R -> Object).
+        // its type is erased at runtime.
         this((R) NO_INITIAL_VALUE, reduction);
     }
 
@@ -53,7 +53,7 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
     private static class ParentSubscriber<T, R> extends Subscriber<T> {
 
         private static enum State {
-            NOT_REQUESTED_NOT_COMPLETED, NOT_REQUESTED_COMPLETED, REQUESTED_NOT_COMPLETED, REQUESTED_COMPLETED, EMITTED;
+            NOT_REQUESTED_NOT_COMPLETED, NOT_REQUESTED_COMPLETED, REQUESTED_NOT_COMPLETED, REQUESTED_COMPLETED;
         }
 
         private final Subscriber<? super R> child;
@@ -76,7 +76,7 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
                         State.REQUESTED_NOT_COMPLETED)) {
                     if (state.compareAndSet(State.NOT_REQUESTED_COMPLETED,
                             State.REQUESTED_COMPLETED)) {
-                        drain();
+                        emit();
                     }
                 }
             }
@@ -85,28 +85,26 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
         @Override
         public void onCompleted() {
             if (state.compareAndSet(State.REQUESTED_NOT_COMPLETED, State.REQUESTED_COMPLETED)) {
-                drain();
+                emit();
             } else {
                 state.compareAndSet(State.NOT_REQUESTED_NOT_COMPLETED,
                         State.NOT_REQUESTED_COMPLETED);
             }
         }
 
-        void drain() {
-            if (state.compareAndSet(State.REQUESTED_COMPLETED, State.EMITTED)) {
-                if (isUnsubscribed())
-                    return;
-                // synchronize to ensure that value is safely published
-                synchronized (this) {
-                    if (value == NO_INITIAL_VALUE)
-                        throw new RuntimeException(
-                                "reduce without an initial value expects at least two items");
-                    child.onNext(value);
-                    // release for gc
-                    value = null;
-                    if (!isUnsubscribed())
-                        child.onCompleted();
-                }
+        void emit() {
+            if (isUnsubscribed())
+                return;
+            // synchronize to ensure that value is safely published
+            synchronized (this) {
+                if (value == NO_INITIAL_VALUE)
+                    throw new RuntimeException(
+                            "reduce without an initial value expects at least two items");
+                child.onNext(value);
+                // release for gc
+                value = null;
+                if (!isUnsubscribed())
+                    child.onCompleted();
             }
         }
 

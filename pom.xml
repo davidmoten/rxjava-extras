@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
 
@@ -23,6 +24,8 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<rxjava.version>1.0.8</rxjava.version>
+		<jmh.version>1.8</jmh.version>
+		<exec.version>1.4.0</exec.version>
 
 		<cobertura.version>2.6</cobertura.version>
 		<checkstyle.version>2.11</checkstyle.version>
@@ -76,8 +79,8 @@
 		<connection>scm:git:https://github.com/davidmoten/rxjava-extras.git</connection>
 		<developerConnection>scm:git:https://github.com/davidmoten/rxjava-extras.git</developerConnection>
 		<url>scm:git:https://github.com:davidmoten/rxjava-extras.git</url>
-    <tag>HEAD</tag>
-  </scm>
+		<tag>HEAD</tag>
+	</scm>
 
 	<dependencies>
 		<dependency>
@@ -85,7 +88,7 @@
 			<artifactId>rxjava</artifactId>
 			<version>${rxjava.version}</version>
 		</dependency>
-		
+
 		<!-- Test Dependencies -->
 		<dependency>
 			<groupId>junit</groupId>
@@ -94,6 +97,14 @@
 			<scope>compile</scope>
 			<optional>true</optional>
 		</dependency>
+
+		<dependency>
+			<groupId>org.openjdk.jmh</groupId>
+			<artifactId>jmh-core</artifactId>
+			<version>${jmh.version}</version>
+			<scope>test</scope>
+		</dependency>
+
 
 	</dependencies>
 
@@ -201,5 +212,54 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>benchmark</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.openjdk.jmh</groupId>
+					<artifactId>jmh-generator-annprocess</artifactId>
+					<version>${jmh.version}</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>${exec.version}</version>
+						<executions>
+							<execution>
+								<id>run-benchmarks</id>
+								<phase>integration-test</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+									<classpathScope>test</classpathScope>
+									<executable>java</executable>
+									<arguments>
+										<argument>-classpath</argument>
+										<classpath />
+										<argument>org.openjdk.jmh.Main</argument>
+										<!-- -h for help -->
+										<argument>-f</argument>
+										<argument>-i</argument>
+										<argument>10</argument>
+										<argument>-wi</argument>
+										<argument>3</argument>
+										<argument>-jvmArgs</argument>
+										<argument>-Xmx512m</argument>
+									</arguments>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>
