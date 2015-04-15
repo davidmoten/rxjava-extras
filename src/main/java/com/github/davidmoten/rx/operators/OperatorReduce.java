@@ -19,14 +19,15 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
     }
 
     private final Func2<R, ? super T, R> reduction;
-    private R initialValue;
-    static final Object NO_INITIAL_VALUE = new Object();
+    private final R initialValue;
+    private static final Object NO_INITIAL_VALUE = new Object();
 
     private OperatorReduce(Func2<R, ? super T, R> reduction, R initialValue) {
         this.reduction = reduction;
         this.initialValue = initialValue;
     }
 
+    @SuppressWarnings("unchecked")
     private OperatorReduce(Func2<R, ? super T, R> reduction) {
         this(reduction, (R) NO_INITIAL_VALUE);
     }
@@ -54,7 +55,7 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
 
         private final Subscriber<? super R> child;
         private R value;
-        private AtomicReference<State> state = new AtomicReference<State>(
+        private final AtomicReference<State> state = new AtomicReference<State>(
                 State.NOT_REQUESTED_NOT_COMPLETED);
         private final Func2<R, ? super T, R> reduction;
 
