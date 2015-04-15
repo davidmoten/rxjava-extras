@@ -13,23 +13,23 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
         return new OperatorReduce<T, T>(reduction);
     }
 
-    public static <T, R> OperatorReduce<T, R> create(Func2<R, ? super T, R> reduction,
-            R initialValue) {
-        return new OperatorReduce<T, R>(reduction, initialValue);
+    public static <T, R> OperatorReduce<T, R> create(R initialValue,
+            Func2<R, ? super T, R> reduction) {
+        return new OperatorReduce<T, R>(initialValue, reduction);
     }
 
     private final Func2<R, ? super T, R> reduction;
     private final R initialValue;
     private static final Object NO_INITIAL_VALUE = new Object();
 
-    private OperatorReduce(Func2<R, ? super T, R> reduction, R initialValue) {
+    private OperatorReduce(R initialValue, Func2<R, ? super T, R> reduction) {
         this.reduction = reduction;
         this.initialValue = initialValue;
     }
 
     @SuppressWarnings("unchecked")
     private OperatorReduce(Func2<R, ? super T, R> reduction) {
-        this(reduction, (R) NO_INITIAL_VALUE);
+        this((R) NO_INITIAL_VALUE, reduction);
     }
 
     @Override

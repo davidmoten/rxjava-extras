@@ -71,12 +71,12 @@ public class OperatorReduceTest extends TestCase {
     private static final Func1<Observable<Integer>, Observable<Integer>> count = new Func1<Observable<Integer>, Observable<Integer>>() {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return o.lift(OperatorReduce.create(new Func2<Integer,Integer,Integer>() {
+            return o.lift(OperatorReduce.create(0, new Func2<Integer,Integer,Integer>() {
 
                 @Override
                 public Integer call(Integer n, Integer o) {
                     return n+1;
-                }},0));
+                }}));
         }
     };
 
