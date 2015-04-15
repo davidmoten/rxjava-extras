@@ -13,7 +13,7 @@ import com.github.davidmoten.rx.testing.TestingHelper;
 public class OperatorReduceTest extends TestCase {
 
 
-    private static TestSuite suite() {
+    public static TestSuite suite() {
         return TestingHelper
                 .function(count)
                 .waitForUnsubscribe(100, TimeUnit.MILLISECONDS)

@@ -9,14 +9,15 @@ import rx.functions.Func2;
 
 public class OperatorReduce<T, R> implements Operator<R, T> {
 
-    public static <T> OperatorReduce<T,T> create(Func2<T,T,T> reduction) {
-        return new OperatorReduce<T,T>(reduction);
+    public static <T> OperatorReduce<T, T> create(Func2<T, T, T> reduction) {
+        return new OperatorReduce<T, T>(reduction);
     }
-    
-    public static <T,R> OperatorReduce<T,R> create(Func2<R,? super T, R>  reduction, R initialValue) {
-        return new OperatorReduce<T,R>(reduction);
+
+    public static <T, R> OperatorReduce<T, R> create(Func2<R, ? super T, R> reduction,
+            R initialValue) {
+        return new OperatorReduce<T, R>(reduction, initialValue);
     }
-    
+
     private final Func2<R, ? super T, R> reduction;
     private R initialValue;
     static final Object NO_INITIAL_VALUE = new Object();
@@ -92,8 +93,9 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
                     return;
                 // synchronize to ensure that value is safely published
                 synchronized (this) {
-                    if (value==NO_INITIAL_VALUE)
-                        throw new RuntimeException("reduce without an initial value expects at least two items");
+                    if (value == NO_INITIAL_VALUE)
+                        throw new RuntimeException(
+                                "reduce without an initial value expects at least two items");
                     child.onNext(value);
                     // release for gc
                     value = null;
