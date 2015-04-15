@@ -45,11 +45,33 @@ public class OperatorReduceTest extends TestCase {
     public void testDummy() {
         // just here to fool eclipse
     }
+    
+    public void testSumWithNoInitialValue() {
+        Func2<Integer, Integer, Integer> sum = new Func2<Integer,Integer,Integer>() {
+
+            @Override
+            public Integer call(Integer a, Integer b) {
+                return a + b;
+            }};
+        int result = Observable.range(1,4).lift(OperatorReduce.create(sum)).toBlocking().single();
+        assertEquals(10, result);
+    }
+    
+    public void testSumWithEmpty() {
+        Func2<Integer, Integer, Integer> sum = new Func2<Integer,Integer,Integer>() {
+
+            @Override
+            public Integer call(Integer a, Integer b) {
+                return a + b;
+            }};
+        int result = Observable.range(1,4).lift(OperatorReduce.create(sum)).toBlocking().single();
+        assertEquals(10, result);
+    }
 
     private static final Func1<Observable<Integer>, Observable<Integer>> count = new Func1<Observable<Integer>, Observable<Integer>>() {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return o.lift(new OperatorReduce<Integer,Integer>(new Func2<Integer,Integer,Integer>() {
+            return o.lift(OperatorReduce.create(new Func2<Integer,Integer,Integer>() {
 
                 @Override
                 public Integer call(Integer n, Integer o) {

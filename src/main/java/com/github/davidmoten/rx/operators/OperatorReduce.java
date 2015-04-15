@@ -9,96 +9,114 @@ import rx.functions.Func2;
 
 public class OperatorReduce<T, R> implements Operator<R, T> {
 
-	private final Func2<R, ? super T, R> reduction;
-	private R initialValue;
+    public static <T> OperatorReduce<T,T> create(Func2<T,T,T> reduction) {
+        return new OperatorReduce<T,T>(reduction);
+    }
+    
+    public static <T,R> OperatorReduce<T,R> create(Func2<R,? super T, R>  reduction, R initialValue) {
+        return new OperatorReduce<T,R>(reduction);
+    }
+    
+    private final Func2<R, ? super T, R> reduction;
+    private R initialValue;
+    static final Object NO_INITIAL_VALUE = new Object();
 
-	public OperatorReduce(Func2<R, ? super T, R> reduction, R initialValue) {
-		this.reduction = reduction;
-		this.initialValue = initialValue;
-	}
+    private OperatorReduce(Func2<R, ? super T, R> reduction, R initialValue) {
+        this.reduction = reduction;
+        this.initialValue = initialValue;
+    }
 
-	@Override
-	public Subscriber<? super T> call(Subscriber<? super R> child) {
-		final ParentSubscriber<T, R> parent = new ParentSubscriber<T, R>(child,
-				reduction, initialValue);
-		child.setProducer(new Producer() {
+    private OperatorReduce(Func2<R, ? super T, R> reduction) {
+        this(reduction, (R) NO_INITIAL_VALUE);
+    }
 
-			@Override
-			public void request(long n) {
-				parent.requestMore(n);
-			}
-		});
-		child.add(parent);
-		return parent;
-	}
+    @Override
+    public Subscriber<? super T> call(Subscriber<? super R> child) {
+        final ParentSubscriber<T, R> parent = new ParentSubscriber<T, R>(child, reduction,
+                initialValue);
+        child.setProducer(new Producer() {
 
-	private static class ParentSubscriber<T, R> extends Subscriber<T> {
+            @Override
+            public void request(long n) {
+                parent.requestMore(n);
+            }
+        });
+        child.add(parent);
+        return parent;
+    }
 
-		private static enum State {
-			NOT_REQUESTED_NOT_COMPLETED, NOT_REQUESTED_COMPLETED, REQUESTED_NOT_COMPLETED, REQUESTED_COMPLETED, EMITTED;
-		}
+    private static class ParentSubscriber<T, R> extends Subscriber<T> {
 
-		private final Subscriber<? super R> child;
-		private R value;
-		private AtomicReference<State> state = new AtomicReference<State>(
-				State.NOT_REQUESTED_NOT_COMPLETED);
-		private final Func2<R, ? super T, R> reduction;
+        private static enum State {
+            NOT_REQUESTED_NOT_COMPLETED, NOT_REQUESTED_COMPLETED, REQUESTED_NOT_COMPLETED, REQUESTED_COMPLETED, EMITTED;
+        }
 
-		ParentSubscriber(Subscriber<? super R> child,
-				Func2<R, ? super T, R> reduction, R initialValue) {
-			this.child = child;
-			this.reduction = reduction;
-			this.value = initialValue;
-		}
+        private final Subscriber<? super R> child;
+        private R value;
+        private AtomicReference<State> state = new AtomicReference<State>(
+                State.NOT_REQUESTED_NOT_COMPLETED);
+        private final Func2<R, ? super T, R> reduction;
 
-		void requestMore(long n) {
-			if (n > 0) {
-				if (!state.compareAndSet(State.NOT_REQUESTED_NOT_COMPLETED,
-						State.REQUESTED_NOT_COMPLETED)) {
-					if (state.compareAndSet(State.NOT_REQUESTED_COMPLETED,
-							State.REQUESTED_COMPLETED)) {
-						drain();
-					}
-				}
-			}
-		}
+        ParentSubscriber(Subscriber<? super R> child, Func2<R, ? super T, R> reduction,
+                R initialValue) {
+            this.child = child;
+            this.reduction = reduction;
+            this.value = initialValue;
+        }
 
-		@Override
-		public void onCompleted() {
-			if (state.compareAndSet(State.REQUESTED_NOT_COMPLETED,
-					State.REQUESTED_COMPLETED)) {
-				drain();
-			} else {
-				state.compareAndSet(State.NOT_REQUESTED_NOT_COMPLETED,
-						State.NOT_REQUESTED_COMPLETED);
-			}
-		}
+        void requestMore(long n) {
+            if (n > 0) {
+                if (!state.compareAndSet(State.NOT_REQUESTED_NOT_COMPLETED,
+                        State.REQUESTED_NOT_COMPLETED)) {
+                    if (state.compareAndSet(State.NOT_REQUESTED_COMPLETED,
+                            State.REQUESTED_COMPLETED)) {
+                        drain();
+                    }
+                }
+            }
+        }
 
-		void drain() {
-			if (state.compareAndSet(State.REQUESTED_COMPLETED, State.EMITTED)) {
-				if (isUnsubscribed())
-					return;
-				// synchronize to ensure that value is safely published
-				synchronized (this) {
-					child.onNext(value);
-					// release for gc
-					value = null;
-					if (!isUnsubscribed())
-						child.onCompleted();
-				}
-			}
-		}
+        @Override
+        public void onCompleted() {
+            if (state.compareAndSet(State.REQUESTED_NOT_COMPLETED, State.REQUESTED_COMPLETED)) {
+                drain();
+            } else {
+                state.compareAndSet(State.NOT_REQUESTED_NOT_COMPLETED,
+                        State.NOT_REQUESTED_COMPLETED);
+            }
+        }
 
-		@Override
-		public void onError(Throwable e) {
-			child.onError(e);
-		}
+        void drain() {
+            if (state.compareAndSet(State.REQUESTED_COMPLETED, State.EMITTED)) {
+                if (isUnsubscribed())
+                    return;
+                // synchronize to ensure that value is safely published
+                synchronized (this) {
+                    if (value==NO_INITIAL_VALUE)
+                        throw new RuntimeException("reduce without an initial value expects at least two items");
+                    child.onNext(value);
+                    // release for gc
+                    value = null;
+                    if (!isUnsubscribed())
+                        child.onCompleted();
+                }
+            }
+        }
 
-		@Override
-		public void onNext(T t) {
-			value = reduction.call(value, t);
-		}
+        @Override
+        public void onError(Throwable e) {
+            child.onError(e);
+        }
 
-	}
+        @SuppressWarnings("unchecked")
+        @Override
+        public void onNext(T t) {
+            if (value == NO_INITIAL_VALUE)
+                value = (R) t;
+            else
+                value = reduction.call(value, t);
+        }
+
+    }
 
 }
