@@ -10,6 +10,7 @@ import com.github.davidmoten.rx.operators.OperatorTakeLastOne;
 public class Benchmarks {
 
     private static final int MANY = 1000000;
+    private static final int SOME = 100;
     private static final int FEW = 5;
 
     @Benchmark
@@ -23,6 +24,11 @@ public class Benchmarks {
     }
 
     @Benchmark
+    public void takeLastOneFromRxJavaLibrarySome() {
+        Observable.range(1, SOME).takeLast(1).subscribe();
+    }
+
+    @Benchmark
     public void takeLastOneFromExtras() {
         Observable.range(1, MANY).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
     }
@@ -30,6 +36,11 @@ public class Benchmarks {
     @Benchmark
     public void takeLastOneFromExtrasFew() {
         Observable.range(1, FEW).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
+    }
+
+    @Benchmark
+    public void takeLastOneFromExtrasSome() {
+        Observable.range(1, SOME).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
     }
 
     private static final Func2<Integer, ? super Integer, Integer> COUNT = new Func2<Integer, Integer, Integer>() {
