@@ -44,7 +44,10 @@ public class OperatorLast<T> implements Operator<T, T> {
         private static final Object ABSENT = new Object();
 
         private final Subscriber<? super T> child;
-        private T value = (T) ABSENT;
+
+        @SuppressWarnings("unchecked")
+        // we can get away with this at runtime because of type erasure
+        private T last = (T) ABSENT;
 
         private final AtomicReference<State> state = new AtomicReference<State>(
                 State.NOT_REQUESTED_NOT_COMPLETED);
@@ -67,12 +70,10 @@ public class OperatorLast<T> implements Operator<T, T> {
 
         @Override
         public void onCompleted() {
-            if (value == ABSENT) {
-                onError(new RuntimeException("last cannot be called on an empty stream"));
-                return;
-            }
-
-            if (state.compareAndSet(State.REQUESTED_NOT_COMPLETED, State.REQUESTED_COMPLETED)) {
+            if (last == ABSENT) {
+                onError(new RuntimeException("Sequence contains no elements"));
+            } else if (state
+                    .compareAndSet(State.REQUESTED_NOT_COMPLETED, State.REQUESTED_COMPLETED)) {
                 emit();
             } else {
                 state.compareAndSet(State.NOT_REQUESTED_NOT_COMPLETED,
@@ -83,14 +84,14 @@ public class OperatorLast<T> implements Operator<T, T> {
         private void emit() {
             if (isUnsubscribed()) {
                 // release for gc
-                value = null;
+                last = null;
                 return;
             }
             // synchronize to ensure that value is safely published
             synchronized (this) {
-                child.onNext(value);
+                child.onNext(last);
                 // release for gc
-                value = null;
+                last = null;
             }
             if (!isUnsubscribed())
                 child.onCompleted();
@@ -103,7 +104,7 @@ public class OperatorLast<T> implements Operator<T, T> {
 
         @Override
         public void onNext(T t) {
-            value = t;
+            last = t;
         }
 
     }
