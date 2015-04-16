@@ -3,7 +3,6 @@ package com.github.davidmoten.rx;
 import org.openjdk.jmh.annotations.Benchmark;
 
 import rx.Observable;
-import rx.functions.Func2;
 
 import com.github.davidmoten.rx.operators.OperatorTakeLastOne;
 
@@ -42,13 +41,5 @@ public class Benchmarks {
     public void takeLastOneNewSome() {
         Observable.range(1, SOME).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
     }
-
-    private static final Func2<Integer, ? super Integer, Integer> COUNT = new Func2<Integer, Integer, Integer>() {
-
-        @Override
-        public Integer call(Integer count, Integer o) {
-            return count + 1;
-        }
-    };
 
 }
