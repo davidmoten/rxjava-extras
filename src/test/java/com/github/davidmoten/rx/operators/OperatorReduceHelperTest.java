@@ -4,13 +4,16 @@ import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+
+import org.junit.Test;
+
 import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
 
 import com.github.davidmoten.rx.testing.TestingHelper;
 
-public class OperatorReduceTest extends TestCase {
+public class OperatorReduceHelperTest extends TestCase {
 
     public static TestSuite suite() {
         return TestingHelper.function(count).waitForUnsubscribe(100, TimeUnit.MILLISECONDS)
@@ -25,16 +28,18 @@ public class OperatorReduceTest extends TestCase {
                 // test non-empty count
                 .name("testReduceTwoReturnsTwo").from(3, 5).expect(2)
                 // unsub before completion
-                .name("testTwoWithOtherUnsubscribedAfterOneReturnsOneItemOnly").from(3, 5)
+                .name("testTwoUnsubscribedAfterOneReturnsOneItemOnly").from(3, 5)
                 .unsubscribeAfter(1).expect(2)
                 // get test suites
-                .testSuite(OperatorReduceTest.class);
+                .testSuite(OperatorReduceHelperTest.class);
     }
 
-    public void testDummy() {
+    @Test
+    public void testToKeepEclipseHappy() {
         // just here to fool eclipse
     }
 
+    @Test
     public void testSumWithNoInitialValue() {
         Func2<Integer, Integer, Integer> sum = new Func2<Integer, Integer, Integer>() {
 
@@ -47,6 +52,7 @@ public class OperatorReduceTest extends TestCase {
         assertEquals(10, result);
     }
 
+    @Test
     public void testSumWithEmpty() {
         Func2<Integer, Integer, Integer> sum = new Func2<Integer, Integer, Integer>() {
 
@@ -73,39 +79,3 @@ public class OperatorReduceTest extends TestCase {
     };
 
 }
-
-// @Benchmark
-// public void rxJavaCount() {
-// Observable.range(1, 1000000)
-// .reduce(0, new Func2<Integer, Object, Integer>() {
-// @Override
-// public final Integer call(Integer t1, Object t2) {
-// return t1 + 1;
-// }
-// }).subscribe();
-// }
-//
-// private static final class CountHolder {
-// static final Func2<Integer, Object, Integer> INSTANCE = new Func2<Integer,
-// Object, Integer>() {
-// @Override
-// public final Integer call(Integer t1, Object t2) {
-// return t1 + 1;
-// }
-// };
-// }
-//
-// @Benchmark
-// public void rxJavaCountConstant() {
-// Observable.range(1, 1000000).reduce(0, CountHolder.INSTANCE)
-// .subscribe();
-// }
-//
-// @Benchmark
-// public void rxJavaCountNewReduce() {
-// Observable
-// .range(1, 1000000)
-// .lift(new OperatorReduce<Integer, Integer>(
-// CountHolder.INSTANCE, 0)).subscribe();
-// }
-

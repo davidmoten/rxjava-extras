@@ -338,7 +338,8 @@ public final class TestingHelper {
             c.function.call(c.from.doOnUnsubscribe(countDown(sourceUnsubscribeLatch))).subscribe(
                     sub);
             if (c.unsubscribeAfter.isPresent()) {
-                waitForUnsubscribe(sourceUnsubscribeLatch, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
+                waitForUnsubscribe(sourceUnsubscribeLatch, c.waitForUnusbscribeMs,
+                        TimeUnit.MILLISECONDS);
                 // if unsubscribe has occurred there is no mandated behaviour in
                 // terms of terminal events so we don't check them
             } else {
@@ -365,7 +366,8 @@ public final class TestingHelper {
                 sub.assertReceivedCountIs(c.expectSize.get());
             sub.assertUnsubscribed();
             if (c.checkSourceUnsubscribed)
-                waitForUnsubscribe(sourceUnsubscribeLatch, c.waitForUnusbscribeMs, TimeUnit.MILLISECONDS);
+                waitForUnsubscribe(sourceUnsubscribeLatch, c.waitForUnusbscribeMs,
+                        TimeUnit.MILLISECONDS);
             if (c.expectedException.isPresent())
                 throw new ExpectedExceptionNotThrownException();
         } catch (RuntimeException e) {
@@ -384,8 +386,7 @@ public final class TestingHelper {
         };
     }
 
-    private static <T> void waitForUnsubscribe(CountDownLatch latch, long duration,
-            TimeUnit unit) {
+    private static <T> void waitForUnsubscribe(CountDownLatch latch, long duration, TimeUnit unit) {
         try {
             if (!latch.await(duration, unit))
                 throw new UnsubscriptionFromSourceTimeoutException();
@@ -642,6 +643,7 @@ public final class TestingHelper {
         protected void runTest() throws Throwable {
             TestingHelper.runTest(c, testType);
         }
+
     }
 
     private static <T> boolean equals(Collection<T> a, Collection<T> b, boolean ordered) {

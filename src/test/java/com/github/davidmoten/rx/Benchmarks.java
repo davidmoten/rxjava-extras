@@ -10,36 +10,39 @@ import com.github.davidmoten.rx.operators.OperatorReduce;
 
 public class Benchmarks {
 
+    private static final int MANY = 1000000;
+    private static final int FEW = 5;
+
     @Benchmark
     public void reduceManyFromRxJavaLibrary() {
-        Observable.range(1, 1000000).reduce(0, COUNT).subscribe();
+        Observable.range(1, MANY).reduce(0, COUNT).subscribe();
     }
 
     @Benchmark
     public void reduceManyFromExtras() {
-        Observable.range(1, 1000000).lift(OperatorReduce.create(0, COUNT)).subscribe();
+        Observable.range(1, MANY).lift(OperatorReduce.create(0, COUNT)).subscribe();
     }
 
     @Benchmark
     public void reduceManyFromRxJavaLibraryAsync() {
-        Observable.range(1, 1000000).reduce(0, COUNT).subscribeOn(Schedulers.computation())
-                .toBlocking().single();
+        Observable.range(1, MANY).reduce(0, COUNT).observeOn(Schedulers.computation()).toBlocking()
+                .single();
     }
 
     @Benchmark
     public void reduceManyFromExtrasAsync() {
-        Observable.range(1, 1000000).lift(OperatorReduce.create(0, COUNT))
-                .subscribeOn(Schedulers.computation()).toBlocking().single();
+        Observable.range(1, MANY).lift(OperatorReduce.create(0, COUNT))
+                .observeOn(Schedulers.computation()).toBlocking().single();
     }
 
     @Benchmark
     public void reduceFewFromRxJavaLibrary() {
-        Observable.range(1, 5).reduce(0, COUNT).subscribe();
+        Observable.range(1, FEW).reduce(0, COUNT).subscribe();
     }
 
     @Benchmark
     public void reduceFewFromExtras() {
-        Observable.range(1, 5).lift(OperatorReduce.create(0, COUNT)).subscribe();
+        Observable.range(1, FEW).lift(OperatorReduce.create(0, COUNT)).subscribe();
     }
 
     private static final Func2<Integer, ? super Integer, Integer> COUNT = new Func2<Integer, Integer, Integer>() {

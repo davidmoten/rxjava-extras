@@ -92,7 +92,7 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
             }
         }
 
-        void emit() {
+        private void emit() {
             if (isUnsubscribed())
                 return;
             // synchronize to ensure that value is safely published
