@@ -14,7 +14,7 @@ public class Benchmarks {
     private static final int FEW = 5;
 
     @Benchmark
-    public void takeLastOneFromRxJavaLibrary() {
+    public void takeLastOneFromRxJavaLibraryMany() {
         Observable.range(1, MANY).takeLast(1).subscribe();
     }
 
@@ -29,7 +29,7 @@ public class Benchmarks {
     }
 
     @Benchmark
-    public void takeLastOneNew() {
+    public void takeLastOneNewMany() {
         Observable.range(1, MANY).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
     }
 
