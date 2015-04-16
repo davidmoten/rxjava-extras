@@ -29,17 +29,17 @@ public class Benchmarks {
     }
 
     @Benchmark
-    public void takeLastOneFromExtras() {
+    public void takeLastOneNew() {
         Observable.range(1, MANY).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
     }
 
     @Benchmark
-    public void takeLastOneFromExtrasFew() {
+    public void takeLastOneNewFew() {
         Observable.range(1, FEW).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
     }
 
     @Benchmark
-    public void takeLastOneFromExtrasSome() {
+    public void takeLastOneNewSome() {
         Observable.range(1, SOME).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
     }
 
