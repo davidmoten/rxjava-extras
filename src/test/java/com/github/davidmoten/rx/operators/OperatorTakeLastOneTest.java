@@ -65,7 +65,7 @@ public class OperatorTakeLastOneTest {
     @Test
     public void testLastWithBackpressure() {
         MySubscriber<Integer> s = new MySubscriber<Integer>(0);
-        Observable.just(1).last().subscribe(s);
+        Observable.just(1).lift(OperatorTakeLastOne.<Integer> create()).subscribe(s);
         assertEquals(0, s.list.size());
         s.requestMore(1);
         assertEquals(1, s.list.size());
