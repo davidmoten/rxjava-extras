@@ -13,13 +13,23 @@ public class Benchmarks {
     private static final int FEW = 5;
 
     @Benchmark
-    public void scanFromRxJavaLibrary() {
-        Observable.range(1, MANY).scan(0, COUNT).last().subscribe();
+    public void lastFromRxJavaLibrary() {
+        Observable.range(1, MANY).last().subscribe();
     }
 
     @Benchmark
-    public void scanFromExtras() {
-        Observable.range(1, MANY).scan(0, COUNT).lift(OperatorLast.<Integer> create()).subscribe();
+    public void lastFromRxJavaLibraryFew() {
+        Observable.range(1, FEW).last().subscribe();
+    }
+
+    @Benchmark
+    public void lastFromExtras() {
+        Observable.range(1, MANY).lift(OperatorLast.<Integer> create()).subscribe();
+    }
+
+    @Benchmark
+    public void lastFromExtrasFew() {
+        Observable.range(1, FEW).lift(OperatorLast.<Integer> create()).subscribe();
     }
 
     private static final Func2<Integer, ? super Integer, Integer> COUNT = new Func2<Integer, Integer, Integer>() {
