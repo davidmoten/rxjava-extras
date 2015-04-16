@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import rx.Observable.Operator;
 import rx.Producer;
 import rx.Subscriber;
+import rx.exceptions.OnErrorThrowable;
 import rx.functions.Func2;
 
 public class OperatorReduce<T, R> implements Operator<R, T> {
@@ -122,7 +123,14 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
             if (value == NO_INITIAL_VALUE)
                 value = (R) t;
             else
-                value = reduction.call(value, t);
+                try {
+                    value = reduction.call(value, t);
+                } catch (Throwable e) {
+                    // supplement the error message with the input to the
+                    // reduction function that caused the failure
+                    child.onError(OnErrorThrowable.addValueAsLastCause(e, t));
+                    return;
+                }
         }
 
     }
