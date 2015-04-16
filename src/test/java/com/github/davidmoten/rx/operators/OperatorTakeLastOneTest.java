@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -15,12 +16,12 @@ import rx.Subscriber;
 import rx.functions.Action0;
 import rx.observers.TestSubscriber;
 
-public class OperatorLastTest {
+public class OperatorTakeLastOneTest {
 
     @Test
-    public void testLastOfTenReturnsLast() {
+    public void testLastOfManyReturnsLast() {
         TestSubscriber<Integer> s = new TestSubscriber<Integer>();
-        Observable.range(1, 10).lift(OperatorLast.<Integer> create()).subscribe(s);
+        Observable.range(1, 10).lift(OperatorTakeLastOne.<Integer> create()).subscribe(s);
         s.assertReceivedOnNext(Arrays.asList(10));
         s.assertNoErrors();
         s.assertTerminalEvent();
@@ -28,10 +29,11 @@ public class OperatorLastTest {
     }
 
     @Test
-    public void testLastOfEmptyThrowsError() {
+    public void testLastOfEmptyReturnsEmpty() {
         TestSubscriber<Object> s = new TestSubscriber<Object>();
-        Observable.empty().lift(OperatorLast.create()).subscribe(s);
-        assertEquals(1, s.getOnErrorEvents().size());
+        Observable.empty().lift(OperatorTakeLastOne.create()).subscribe(s);
+        s.assertReceivedOnNext(Collections.emptyList());
+        s.assertNoErrors();
         s.assertTerminalEvent();
         s.assertUnsubscribed();
     }
@@ -39,7 +41,7 @@ public class OperatorLastTest {
     @Test
     public void testLastOfOneReturnsLast() {
         TestSubscriber<Integer> s = new TestSubscriber<Integer>();
-        Observable.just(1).lift(OperatorLast.<Integer> create()).subscribe(s);
+        Observable.just(1).lift(OperatorTakeLastOne.<Integer> create()).subscribe(s);
         s.assertReceivedOnNext(Arrays.asList(1));
         s.assertNoErrors();
         s.assertTerminalEvent();
@@ -49,14 +51,14 @@ public class OperatorLastTest {
     @Test
     public void testUnsubscribesFromUpstream() {
         final AtomicBoolean unsubscribed = new AtomicBoolean(false);
-        Observable.just(1).doOnUnsubscribe(new Action0() {
+        Action0 unsubscribeAction = new Action0() {
             @Override
             public void call() {
                 unsubscribed.set(true);
             }
-        })
-        //
-                .lift(OperatorLast.<Integer> create()).subscribe();
+        };
+        Observable.just(1).doOnUnsubscribe(unsubscribeAction)
+                .lift(OperatorTakeLastOne.<Integer> create()).subscribe();
         assertTrue(unsubscribed.get());
     }
 

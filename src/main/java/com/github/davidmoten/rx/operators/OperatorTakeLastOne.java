@@ -6,18 +6,18 @@ import rx.Observable.Operator;
 import rx.Producer;
 import rx.Subscriber;
 
-public class OperatorLast<T> implements Operator<T, T> {
+public class OperatorTakeLastOne<T> implements Operator<T, T> {
 
     private static class Holder {
-        static final OperatorLast<Object> INSTANCE = new OperatorLast<Object>();
+        static final OperatorTakeLastOne<Object> INSTANCE = new OperatorTakeLastOne<Object>();
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> OperatorLast<T> create() {
-        return (OperatorLast<T>) Holder.INSTANCE;
+    public static <T> OperatorTakeLastOne<T> create() {
+        return (OperatorTakeLastOne<T>) Holder.INSTANCE;
     }
 
-    private OperatorLast() {
+    private OperatorTakeLastOne() {
 
     }
 
@@ -70,10 +70,7 @@ public class OperatorLast<T> implements Operator<T, T> {
 
         @Override
         public void onCompleted() {
-            if (last == ABSENT) {
-                onError(new RuntimeException("Sequence contains no elements"));
-            } else if (state
-                    .compareAndSet(State.REQUESTED_NOT_COMPLETED, State.REQUESTED_COMPLETED)) {
+            if (state.compareAndSet(State.REQUESTED_NOT_COMPLETED, State.REQUESTED_COMPLETED)) {
                 emit();
             } else {
                 state.compareAndSet(State.NOT_REQUESTED_NOT_COMPLETED,
@@ -89,7 +86,8 @@ public class OperatorLast<T> implements Operator<T, T> {
             }
             // synchronize to ensure that value is safely published
             synchronized (this) {
-                child.onNext(last);
+                if (last != ABSENT)
+                    child.onNext(last);
                 // release for gc
                 last = null;
             }
