@@ -72,12 +72,12 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
 
         void requestMore(long n) {
             if (n > 0) {
-                if (!state.compareAndSet(State.NOT_REQUESTED_NOT_COMPLETED,
+                if (state.compareAndSet(State.NOT_REQUESTED_NOT_COMPLETED,
                         State.REQUESTED_NOT_COMPLETED)) {
-                    if (state.compareAndSet(State.NOT_REQUESTED_COMPLETED,
-                            State.REQUESTED_COMPLETED)) {
-                        emit();
-                    }
+                    request(Long.MAX_VALUE);
+                } else if (state.compareAndSet(State.NOT_REQUESTED_COMPLETED,
+                        State.REQUESTED_COMPLETED)) {
+                    emit();
                 }
             }
         }
@@ -93,8 +93,11 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
         }
 
         private void emit() {
-            if (isUnsubscribed())
+            if (isUnsubscribed()) {
+                // release for gc
+                value = null;
                 return;
+            }
             // synchronize to ensure that value is safely published
             synchronized (this) {
                 if (value == NO_INITIAL_VALUE)
@@ -103,9 +106,9 @@ public class OperatorReduce<T, R> implements Operator<R, T> {
                 child.onNext(value);
                 // release for gc
                 value = null;
-                if (!isUnsubscribed())
-                    child.onCompleted();
             }
+            if (!isUnsubscribed())
+                child.onCompleted();
         }
 
         @Override
