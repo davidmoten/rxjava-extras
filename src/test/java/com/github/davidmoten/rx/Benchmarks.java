@@ -13,22 +13,22 @@ public class Benchmarks {
     private static final int FEW = 5;
 
     @Benchmark
-    public void lastFromRxJavaLibrary() {
-        Observable.range(1, MANY).last().subscribe();
+    public void takeLastOneFromRxJavaLibrary() {
+        Observable.range(1, MANY).takeLast(1).subscribe();
     }
 
     @Benchmark
-    public void lastFromRxJavaLibraryFew() {
-        Observable.range(1, FEW).last().subscribe();
+    public void takeLastOneFromRxJavaLibraryFew() {
+        Observable.range(1, FEW).takeLast(1).subscribe();
     }
 
     @Benchmark
-    public void lastFromExtras() {
+    public void takeLastOneFromExtras() {
         Observable.range(1, MANY).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
     }
 
     @Benchmark
-    public void lastFromExtrasFew() {
+    public void takeLastOneFromExtrasFew() {
         Observable.range(1, FEW).lift(OperatorTakeLastOne.<Integer> create()).subscribe();
     }
 
