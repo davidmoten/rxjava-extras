@@ -5,6 +5,7 @@ import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.functions.Func1;
 import rx.observers.Subscribers;
+import rx.subjects.Subject;
 
 import com.github.davidmoten.rx.subjects.SingleSubscribeSubject;
 
@@ -40,7 +41,7 @@ public final class OperatorFromTransformer<R, T> implements Operator<R, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super R> subscriber) {
-        SingleSubscribeSubject<T> subject = SingleSubscribeSubject.create();
+        Subject<T, T> subject = SingleSubscribeSubject.create();
         Subscriber<T> result = Subscribers.from(subject);
         subscriber.add(result);
         operation.call(subject).unsafeSubscribe(subscriber);

@@ -2,8 +2,6 @@ package com.github.davidmoten.rx.subjects;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-import rx.Observable;
-import rx.Observer;
 import rx.Subscriber;
 import rx.subjects.Subject;
 
@@ -15,7 +13,7 @@ import rx.subjects.Subject;
  * @param <T>
  *            type of items being emitted/observed by this subject
  */
-public final class SingleSubscribeSubject<T> extends Observable<T> implements Observer<T> {
+public final class SingleSubscribeSubject<T> extends Subject<T, T> {
 
     // Visible for testing
     static final String ONLY_ONE_SUBSCRIPTION_IS_ALLOWED = "only one subscription is allowed";
@@ -75,6 +73,12 @@ public final class SingleSubscribeSubject<T> extends Observable<T> implements Ob
                 throw new RuntimeException(ONLY_ONE_SUBSCRIPTION_IS_ALLOWED);
         }
 
+    }
+
+    @Override
+    public boolean hasObservers() {
+        // TODO Auto-generated method stub
+        return false;
     }
 
 }
