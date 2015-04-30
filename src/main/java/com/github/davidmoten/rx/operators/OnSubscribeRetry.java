@@ -2,35 +2,34 @@ package com.github.davidmoten.rx.operators;
 
 import rx.Notification;
 import rx.Observable;
-import rx.Observable.Operator;
+import rx.Observable.OnSubscribe;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.schedulers.Schedulers;
 
-public class OperatorRetry<T> implements Operator<T, T> {
+public class OnSubscribeRetry<T> implements OnSubscribe<T> {
 
     private final Observable<T> source;
 
-    public OperatorRetry(Observable<T> source) {
+    public OnSubscribeRetry(Observable<T> source) {
         this.source = source;
     }
 
     @Override
-    public Subscriber<? super T> call(Subscriber<? super T> child) {
-        ParentSubscriber<T> parent = new ParentSubscriber<T>(source, child);
-        parent.init();
-        return parent;
+    public void call(Subscriber<? super T> child) {
+        Retry<T> retry = new Retry<T>(source, child);
+        retry.init();
     }
 
-    private static class ParentSubscriber<T> extends Subscriber<T> {
+    private static class Retry<T> {
 
         private final Subscriber<? super T> child;
         private final Observable<T> source;
         private final Worker worker;
 
-        public ParentSubscriber(Observable<T> source, Subscriber<? super T> child) {
+        public Retry(Observable<T> source, Subscriber<? super T> child) {
             this.source = source;
             this.child = child;
             this.worker = Schedulers.trampoline().createWorker();
@@ -55,14 +54,12 @@ public class OperatorRetry<T> implements Operator<T, T> {
 
                                 @Override
                                 public void onCompleted() {
-                                    // TODO Auto-generated method stub
-
+                                    // do nothing
                                 }
 
                                 @Override
                                 public void onError(Throwable e) {
-                                    // TODO Auto-generated method stub
-
+                                    child.onError(e);
                                 }
 
                                 @Override
@@ -72,6 +69,7 @@ public class OperatorRetry<T> implements Operator<T, T> {
                                     else if (notification.isOnCompleted())
                                         child.onCompleted();
                                     else {
+                                        unsubscribe();
                                         // is error we resubscribe
                                         subscribe();
                                     }
@@ -80,24 +78,6 @@ public class OperatorRetry<T> implements Operator<T, T> {
                 }
             };
             worker.schedule(restart);
-        }
-
-        @Override
-        public void onCompleted() {
-            // TODO Auto-generated method stub
-
-        }
-
-        @Override
-        public void onError(Throwable e) {
-            // TODO Auto-generated method stub
-
-        }
-
-        @Override
-        public void onNext(T t) {
-            // TODO Auto-generated method stub
-
         }
 
     }
