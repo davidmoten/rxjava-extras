@@ -12,7 +12,7 @@ import rx.Notification.Kind;
 import rx.Subscriber;
 import rx.functions.Action1;
 
-public class SingleSubscribeSubjectTest {
+public class PublishSubjectSingleSubscriberTest {
 
     @Test
     public void testCanCallWithoutBeingSubscribed() {
