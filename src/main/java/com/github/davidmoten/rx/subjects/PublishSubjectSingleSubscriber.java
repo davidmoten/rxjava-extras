@@ -77,8 +77,7 @@ public final class PublishSubjectSingleSubscriber<T> extends Subject<T, T> {
 
     @Override
     public boolean hasObservers() {
-        // TODO Auto-generated method stub
-        return false;
+        return subscriberHolder.subscriber != null;
     }
 
 }
