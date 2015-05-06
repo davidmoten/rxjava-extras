@@ -16,7 +16,7 @@ public class SingleSubscribeSubjectTest {
 
     @Test
     public void testCanCallWithoutBeingSubscribed() {
-        SingleSubscribeSubject<Integer> subject = SingleSubscribeSubject.create();
+        PublishSubjectSingleSubscriber<Integer> subject = PublishSubjectSingleSubscriber.create();
         subject.onNext(1);
         subject.onError(new RuntimeException());
         subject.onCompleted();
@@ -24,7 +24,7 @@ public class SingleSubscribeSubjectTest {
 
     @Test
     public void testOnNextThenComplete() {
-        SingleSubscribeSubject<Integer> subject = SingleSubscribeSubject.create();
+        PublishSubjectSingleSubscriber<Integer> subject = PublishSubjectSingleSubscriber.create();
         final List<Notification<Integer>> list = new ArrayList<Notification<Integer>>();
         subject.materialize().forEach(new Action1<Notification<Integer>>() {
             @Override
@@ -41,7 +41,7 @@ public class SingleSubscribeSubjectTest {
 
     @Test
     public void testError() {
-        SingleSubscribeSubject<Integer> subject = SingleSubscribeSubject.create();
+        PublishSubjectSingleSubscriber<Integer> subject = PublishSubjectSingleSubscriber.create();
         final List<Notification<Integer>> list = new ArrayList<Notification<Integer>>();
         subject.materialize().forEach(new Action1<Notification<Integer>>() {
             @Override
@@ -60,7 +60,7 @@ public class SingleSubscribeSubjectTest {
 
     @Test
     public void testCanOnlySubscribeOnce() {
-        SingleSubscribeSubject<Integer> subject = SingleSubscribeSubject.create();
+        PublishSubjectSingleSubscriber<Integer> subject = PublishSubjectSingleSubscriber.create();
         final List<Notification<Integer>> list = new ArrayList<Notification<Integer>>();
         subject.materialize().forEach(new Action1<Notification<Integer>>() {
             @Override
@@ -76,12 +76,12 @@ public class SingleSubscribeSubjectTest {
         });
         assertEquals(1, list.size());
         assertEquals(Kind.OnError, list.get(0).getKind());
-        assertEquals(SingleSubscribeSubject.ONLY_ONE_SUBSCRIPTION_IS_ALLOWED, list.get(0)
+        assertEquals(PublishSubjectSingleSubscriber.ONLY_ONE_SUBSCRIPTION_IS_ALLOWED, list.get(0)
                 .getThrowable().getMessage());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testThrowsExceptionWhenSubscribedWithNull() {
-        SingleSubscribeSubject.create().subscribe((Subscriber<Object>) null);
+        PublishSubjectSingleSubscriber.create().subscribe((Subscriber<Object>) null);
     }
 }

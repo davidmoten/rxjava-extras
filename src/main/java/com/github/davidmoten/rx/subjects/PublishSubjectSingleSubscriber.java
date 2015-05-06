@@ -13,29 +13,29 @@ import rx.subjects.Subject;
  * @param <T>
  *            type of items being emitted/observed by this subject
  */
-public final class SingleSubscribeSubject<T> extends Subject<T, T> {
+public final class PublishSubjectSingleSubscriber<T> extends Subject<T, T> {
 
     // Visible for testing
     static final String ONLY_ONE_SUBSCRIPTION_IS_ALLOWED = "only one subscription is allowed";
 
     private final SingleSubscribeOnSubscribe<T> subscriberHolder;
 
-    private SingleSubscribeSubject(SingleSubscribeOnSubscribe<T> onSubscribe) {
+    private PublishSubjectSingleSubscriber(SingleSubscribeOnSubscribe<T> onSubscribe) {
         super(onSubscribe);
         subscriberHolder = onSubscribe;
     }
 
-    private SingleSubscribeSubject() {
+    private PublishSubjectSingleSubscriber() {
         this(new SingleSubscribeOnSubscribe<T>());
     }
 
     /**
-     * Returns a new instance of a {@link SingleSubscribeSubject}.
+     * Returns a new instance of a {@link PublishSubjectSingleSubscriber}.
      * 
      * @return the new instance
      */
-    public static <T> SingleSubscribeSubject<T> create() {
-        return new SingleSubscribeSubject<T>();
+    public static <T> PublishSubjectSingleSubscriber<T> create() {
+        return new PublishSubjectSingleSubscriber<T>();
     }
 
     @Override

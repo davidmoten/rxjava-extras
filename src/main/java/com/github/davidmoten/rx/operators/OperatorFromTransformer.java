@@ -7,7 +7,7 @@ import rx.functions.Func1;
 import rx.observers.Subscribers;
 import rx.subjects.Subject;
 
-import com.github.davidmoten.rx.subjects.SingleSubscribeSubject;
+import com.github.davidmoten.rx.subjects.PublishSubjectSingleSubscriber;
 
 /**
  * Converts an Transformer (a function converting one Observable into another)
@@ -41,7 +41,7 @@ public final class OperatorFromTransformer<R, T> implements Operator<R, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super R> subscriber) {
-        Subject<T, T> subject = SingleSubscribeSubject.create();
+        Subject<T, T> subject = PublishSubjectSingleSubscriber.create();
         Subscriber<T> result = Subscribers.from(subject);
         subscriber.add(result);
         operation.call(subject).unsafeSubscribe(subscriber);
