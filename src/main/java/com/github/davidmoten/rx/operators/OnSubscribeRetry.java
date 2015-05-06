@@ -86,8 +86,8 @@ public class OnSubscribeRetry<T> implements OnSubscribe<T> {
                 @Override
                 public void call() {
                     Subscription sub = parameters.source.materialize()
-                            .transform(parameters.transformer).dematerialize()
-                            .unsafeSubscribe(new Subscriber<T>() {
+                    // .transform(parameters.transformer)
+                            .<T> dematerialize().unsafeSubscribe(new Subscriber<T>() {
 
                                 @Override
                                 public void onStart() {
