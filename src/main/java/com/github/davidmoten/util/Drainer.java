@@ -11,7 +11,6 @@ import rx.Subscription;
 import rx.exceptions.MissingBackpressureException;
 import rx.functions.Action0;
 import rx.functions.Func0;
-import rx.internal.operators.NotificationLite;
 
 public class Drainer<T> implements Observer<T> {
 
@@ -26,8 +25,6 @@ public class Drainer<T> implements Observer<T> {
     private final Producer producer;
     private final Queue<Object> queue;
 
-    private NotificationLite<T> on = NotificationLite.instance();
-
     // the status of the current stream
     private volatile boolean finished = false;
 
@@ -41,8 +38,8 @@ public class Drainer<T> implements Observer<T> {
     private volatile long counter;
 
     @SuppressWarnings("rawtypes")
-    static final AtomicLongFieldUpdater<Drainer> COUNTER = AtomicLongFieldUpdater.newUpdater(
-            Drainer.class, "counter");
+    private static final AtomicLongFieldUpdater<Drainer> COUNTER = AtomicLongFieldUpdater
+            .newUpdater(Drainer.class, "counter");
 
     private volatile Throwable error;
 
@@ -53,6 +50,8 @@ public class Drainer<T> implements Observer<T> {
             pollQueue();
         }
     };
+
+    private static Object NULL_SENTINEL = new Object();
 
     private Drainer(Func0<Queue<Object>> queueFactory, Subscription subscription, Worker worker,
             Subscriber<T> child, Producer producer) {
@@ -68,7 +67,13 @@ public class Drainer<T> implements Observer<T> {
         if (subscription.isUnsubscribed()) {
             return;
         }
-        if (!queue.offer(on.next(t))) {
+
+        Object t2;
+        if (t == null)
+            t2 = NULL_SENTINEL;
+        else
+            t2 = t;
+        if (!queue.offer(t2)) {
             // this would only happen if more arrived than were requested
             onError(new MissingBackpressureException());
             return;
@@ -105,6 +110,7 @@ public class Drainer<T> implements Observer<T> {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void pollQueue() {
         int emittedTotal = 0;
         do {
@@ -132,7 +138,10 @@ public class Drainer<T> implements Observer<T> {
                 if (r > 0) {
                     Object o = queue.poll();
                     if (o != null) {
-                        child.onNext(on.getValue(o));
+                        if (o == NULL_SENTINEL)
+                            child.onNext(null);
+                        else
+                            child.onNext((T) o);
                         r--;
                         emittedTotal++;
                         emitted++;
