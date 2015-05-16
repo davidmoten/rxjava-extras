@@ -12,10 +12,10 @@ import rx.exceptions.MissingBackpressureException;
 import rx.functions.Action0;
 import rx.internal.operators.NotificationLite;
 
-public class Drainer<T> implements Observer<T> {
+public class Drainer<T> implements Observer<T>, Producer {
 
-    public static <T> Drainer<T> create(Queue<Object> queue,
-            Subscription subscription, Worker worker, Subscriber<T> child, Producer producer) {
+    public static <T> Drainer<T> create(Queue<Object> queue, Subscription subscription,
+            Worker worker, Subscriber<T> child, Producer producer) {
         return new Drainer<T>(queue, subscription, worker, child, producer);
     }
 
@@ -42,7 +42,7 @@ public class Drainer<T> implements Observer<T> {
             .newUpdater(Drainer.class, "counter");
 
     private volatile Throwable error;
-    
+
     private final NotificationLite<T> on = NotificationLite.instance();
 
     private final Action0 action = new Action0() {
@@ -60,6 +60,12 @@ public class Drainer<T> implements Observer<T> {
         this.worker = worker;
         this.child = child;
         this.producer = producer;
+    }
+
+    @Override
+    public void request(long n) {
+        BackpressureUtils.getAndAddRequest(REQUESTED, this, n);
+        drain();
     }
 
     @Override
@@ -98,38 +104,11 @@ public class Drainer<T> implements Observer<T> {
         drain();
     }
 
-    public void drain() {
-        if (worker != null) {
-            drainAsyncOptimized();
-        } else {
-            drainSyncOptimized();
-        }
-    }
-
-    private void drainAsyncOptimized() {
+    private void drain() {
         if (COUNTER.getAndIncrement(this) == 0) {
             worker.schedule(action);
         }
     }
-    
-    //only used for synch optimized draining
-    private boolean draining = false;
-
-    private void drainSyncOptimized() {
-        //blocking for access from another thread but 
-        //won't block and happily reentrant for synchronous 
-        //calls to this method
-        synchronized (this) {
-            if (draining)
-                return;
-            draining = true;
-        }
-        pollQueue();
-        synchronized(this) {
-            draining = false;
-        }
-    }
-
 
     private void pollQueue() {
         int emittedTotal = 0;
