@@ -10,13 +10,13 @@ import rx.Subscriber;
 import rx.Subscription;
 import rx.exceptions.MissingBackpressureException;
 import rx.functions.Action0;
-import rx.functions.Func0;
+import rx.internal.operators.NotificationLite;
 
 public class Drainer<T> implements Observer<T> {
 
-    public static <T> Drainer<T> create(Func0<Queue<Object>> queueFactory,
+    public static <T> Drainer<T> create(Queue<Object> queue,
             Subscription subscription, Worker worker, Subscriber<T> child, Producer producer) {
-        return new Drainer<T>(queueFactory, subscription, worker, child, producer);
+        return new Drainer<T>(queue, subscription, worker, child, producer);
     }
 
     private final Subscription subscription;
@@ -42,6 +42,8 @@ public class Drainer<T> implements Observer<T> {
             .newUpdater(Drainer.class, "counter");
 
     private volatile Throwable error;
+    
+    private final NotificationLite<T> on = NotificationLite.instance();
 
     private final Action0 action = new Action0() {
 
@@ -51,11 +53,9 @@ public class Drainer<T> implements Observer<T> {
         }
     };
 
-    private static Object NULL_SENTINEL = new Object();
-
-    private Drainer(Func0<Queue<Object>> queueFactory, Subscription subscription, Worker worker,
+    private Drainer(Queue<Object> queue, Subscription subscription, Worker worker,
             Subscriber<T> child, Producer producer) {
-        this.queue = queueFactory.call();
+        this.queue = queue;
         this.subscription = subscription;
         this.worker = worker;
         this.child = child;
@@ -67,18 +67,12 @@ public class Drainer<T> implements Observer<T> {
         if (subscription.isUnsubscribed()) {
             return;
         }
-
-        Object t2;
-        if (t == null)
-            t2 = NULL_SENTINEL;
-        else
-            t2 = t;
-        if (!queue.offer(t2)) {
+        if (!queue.offer(t)) {
             // this would only happen if more arrived than were requested
             onError(new MissingBackpressureException());
             return;
         }
-        schedule();
+        drain();
     }
 
     @Override
@@ -87,7 +81,7 @@ public class Drainer<T> implements Observer<T> {
             return;
         }
         finished = true;
-        schedule();
+        drain();
     }
 
     @Override
@@ -101,16 +95,42 @@ public class Drainer<T> implements Observer<T> {
         subscription.unsubscribe();
         finished = true;
         // polling thread should skip any onNext still in the queue
-        schedule();
+        drain();
     }
 
-    public void schedule() {
+    public void drain() {
+        if (worker != null) {
+            drainAsyncOptimized();
+        } else {
+            drainSyncOptimized();
+        }
+    }
+
+    private void drainAsyncOptimized() {
         if (COUNTER.getAndIncrement(this) == 0) {
             worker.schedule(action);
         }
     }
+    
+    //only used for synch optimized draining
+    private boolean draining = false;
 
-    @SuppressWarnings("unchecked")
+    private void drainSyncOptimized() {
+        //blocking for access from another thread but 
+        //won't block and happily reentrant for synchronous 
+        //calls to this method
+        synchronized (this) {
+            if (draining)
+                return;
+            draining = true;
+        }
+        pollQueue();
+        synchronized(this) {
+            draining = false;
+        }
+    }
+
+
     private void pollQueue() {
         int emittedTotal = 0;
         do {
@@ -138,10 +158,7 @@ public class Drainer<T> implements Observer<T> {
                 if (r > 0) {
                     Object o = queue.poll();
                     if (o != null) {
-                        if (o == NULL_SENTINEL)
-                            child.onNext(null);
-                        else
-                            child.onNext((T) o);
+                        child.onNext(on.getValue(o));
                         r--;
                         emittedTotal++;
                         emitted++;
