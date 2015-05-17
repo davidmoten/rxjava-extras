@@ -111,7 +111,7 @@ public class Drainer<T> implements Observer<T>, Producer {
     }
 
     private void pollQueue() {
-        int emittedTotal = 0;
+        long emittedTotal = 0;
         do {
             // by setting counter = 1 here we ensure that the queue can only be
             // emptied once on every call to pollQueue. The maximum size the
@@ -139,7 +139,6 @@ public class Drainer<T> implements Observer<T>, Producer {
                     if (o != null) {
                         child.onNext(on.getValue(o));
                         r--;
-                        emittedTotal++;
                         emitted++;
                     } else {
                         break;
@@ -148,8 +147,11 @@ public class Drainer<T> implements Observer<T>, Producer {
                     break;
                 }
             }
-            if (emitted > 0 && requested != Long.MAX_VALUE) {
-                REQUESTED.addAndGet(this, -emitted);
+            if (emitted > 0)  {
+                if ( requested != Long.MAX_VALUE) {
+                    REQUESTED.addAndGet(this, -emitted);
+                }
+                emittedTotal+=emitted;
             }
         } while (COUNTER.decrementAndGet(this) > 0);
         if (emittedTotal > 0) {

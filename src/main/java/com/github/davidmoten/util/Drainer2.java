@@ -36,8 +36,10 @@ public class Drainer2<T> implements Observer<T>, Producer {
             if (requested < 0) {
                 requested = Long.MAX_VALUE;
             }
-            if (busy)
+            if (busy) {
+                counter++;
                 return;
+            }
             else
                 busy = true;
         }
@@ -55,8 +57,10 @@ public class Drainer2<T> implements Observer<T>, Producer {
     public void onCompleted() {
         synchronized (this) {
             finished = true;
-            if (busy)
+            if (busy) {
+                counter++;
                 return;
+            }
             else
                 busy = true;
         }
@@ -74,8 +78,10 @@ public class Drainer2<T> implements Observer<T>, Producer {
         synchronized (this) {
             error = e;
             finished = true;
-            if (busy)
+            if ( busy) {
+                counter++;
                 return;
+            }
             else
                 busy = true;
         }
@@ -97,16 +103,27 @@ public class Drainer2<T> implements Observer<T>, Producer {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void drain() {
         long emittedTotal = 0;
-        do {
-            counter = 1;
+        while (true) {
             long emitted = 0;
-            long r = requested;
+            long r;
+            synchronized (this) {
+                r = requested;
+                counter = 1;
+            }
             while (!child.isUnsubscribed()) {
-                Throwable error;
-                if (finished) {
-                    if ((error = this.error) != null) {
+                boolean isFinished;
+                synchronized (this) {
+                    isFinished = finished;
+                }
+                if (isFinished) {
+                    Throwable error;
+                    synchronized (this) {
+                        error = this.error;
+                    }
+                    if (error != null) {
                         // errors shortcut the queue so
                         // release the elements in the queue for gc
                         queue.clear();
@@ -122,7 +139,6 @@ public class Drainer2<T> implements Observer<T>, Producer {
                     if (o != null) {
                         child.onNext((T) on.getValue(o));
                         r--;
-                        emittedTotal++;
                         emitted++;
                     } else {
                         break;
@@ -131,10 +147,22 @@ public class Drainer2<T> implements Observer<T>, Producer {
                     break;
                 }
             }
-            if (emitted > 0 && requested != Long.MAX_VALUE) {
-                requested -= emitted;
+            if (emitted == 0) {
+                break;
+            } else if (requested != Long.MAX_VALUE) {
+                synchronized (this) {
+                    requested -= emitted;
+                }
+                emittedTotal += emitted;
             }
-        } while (--counter > 0);
+            synchronized(this) {
+                if (counter==1) {
+                    break;
+                } else {
+                    counter--;
+                }
+            }
+        } 
         if (emittedTotal > 0) {
             producer.request(emittedTotal);
         }
