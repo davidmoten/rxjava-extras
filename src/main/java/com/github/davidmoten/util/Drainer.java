@@ -111,16 +111,14 @@ public class Drainer<T> implements Observer<T>, Producer {
     }
 
     private void pollQueue() {
-        long emittedTotal = 0;
-        do {
-            // by setting counter = 1 here we ensure that the queue can only be
-            // emptied once on every call to pollQueue. The maximum size the
-            // queue can get to is the total requests to upstream that occur
-            // before drainer is signalled with events
+        int emittedTotal = 0;
+        long r = requested;
+        while (true) {
             counter = 1;
             long emitted = 0;
-            long r = requested;
-            while (!child.isUnsubscribed()) {
+            for (;;) {
+                if (child.isUnsubscribed())
+                    return;
                 Throwable error;
                 if (finished) {
                     if ((error = this.error) != null) {
@@ -147,13 +145,21 @@ public class Drainer<T> implements Observer<T>, Producer {
                     break;
                 }
             }
-            if (emitted > 0)  {
-                if ( requested != Long.MAX_VALUE) {
-                    REQUESTED.addAndGet(this, -emitted);
+            if (emitted > 0) {
+                // interested in initial request being Long.MAX_VALUE rather
+                // than accumulated requests reaching Long.MAX_VALUE so is fine
+                // just to test the value of `r` instead of `requested`.
+                if (r != Long.MAX_VALUE) {
+                    r = REQUESTED.addAndGet(this, -emitted);
                 }
-                emittedTotal+=emitted;
+                emittedTotal += emitted;
+            } else if (COUNTER.decrementAndGet(this) == 0) {
+                break;
+            } else {
+                // update r for the next time through the loop
+                r = REQUESTED.get(this);
             }
-        } while (COUNTER.decrementAndGet(this) > 0);
+        }
         if (emittedTotal > 0) {
             producer.request(emittedTotal);
         }
