@@ -12,6 +12,12 @@ import rx.exceptions.MissingBackpressureException;
 import rx.functions.Action0;
 import rx.internal.operators.NotificationLite;
 
+/**
+ * Optimized for when request method is called on a different thread from the
+ * Observer methods.
+ * 
+ * @param <T>
+ */
 public class Drainer<T> implements Observer<T>, Producer {
 
     public static <T> Drainer<T> create(Queue<Object> queue, Subscription subscription,

@@ -8,6 +8,12 @@ import rx.Subscriber;
 import rx.exceptions.MissingBackpressureException;
 import rx.internal.operators.NotificationLite;
 
+/**
+ * Optimized for when request method is called on same thread as the Observer
+ * methods.
+ * 
+ * @param <T>
+ */
 public class Drainer2<T> implements Observer<T>, Producer {
 
     private final NotificationLite<Object> on = NotificationLite.instance();
@@ -39,8 +45,7 @@ public class Drainer2<T> implements Observer<T>, Producer {
             if (busy) {
                 counter++;
                 return;
-            }
-            else
+            } else
                 busy = true;
         }
         try {
@@ -60,8 +65,7 @@ public class Drainer2<T> implements Observer<T>, Producer {
             if (busy) {
                 counter++;
                 return;
-            }
-            else
+            } else
                 busy = true;
         }
         try {
@@ -78,11 +82,10 @@ public class Drainer2<T> implements Observer<T>, Producer {
         synchronized (this) {
             error = e;
             finished = true;
-            if ( busy) {
+            if (busy) {
                 counter++;
                 return;
-            }
-            else
+            } else
                 busy = true;
         }
         try {
@@ -106,11 +109,13 @@ public class Drainer2<T> implements Observer<T>, Producer {
     @SuppressWarnings("unchecked")
     private void drain() {
         long emittedTotal = 0;
+        long r;
+        synchronized (this) {
+            r = requested;
+        }
         while (true) {
             long emitted = 0;
-            long r;
             synchronized (this) {
-                r = requested;
                 counter = 1;
             }
             while (!child.isUnsubscribed()) {
@@ -147,26 +152,31 @@ public class Drainer2<T> implements Observer<T>, Producer {
                     break;
                 }
             }
-            if (emitted == 0) {
-                break;
-            } else if (requested != Long.MAX_VALUE) {
-                synchronized (this) {
-                    requested -= emitted;
-                }
+            if (emitted > 0) {
                 emittedTotal += emitted;
-            }
-            synchronized(this) {
-                if (counter==1) {
-                    break;
-                } else {
-                    counter--;
+                // interested in initial request being Long.MAX_VALUE rather
+                // than accumulated requests reaching Long.MAX_VALUE so is fine
+                // just to test the value of `r` instead of `requested`.
+                if (r != Long.MAX_VALUE) {
+                    synchronized (this) {
+                        requested -= emitted;
+                        r = requested;
+                    }
+                }
+            } else {
+                synchronized (this) {
+                    if (--counter == 0) {
+                        break;
+                    } else {
+                        // update r for the next time through the loop
+                        r = requested;
+                    }
                 }
             }
-        } 
+        }
         if (emittedTotal > 0) {
             producer.request(emittedTotal);
         }
-
     }
 
 }
