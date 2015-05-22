@@ -26,21 +26,32 @@ public class OperatorHelper<T, R> implements Operator<T, R> {
     @Override
     public Subscriber<? super R> call(Subscriber<? super T> child) {
         final AtomicLong requestedDownstream = new AtomicLong();
-        
+        final AtomicReference<ParentSubscriber<T, R>> parentRef = new AtomicReference<ParentSubscriber<T, R>>();
+
         Producer producerForDrainer = new Producer() {
             @Override
             public void request(long n) {
-                //only called when drainer has emitted n values
+                // only called when drainer has emitted n values
                 if (n > 0) {
-                    //reduce requestedDownstream to reflect the emitted values
-                    BackpressureUtils.getAndAddRequest(requestedDownstream, -n);
+                    // reduce requestedDownstream to reflect the emitted values
+                    if (requestedDownstream.get() != Long.MAX_VALUE) {
+                        long m = requestedDownstream.addAndGet(-n);
+                        // only request more of upstream once drainer has
+                        // emitted its whole queue
+                        if (m == 0) {
+                            long r = parentRef.get().requestedUpstream.getAndSet(0);
+                            parentRef.get().requestMore(r);
+                        } else if (m < 0)
+                            throw new RuntimeException("unexpected");
+                    }
+
                 }
             }
         };
         Subscriber<? super T> subscription = child;
         Drainer<T> drainer = Drainer.create(new LinkedList<Object>(), subscription, Schedulers
                 .trampoline().createWorker(), child, producerForDrainer);
-        
+
         final ParentSubscriber<T, R> parent = new ParentSubscriber<T, R>(drainer, operator, child,
                 initialRequest);
         Producer producer = new Producer() {
@@ -48,10 +59,6 @@ public class OperatorHelper<T, R> implements Operator<T, R> {
             public void request(long n) {
                 if (n > 0) {
                     BackpressureUtils.getAndAddRequest(requestedDownstream, n);
-                    // now need to request more of the parent
-                    long m = parent.requestedUpstream.getAndSet(0);
-                    if (m > 0)
-                        parent.requestMore(m);
                 }
             }
         };
