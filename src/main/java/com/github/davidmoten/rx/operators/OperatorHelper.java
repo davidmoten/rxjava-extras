@@ -26,29 +26,35 @@ public class OperatorHelper<T, R> implements Operator<T, R> {
     @Override
     public Subscriber<? super R> call(Subscriber<? super T> child) {
         final AtomicLong requestedDownstream = new AtomicLong();
-        // need to make a sufficient initial request so that things get started
-        // then emissions are buffered downstream of `operator` and upstream
-        // requests are buffered upstream
-        final AtomicBoolean openUpstream = new AtomicBoolean(false);
-        final AtomicReference<ParentSubscriber<T, R>> parentRef = new AtomicReference<ParentSubscriber<T, R>>();
+        
+        Producer producerForDrainer = new Producer() {
+            @Override
+            public void request(long n) {
+                //only called when drainer has emitted n values
+                if (n > 0) {
+                    //reduce requestedDownstream to reflect the emitted values
+                    BackpressureUtils.getAndAddRequest(requestedDownstream, -n);
+                }
+            }
+        };
+        Subscriber<? super T> subscription = child;
+        Drainer<T> drainer = Drainer.create(new LinkedList<Object>(), subscription, Schedulers
+                .trampoline().createWorker(), child, producerForDrainer);
+        
+        final ParentSubscriber<T, R> parent = new ParentSubscriber<T, R>(drainer, operator, child,
+                initialRequest);
         Producer producer = new Producer() {
             @Override
             public void request(long n) {
                 if (n > 0) {
                     BackpressureUtils.getAndAddRequest(requestedDownstream, n);
                     // now need to request more of the parent
-                    long m = parentRef.get().requestedUpstream.getAndSet(0);
+                    long m = parent.requestedUpstream.getAndSet(0);
                     if (m > 0)
-                        parentRef.get().requestMore(m);
+                        parent.requestMore(m);
                 }
             }
         };
-        Subscriber<? super T> subscription = child;
-        Drainer<T> drainer = Drainer.create(new LinkedList<Object>(), subscription, Schedulers
-                .trampoline().createWorker(), child, producer);
-        final ParentSubscriber<T, R> parent = new ParentSubscriber<T, R>(drainer, operator, child,
-                initialRequest);
-        parentRef.set(parent);
         child.add(parent);
         child.setProducer(producer);
         return parent;
