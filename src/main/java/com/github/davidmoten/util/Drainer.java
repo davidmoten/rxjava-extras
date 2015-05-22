@@ -21,13 +21,13 @@ import rx.internal.operators.NotificationLite;
 public class Drainer<T> implements Observer<T>, Producer {
 
     public static <T> Drainer<T> create(Queue<Object> queue, Subscription subscription,
-            Worker worker, Subscriber<T> child, Producer producer) {
+            Worker worker, Subscriber<? super T> child, Producer producer) {
         return new Drainer<T>(queue, subscription, worker, child, producer);
     }
 
     private final Subscription subscription;
     private final Worker worker;
-    private final Subscriber<T> child;
+    private final Subscriber<? super T> child;
     private final Producer producer;
     private final Queue<Object> queue;
 
@@ -60,7 +60,7 @@ public class Drainer<T> implements Observer<T>, Producer {
     };
 
     private Drainer(Queue<Object> queue, Subscription subscription, Worker worker,
-            Subscriber<T> child, Producer producer) {
+            Subscriber<? super T> child, Producer producer) {
         this.queue = queue;
         this.subscription = subscription;
         this.worker = worker;
