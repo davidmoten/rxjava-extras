@@ -1,41 +1,42 @@
 package com.github.davidmoten.rx.operators;
 
-import static rx.Observable.just;
-
-import org.junit.Test;
-
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+import rx.Observable;
+import rx.Observable.OnSubscribe;
 import rx.Subscriber;
+import rx.functions.Func1;
 
-public class OperatorBufferingSyncBiasedTest {
+import com.github.davidmoten.rx.testing.TestingHelper;
+import com.github.davidmoten.rx.testing.TestingHelperConcatTest;
 
-    @Test
-    public void test() {
-        
-        just(1)
-        //
-        .lift(new OperatorBufferingSyncBiased<Integer>(1))
-        //
-                .subscribe(new Subscriber<Integer>() {
+public class OperatorBufferingSyncBiasedTest extends TestCase {
 
-                    @Override
-                    public void onStart() {
-                        request(1);
-                    }
-
-                    @Override
-                    public void onCompleted() {
-                        System.out.println("completed");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        e.printStackTrace();
-                    }
-
-                    @Override
-                    public void onNext(Integer t) {
-                        System.out.println(t);
-                    }
-                });
+    public static TestSuite suite() {
+        return TestingHelper.function(BUFFER)
+        // test empty
+                .name("testFive").fromEmpty().expect(1, 2, 3, 4, 5)
+                // get test suites
+                .testSuite(TestingHelperConcatTest.class);
     }
+
+    public void testDummy() {
+        // just here to fool eclipse
+    }
+
+    private static final Func1<Observable<Integer>, Observable<Integer>> BUFFER = new Func1<Observable<Integer>, Observable<Integer>>() {
+        @Override
+        public Observable<Integer> call(Observable<Integer> o) {
+            return o.concatWith(Observable.create(new OnSubscribe<Integer>() {
+
+                @Override
+                public void call(Subscriber<? super Integer> subscriber) {
+                    for (int i = 1; i <= 5; i++)
+                        subscriber.onNext(i);
+                    subscriber.onCompleted();
+                }
+
+            })).lift(new OperatorBufferingSyncBiased<Integer>(2));
+        }
+    };
 }
