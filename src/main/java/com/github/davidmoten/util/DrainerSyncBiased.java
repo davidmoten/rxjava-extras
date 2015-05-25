@@ -18,10 +18,10 @@ public class DrainerSyncBiased<T> implements Observer<T>, Producer {
 
     private final NotificationLite<Object> on = NotificationLite.instance();
     private final Queue<T> queue;
-    private final Subscriber<T> child;
+    private final Subscriber<? super T> child;
     private final Producer producer;
 
-    public DrainerSyncBiased(Queue<T> queue, Subscriber<T> child, Producer producer) {
+    public DrainerSyncBiased(Queue<T> queue, Subscriber<? super T> child, Producer producer) {
         this.queue = queue;
         this.child = child;
         this.producer = producer;
