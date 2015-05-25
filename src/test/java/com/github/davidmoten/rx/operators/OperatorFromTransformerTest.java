@@ -20,7 +20,7 @@ import rx.Observer;
 import rx.functions.Action0;
 import rx.subjects.PublishSubject;
 
-public class TransformerOperatorTest {
+public class OperatorFromTransformerTest {
 
     private static final int AWAIT_SECONDS = 10;
 
