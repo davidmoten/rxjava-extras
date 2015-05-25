@@ -7,10 +7,12 @@ import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 import rx.functions.Func1;
 
+import com.github.davidmoten.rx.Operators;
+import com.github.davidmoten.rx.operators.OperatorBufferRequests.Bias;
 import com.github.davidmoten.rx.testing.TestingHelper;
 import com.github.davidmoten.rx.testing.TestingHelperConcatTest;
 
-public class OperatorBufferingSyncBiasedTest extends TestCase {
+public class OperatorBufferingSyncBiasedHelperTest extends TestCase {
 
     public static TestSuite suite() {
         return TestingHelper.function(BUFFER)
@@ -36,7 +38,7 @@ public class OperatorBufferingSyncBiasedTest extends TestCase {
                     subscriber.onCompleted();
                 }
 
-            })).lift(new OperatorBufferingSyncBiased<Integer>(2));
+            })).lift(Operators.<Integer>bufferRequestsSyncBias(2));
         }
     };
 }

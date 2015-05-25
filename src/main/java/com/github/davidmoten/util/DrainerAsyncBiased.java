@@ -18,7 +18,7 @@ import rx.internal.operators.NotificationLite;
  * 
  * @param <T>
  */
-public class DrainerAsyncBiased<T> implements Observer<T>, Producer {
+public class DrainerAsyncBiased<T> implements Drainer<T> {
 
     public static <T> DrainerAsyncBiased<T> create(Queue<Object> queue, Subscription subscription,
             Worker worker, Subscriber<? super T> child, Producer producer) {
