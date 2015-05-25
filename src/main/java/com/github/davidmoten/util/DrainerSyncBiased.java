@@ -14,14 +14,14 @@ import rx.internal.operators.NotificationLite;
  * 
  * @param <T>
  */
-public class Drainer2<T> implements Observer<T>, Producer {
+public class DrainerSyncBiased<T> implements Observer<T>, Producer {
 
     private final NotificationLite<Object> on = NotificationLite.instance();
     private final Queue<T> queue;
     private final Subscriber<T> child;
     private final Producer producer;
 
-    public Drainer2(Queue<T> queue, Subscriber<T> child, Producer producer) {
+    public DrainerSyncBiased(Queue<T> queue, Subscriber<T> child, Producer producer) {
         this.queue = queue;
         this.child = child;
         this.producer = producer;

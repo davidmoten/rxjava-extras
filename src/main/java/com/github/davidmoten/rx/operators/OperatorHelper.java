@@ -11,7 +11,7 @@ import rx.Subscriber;
 import rx.schedulers.Schedulers;
 
 import com.github.davidmoten.util.BackpressureUtils;
-import com.github.davidmoten.util.Drainer;
+import com.github.davidmoten.util.DrainerAsyncBiased;
 
 public class OperatorHelper<T, R> implements Operator<T, R> {
 
@@ -49,7 +49,7 @@ public class OperatorHelper<T, R> implements Operator<T, R> {
             }
         };
         Subscriber<? super T> subscription = child;
-        Drainer<T> drainer = Drainer.create(new LinkedList<Object>(), subscription, Schedulers
+        DrainerAsyncBiased<T> drainer = DrainerAsyncBiased.create(new LinkedList<Object>(), subscription, Schedulers
                 .trampoline().createWorker(), child, producerForDrainer);
 
         final ParentSubscriber<T, R> parent = new ParentSubscriber<T, R>(drainer, operator, child,
@@ -69,10 +69,10 @@ public class OperatorHelper<T, R> implements Operator<T, R> {
 
     private static class ParentSubscriber<T, R> extends Subscriber<R> {
 
-        private final Drainer<T> drainer;
+        private final DrainerAsyncBiased<T> drainer;
         final AtomicLong requestedUpstream;
 
-        public ParentSubscriber(Drainer<T> drainer, Operator<T, R> operator,
+        public ParentSubscriber(DrainerAsyncBiased<T> drainer, Operator<T, R> operator,
                 Subscriber<? super T> child, long initialRequest) {
             this.drainer = drainer;
             this.requestedUpstream = new AtomicLong(initialRequest);

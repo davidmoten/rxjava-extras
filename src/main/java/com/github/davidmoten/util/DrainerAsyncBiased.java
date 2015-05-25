@@ -18,11 +18,11 @@ import rx.internal.operators.NotificationLite;
  * 
  * @param <T>
  */
-public class Drainer<T> implements Observer<T>, Producer {
+public class DrainerAsyncBiased<T> implements Observer<T>, Producer {
 
-    public static <T> Drainer<T> create(Queue<Object> queue, Subscription subscription,
+    public static <T> DrainerAsyncBiased<T> create(Queue<Object> queue, Subscription subscription,
             Worker worker, Subscriber<? super T> child, Producer producer) {
-        return new Drainer<T>(queue, subscription, worker, child, producer);
+        return new DrainerAsyncBiased<T>(queue, subscription, worker, child, producer);
     }
 
     private final Subscription subscription;
@@ -37,15 +37,15 @@ public class Drainer<T> implements Observer<T>, Producer {
     private volatile long requested = 0;
 
     @SuppressWarnings("rawtypes")
-    private static final AtomicLongFieldUpdater<Drainer> REQUESTED = AtomicLongFieldUpdater
-            .newUpdater(Drainer.class, "requested");
+    private static final AtomicLongFieldUpdater<DrainerAsyncBiased> REQUESTED = AtomicLongFieldUpdater
+            .newUpdater(DrainerAsyncBiased.class, "requested");
 
     @SuppressWarnings("unused")
     private volatile long counter;
 
     @SuppressWarnings("rawtypes")
-    private static final AtomicLongFieldUpdater<Drainer> COUNTER = AtomicLongFieldUpdater
-            .newUpdater(Drainer.class, "counter");
+    private static final AtomicLongFieldUpdater<DrainerAsyncBiased> COUNTER = AtomicLongFieldUpdater
+            .newUpdater(DrainerAsyncBiased.class, "counter");
 
     private volatile Throwable error;
 
@@ -59,7 +59,7 @@ public class Drainer<T> implements Observer<T>, Producer {
         }
     };
 
-    private Drainer(Queue<Object> queue, Subscription subscription, Worker worker,
+    private DrainerAsyncBiased(Queue<Object> queue, Subscription subscription, Worker worker,
             Subscriber<? super T> child, Producer producer) {
         this.queue = queue;
         this.subscription = subscription;
