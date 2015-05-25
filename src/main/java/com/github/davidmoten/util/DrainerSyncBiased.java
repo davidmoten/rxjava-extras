@@ -24,7 +24,7 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
             Producer producer) {
         return new DrainerSyncBiased<T>(queue, child, producer);
     }
-
+    
     private DrainerSyncBiased(Queue<T> queue, Subscriber<? super T> child, Producer producer) {
         this.queue = queue;
         this.child = child;

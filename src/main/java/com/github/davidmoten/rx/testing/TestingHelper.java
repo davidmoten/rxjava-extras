@@ -167,7 +167,7 @@ public final class TestingHelper {
     public static class CaseBuilder<T, R> {
         private final Builder<T, R> builder;
         private String name;
-        private Observable<T> from;
+        private Observable<T> from = Observable.empty();
         private boolean checkSourceUnsubscribed = true;
         private Optional<Integer> unsubscribeAfter = Optional.absent();
 
