@@ -3,7 +3,6 @@ package com.github.davidmoten.util;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
-import rx.Observer;
 import rx.Producer;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
