@@ -1,7 +1,6 @@
 package com.github.davidmoten.rx.operators;
 
 import java.util.LinkedList;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -13,10 +12,10 @@ import rx.schedulers.Schedulers;
 import com.github.davidmoten.util.BackpressureUtils;
 import com.github.davidmoten.util.DrainerAsyncBiased;
 
-public class OperatorHelper<T, R> implements Operator<T, R> {
+class OperatorHelper<T, R> implements Operator<T, R> {
 
     private final Operator<T, R> operator;
-    private long initialRequest;
+    private final long initialRequest;
 
     public OperatorHelper(Operator<T, R> operator, long initialRequest) {
         this.operator = operator;
@@ -49,8 +48,8 @@ public class OperatorHelper<T, R> implements Operator<T, R> {
             }
         };
         Subscriber<? super T> subscription = child;
-        DrainerAsyncBiased<T> drainer = DrainerAsyncBiased.create(new LinkedList<Object>(), subscription, Schedulers
-                .trampoline().createWorker(), child, producerForDrainer);
+        DrainerAsyncBiased<T> drainer = DrainerAsyncBiased.create(new LinkedList<Object>(),
+                subscription, Schedulers.trampoline().createWorker(), child, producerForDrainer);
 
         final ParentSubscriber<T, R> parent = new ParentSubscriber<T, R>(drainer, operator, child,
                 initialRequest);
@@ -85,20 +84,18 @@ public class OperatorHelper<T, R> implements Operator<T, R> {
 
         @Override
         public void onCompleted() {
-            // TODO Auto-generated method stub
-
+            drainer.onCompleted();
         }
 
         @Override
         public void onError(Throwable e) {
-            // TODO Auto-generated method stub
-
+            drainer.onError(e);
         }
 
         @Override
         public void onNext(R t) {
-            // TODO Auto-generated method stub
-
+            // drainer.onNext(t);
+            // TODO
         }
 
     }

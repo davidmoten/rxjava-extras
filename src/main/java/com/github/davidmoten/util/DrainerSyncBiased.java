@@ -2,7 +2,6 @@ package com.github.davidmoten.util;
 
 import java.util.Queue;
 
-import rx.Observer;
 import rx.Producer;
 import rx.Subscriber;
 import rx.exceptions.MissingBackpressureException;
@@ -14,17 +13,18 @@ import rx.internal.operators.NotificationLite;
  * 
  * @param <T>
  */
-public class DrainerSyncBiased<T> implements Drainer<T>{
+public class DrainerSyncBiased<T> implements Drainer<T> {
 
     private final NotificationLite<Object> on = NotificationLite.instance();
     private final Queue<T> queue;
     private final Subscriber<? super T> child;
     private final Producer producer;
 
-    public static <T> DrainerSyncBiased<T> create(Queue<T> queue, Subscriber<? super T> child, Producer producer) {
-        return new DrainerSyncBiased<T>( queue,  child, producer) ;
+    public static <T> DrainerSyncBiased<T> create(Queue<T> queue, Subscriber<? super T> child,
+            Producer producer) {
+        return new DrainerSyncBiased<T>(queue, child, producer);
     }
-    
+
     private DrainerSyncBiased(Queue<T> queue, Subscriber<? super T> child, Producer producer) {
         this.queue = queue;
         this.child = child;
