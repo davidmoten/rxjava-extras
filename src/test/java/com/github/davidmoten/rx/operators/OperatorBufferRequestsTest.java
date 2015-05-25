@@ -11,7 +11,7 @@ import com.github.davidmoten.rx.Operators;
 import com.github.davidmoten.rx.testing.TestingHelper;
 import com.github.davidmoten.rx.testing.TestingHelperConcatTest;
 
-public class OperatorBufferingSyncOptimizedHelperTest extends TestCase {
+public class OperatorBufferRequestsTest extends TestCase {
 
     public static TestSuite suite() {
         return TestingHelper.function(BUFFER_SYNC)
