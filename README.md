@@ -8,17 +8,12 @@ rxjava-extras
 
 Utilities for use with rxjava:
 
-* ```Functions.identity```
-* ```Functions.alwaysTrue```
-* ```Functions.alwaysFalse```
-* ```Functions.constant```
-* ```Functions.not```
-* ```TestingHelper```
-* ```OperatorUnsubscribeEagerly```
+* ```Functions.identity, alwaysTrue, alwaysFalse, constant, not```
 * ```Checked``` provides lambda helpers for dealing with checked exceptions in functions and actions
+* ```TestingHelper```
 * ```Transformers.toOperator```
 * ```SingleSubscribeSubject```
-
+* ```OperatorUnsubscribeEagerly```
 
 Status: *released to Maven Central*
 
@@ -34,6 +29,31 @@ Add this to your pom.xml:
   <artifactId>rxjava-extras</artifactId>
   <version>0.5.2</version>
 </dependency>
+```
+
+Checked
+------------------
+
+Checked exceptions can be annoying. If you are happy to wrap a checked exception with a ```RuntimeException``` then the function and action helpers in ```Checked``` are great:
+
+Instead of 
+```java
+OutputStream os =  ...;
+Observable<String> source = ...;
+source.doOnNext(s -> {
+	    try {
+	        os.write(s.getBytes());
+	    } catch (IOException e) {
+	        throw new RuntimeException(e);
+	    }
+    })
+    .subscribe();
+```
+
+you can write:
+```java
+source.doOnNext(Checked.a1(s -> os.write(s.getBytes())))
+      .subscribe();
 ```
 
 TestingHelper
@@ -173,30 +193,5 @@ Observable<T> o;
 
 Observable<T> stream = 
       o.lift(OperatorUnsubscribeEagerly.<T>instance());
-```
-
-Checked
-------------------
-
-Checked exceptions can be annoying. If you are happy to wrap a checked exception with a ```RuntimeException``` then the function and action helpers in ```Checked``` are great:
-
-Instead of 
-```java
-OutputStream os =  ...;
-Observable<String> source = ...;
-source.doOnNext(s -> {
-	    try {
-	        os.write(s.getBytes());
-	    } catch (IOException e) {
-	        throw new RuntimeException(e);
-	    }
-    })
-    .subscribe();
-```
-
-you can write:
-```java
-source.doOnNext(Checked.a1(s -> os.write(s.getBytes())))
-      .subscribe();
 ```
 

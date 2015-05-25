@@ -8,7 +8,6 @@ import rx.Subscriber;
 import rx.functions.Func1;
 
 import com.github.davidmoten.rx.Operators;
-import com.github.davidmoten.rx.operators.OperatorBufferRequests.Bias;
 import com.github.davidmoten.rx.testing.TestingHelper;
 import com.github.davidmoten.rx.testing.TestingHelperConcatTest;
 
