@@ -30,14 +30,14 @@ public class OperatorBufferRequestsTest extends TestCase {
     private static final Func1<Observable<Integer>, Observable<Integer>> BUFFER_SYNC = new Func1<Observable<Integer>, Observable<Integer>>() {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return BUFFER_BASE.call(o).lift(Operators.<Integer>bufferRequests());
+            return BUFFER_BASE.call(o).lift(Operators.<Integer>bufferEmissions());
         }
     };
     
     private static final Func1<Observable<Integer>, Observable<Integer>> BUFFER_ASYNC = new Func1<Observable<Integer>, Observable<Integer>>() {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return BUFFER_BASE.call(o).lift(Operators.<Integer>bufferRequestsAsyncOptimized());
+            return BUFFER_BASE.call(o).lift(Operators.<Integer>bufferEmissionsAsyncOptimized());
         }
     };
     

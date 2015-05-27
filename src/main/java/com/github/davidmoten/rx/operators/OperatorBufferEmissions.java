@@ -1,6 +1,5 @@
 package com.github.davidmoten.rx.operators;
 
-import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -13,15 +12,15 @@ import com.github.davidmoten.util.Drainer;
 import com.github.davidmoten.util.DrainerAsyncBiased;
 import com.github.davidmoten.util.DrainerSyncBiased;
 
-public class OperatorBufferRequests<T> implements Operator<T, T> {
+public class OperatorBufferEmissions<T> implements Operator<T, T> {
 
     private final Scheduler scheduler;
 
-    public OperatorBufferRequests() {
+    public OperatorBufferEmissions() {
         this(null);
     }
     
-    public OperatorBufferRequests(Scheduler scheduler) {
+    public OperatorBufferEmissions(Scheduler scheduler) {
         this.scheduler = scheduler;
     }
 
