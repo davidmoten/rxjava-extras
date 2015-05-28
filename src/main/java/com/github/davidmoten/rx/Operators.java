@@ -11,11 +11,11 @@ public final class Operators {
         return new OperatorBufferEmissions<T>();
     }
     
-    public static <T> OperatorBufferEmissions<T> bufferEmissionsAsyncOptimized() {
-        return bufferEmissionsAsyncOptimized(Schedulers.computation());
+    public static <T> OperatorBufferEmissions<T> bufferEmissionsObserveOnComputation() {
+        return bufferEmissionsObserveOn(Schedulers.computation());
     }
     
-    public static <T> OperatorBufferEmissions<T> bufferEmissionsAsyncOptimized(Scheduler scheduler) {
+    public static <T> OperatorBufferEmissions<T> bufferEmissionsObserveOn(Scheduler scheduler) {
         return new OperatorBufferEmissions<T>(scheduler);
     }
     

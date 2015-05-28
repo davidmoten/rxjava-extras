@@ -14,14 +14,14 @@ import com.github.davidmoten.util.DrainerSyncBiased;
 
 public class OperatorBufferEmissions<T> implements Operator<T, T> {
 
-    private final Scheduler scheduler;
+    private final Scheduler observeOnScheduler;
 
     public OperatorBufferEmissions() {
         this(null);
     }
     
-    public OperatorBufferEmissions(Scheduler scheduler) {
-        this.scheduler = scheduler;
+    public OperatorBufferEmissions(Scheduler observeOnScheduler) {
+        this.observeOnScheduler = observeOnScheduler;
     }
 
     @Override
@@ -35,17 +35,16 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
             }
         };
         final Drainer<T> drainer;
-        if (scheduler == null)
+        if (observeOnScheduler == null)
             drainer = DrainerSyncBiased.create(new ConcurrentLinkedQueue<T>(), child, requestFromUpstream);
         else
-            drainer = DrainerAsyncBiased.create(new ConcurrentLinkedQueue<Object>(), child, scheduler.createWorker(),
+            drainer = DrainerAsyncBiased.create(new ConcurrentLinkedQueue<Object>(), child, observeOnScheduler.createWorker(),
                     child, requestFromUpstream);
         drainerRef.set(drainer);
         child.add(parent);
         child.setProducer(new Producer() {
             @Override
             public void request(long n) {
-                //TODO if n == Long.MAX_VALUE
                 drainer.request(n);
             }
         });
