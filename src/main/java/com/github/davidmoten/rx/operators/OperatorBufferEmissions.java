@@ -19,7 +19,7 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
     public OperatorBufferEmissions() {
         this(null);
     }
-    
+
     public OperatorBufferEmissions(Scheduler observeOnScheduler) {
         this.observeOnScheduler = observeOnScheduler;
     }
@@ -36,10 +36,11 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
         };
         final Drainer<T> drainer;
         if (observeOnScheduler == null)
-            drainer = DrainerSyncBiased.create(new ConcurrentLinkedQueue<T>(), child, requestFromUpstream);
+            drainer = DrainerSyncBiased.create(new ConcurrentLinkedQueue<T>(), child,
+                    requestFromUpstream);
         else
-            drainer = DrainerAsyncBiased.create(new ConcurrentLinkedQueue<Object>(), child, observeOnScheduler.createWorker(),
-                    child, requestFromUpstream);
+            drainer = DrainerAsyncBiased.create(new ConcurrentLinkedQueue<Object>(), child,
+                    observeOnScheduler.createWorker(), child, requestFromUpstream);
         drainerRef.set(drainer);
         child.add(parent);
         child.setProducer(new Producer() {
