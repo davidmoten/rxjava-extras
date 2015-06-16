@@ -36,7 +36,7 @@ public class OperatorBufferEmissionsTest extends TestCase {
     private static final Func1<Observable<Integer>, Observable<Integer>> BUFFER_ASYNC = new Func1<Observable<Integer>, Observable<Integer>>() {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return BUFFER_BASE.call(o).lift(Operators.<Integer> bufferEmissionsAsyncOptimized());
+            return BUFFER_BASE.call(o).lift(Operators.<Integer> bufferEmissionsObserveOnComputation());
         }
     };
 
