@@ -26,6 +26,8 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> child) {
+        // need to keep an atomic reference to drainer because parent refers to
+        // drainer and drainer refers to parent
         final AtomicReference<Drainer<T>> drainerRef = new AtomicReference<Drainer<T>>();
         final ParentSubscriber<T> parent = new ParentSubscriber<T>(drainerRef);
         Producer requestFromUpstream = new Producer() {
@@ -34,13 +36,7 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
                 parent.requestMore(n);
             }
         };
-        final Drainer<T> drainer;
-        if (observeOnScheduler == null)
-            drainer = DrainerSyncBiased.create(new ConcurrentLinkedQueue<T>(), child,
-                    requestFromUpstream);
-        else
-            drainer = DrainerAsyncBiased.create(new ConcurrentLinkedQueue<Object>(), child,
-                    observeOnScheduler.createWorker(), child, requestFromUpstream);
+        final Drainer<T> drainer = createDrainer(child, requestFromUpstream, observeOnScheduler);
         drainerRef.set(drainer);
         child.add(parent);
         child.setProducer(new Producer() {
@@ -50,6 +46,18 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
             }
         });
         return parent;
+    }
+
+    private static <T> Drainer<T> createDrainer(Subscriber<? super T> child,
+            Producer requestFromUpstream, Scheduler observeOnScheduler) {
+        final Drainer<T> drainer;
+        if (observeOnScheduler == null)
+            drainer = DrainerSyncBiased.create(new ConcurrentLinkedQueue<T>(), child,
+                    requestFromUpstream);
+        else
+            drainer = DrainerAsyncBiased.create(new ConcurrentLinkedQueue<Object>(), child,
+                    observeOnScheduler.createWorker(), child, requestFromUpstream);
+        return drainer;
     }
 
     private static class ParentSubscriber<T> extends Subscriber<T> {
