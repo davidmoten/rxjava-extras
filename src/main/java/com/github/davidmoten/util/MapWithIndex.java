@@ -80,6 +80,11 @@ public final class MapWithIndex<T> implements Transformer<T, Indexed<T>> {
                 public Long next() {
                     return n++;
                 }
+
+                @Override
+                public void remove() {
+                    throw new RuntimeException("not supported");
+                }
             };
         }
 
