@@ -12,6 +12,8 @@ import rx.Observable.Transformer;
 import rx.functions.Func1;
 
 import com.github.davidmoten.rx.operators.OperatorFromTransformer;
+import com.github.davidmoten.util.MapWithIndex;
+import com.github.davidmoten.util.MapWithIndex.Indexed;
 
 public final class Transformers {
 
@@ -64,6 +66,10 @@ public final class Transformers {
                 });
             }
         };
+    }
+
+    public static <T> Transformer<T, Indexed<T>> mapWithIndex() {
+        return MapWithIndex.instance();
     }
 
 }
