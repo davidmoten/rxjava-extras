@@ -31,7 +31,7 @@ public final class MapWithIndex<T> implements Transformer<T, Indexed<T>> {
         });
     }
 
-    public static class Indexed<T> {
+    public static final class Indexed<T> {
         private final long index;
         private final T value;
 
