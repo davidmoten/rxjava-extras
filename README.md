@@ -8,12 +8,14 @@ rxjava-extras
 
 Utilities for use with rxjava:
 
-* ```Functions.identity, alwaysTrue, alwaysFalse, constant, not```
-* ```Checked``` provides lambda helpers for dealing with checked exceptions in functions and actions
-* ```TestingHelper```
-* ```Transformers.toOperator```
-* ```SingleSubscribeSubject```
-* ```OperatorUnsubscribeEagerly```
+* `Functions.identity, alwaysTrue, alwaysFalse, constant, not`
+* `Checked` provides lambda helpers for dealing with checked exceptions in functions and actions
+* `TestingHelper`
+* `Transformers.toOperator`
+* `Tranformers.mapWithIndex`
+* `SingleSubscribeSubject`
+* `OperatorUnsubscribeEagerly`
+
 
 Status: *released to Maven Central*
 
