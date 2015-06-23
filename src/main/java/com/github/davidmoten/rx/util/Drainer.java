@@ -1,4 +1,4 @@
-package com.github.davidmoten.util;
+package com.github.davidmoten.rx.util;
 
 import rx.Observer;
 import rx.Producer;

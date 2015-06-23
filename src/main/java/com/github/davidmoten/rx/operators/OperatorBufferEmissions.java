@@ -8,9 +8,9 @@ import rx.Producer;
 import rx.Scheduler;
 import rx.Subscriber;
 
-import com.github.davidmoten.util.Drainer;
-import com.github.davidmoten.util.DrainerAsyncBiased;
-import com.github.davidmoten.util.DrainerSyncBiased;
+import com.github.davidmoten.rx.util.Drainer;
+import com.github.davidmoten.rx.util.DrainerAsyncBiased;
+import com.github.davidmoten.rx.util.DrainerSyncBiased;
 
 public class OperatorBufferEmissions<T> implements Operator<T, T> {
 

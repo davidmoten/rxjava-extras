@@ -1,4 +1,4 @@
-package com.github.davidmoten.util;
+package com.github.davidmoten.rx.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -10,7 +10,8 @@ import org.junit.Test;
 import rx.Observable;
 
 import com.github.davidmoten.rx.Transformers;
-import com.github.davidmoten.util.MapWithIndex.Indexed;
+import com.github.davidmoten.rx.util.MapWithIndex;
+import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 
 public class MapWithIndexTest {
 

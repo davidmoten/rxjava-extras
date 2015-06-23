@@ -1,4 +1,4 @@
-package com.github.davidmoten.util;
+package com.github.davidmoten.rx.util;
 
 import java.util.Iterator;
 
@@ -6,7 +6,7 @@ import rx.Observable;
 import rx.Observable.Transformer;
 import rx.functions.Func2;
 
-import com.github.davidmoten.util.MapWithIndex.Indexed;
+import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 
 public final class MapWithIndex<T> implements Transformer<T, Indexed<T>> {
 
