@@ -8,10 +8,11 @@ import rx.Subscriber;
 import rx.functions.Func1;
 
 import com.github.davidmoten.rx.Operators;
+import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.testing.TestingHelper;
 import com.github.davidmoten.rx.testing.TestingHelperConcatTest;
 
-public class OperatorBufferEmissionsTest extends TestCase {
+public class OperatorBufferEmissionsHelperTest extends TestCase {
 
     public static TestSuite suite() {
         return TestingHelper.function(BUFFER_SYNC)
@@ -29,14 +30,15 @@ public class OperatorBufferEmissionsTest extends TestCase {
     private static final Func1<Observable<Integer>, Observable<Integer>> BUFFER_SYNC = new Func1<Observable<Integer>, Observable<Integer>>() {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return BUFFER_BASE.call(o).lift(Operators.<Integer> bufferEmissions());
+            return BUFFER_BASE.call(o).compose(Transformers.<Integer> bufferEmissions());
         }
     };
 
     private static final Func1<Observable<Integer>, Observable<Integer>> BUFFER_ASYNC = new Func1<Observable<Integer>, Observable<Integer>>() {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return BUFFER_BASE.call(o).lift(Operators.<Integer> bufferEmissionsObserveOnComputation());
+            return BUFFER_BASE.call(o).lift(
+                    Operators.<Integer> bufferEmissionsObserveOnComputation());
         }
     };
 
@@ -55,4 +57,5 @@ public class OperatorBufferEmissionsTest extends TestCase {
             }));
         }
     };
+
 }
