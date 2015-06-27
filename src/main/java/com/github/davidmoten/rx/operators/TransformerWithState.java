@@ -11,21 +11,22 @@ import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
+import rx.functions.Func4;
 
 public final class TransformerWithState<State, In, Out> implements Transformer<In, Out> {
 
     private final Func0<State> initialState;
-    private final Func3<State, Notification<In>, Observer<Out>, State> transition;
+    private final Func4<State, In, Boolean, Observer<Out>, State> transition;
 
     private TransformerWithState(Func0<State> initialState,
-            Func3<State, Notification<In>, Observer<Out>, State> transition) {
+            Func4<State, In, Boolean, Observer<Out>, State> transition) {
         this.initialState = initialState;
         this.transition = transition;
     }
-    
-    public static <State,In,Out> Transformer<In,Out> create(Func0<State> initialState,
-            Func3<State, Notification<In>, Observer<Out>, State> transition) {
-        return new TransformerWithState<State,In,Out>(initialState, transition);
+
+    public static <State, In, Out> Transformer<In, Out> create(Func0<State> initialState,
+            Func4<State, In, Boolean, Observer<Out>, State> transition) {
+        return new TransformerWithState<State, In, Out>(initialState, transition);
     }
 
     @Override
@@ -42,15 +43,23 @@ public final class TransformerWithState<State, In, Out> implements Transformer<I
     private Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>> transformStateAndRecordNotifications() {
         return new Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>>() {
             @Override
-            public StateWithNotifications<State, Out> call(StateWithNotifications<State, Out> se, Notification<In> in) {
+            public StateWithNotifications<State, Out> call(StateWithNotifications<State, Out> se,
+                    Notification<In> in) {
                 Recorder<Out> recorder = new Recorder<Out>();
-                State state2 = transition.call(se.state, in, recorder);
-                return new StateWithNotifications<State, Out>(state2,
-                        recorder.notifications);
+                if (in.isOnError()) {
+                    recorder.onError(in.getThrowable());
+                    return new StateWithNotifications<State, Out>(se.state, recorder.notifications);
+                } else {
+                    In value = in.isOnCompleted() ? null : in.getValue();
+                    State state2 = transition.call(se.state, value, in.isOnCompleted(), recorder);
+                    if (in.isOnCompleted())
+                        recorder.onCompleted();
+                    return new StateWithNotifications<State, Out>(state2, recorder.notifications);
+                }
             }
         };
     }
-    
+
     private Func1<StateWithNotifications<State, Out>, Observable<Out>> emitNotifications() {
         return new Func1<StateWithNotifications<State, Out>, Observable<Out>>() {
             @Override

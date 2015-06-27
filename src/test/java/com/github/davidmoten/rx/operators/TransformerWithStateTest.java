@@ -4,17 +4,16 @@ import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import rx.Notification;
-import rx.Notification.Kind;
 import rx.Observable;
 import rx.Observer;
 import rx.functions.Func0;
-import rx.functions.Func3;
+import rx.functions.Func4;
 
 import com.github.davidmoten.rx.Transformers;
 
@@ -24,59 +23,50 @@ public class TransformerWithStateTest {
     @Test
     public void testBufferThree() {
         final int bufferSize = 3;
-        Func0<Buffer> initialState = new Func0<Buffer>() {
+        List<List<Integer>> list = Observable
+                .just(1, 2, 3, 4, 5)
+                .compose(
+                        Transformers.withState(TransformerWithStateTest.<Integer> initialState(),
+                                TransformerWithStateTest.<Integer> transition(bufferSize)))
+                .toList().toBlocking().single();
+        System.out.println(list);
+        assertEquals(asList(asList(1, 2, 3), asList(4, 5)), list);
+    }
+
+    private static <T> Func0<List<T>> initialState() {
+        return new Func0<List<T>>() {
 
             @Override
-            public Buffer call() {
-                return new Buffer();
+            public List<T> call() {
+                return Collections.emptyList();
             }
         };
+    }
 
-        Func3<Buffer, Notification<Object>, Observer<List<Object>>, Buffer> transition = new Func3<Buffer, Notification<Object>, Observer<List<Object>>, Buffer>() {
+    private static <T> Func4<List<T>, T, Boolean, Observer<List<T>>, List<T>> transition(
+            final int bufferSize) {
+        return new Func4<List<T>, T, Boolean, Observer<List<T>>, List<T>>() {
 
             @Override
-            public Buffer call(Buffer buffer, Notification<Object> n,
-                    Observer<List<Object>> observer) {
-                List<Object> list = new ArrayList<Object>(buffer.list);
-                if (n.hasValue()) {
-                    list.add(n.getValue());
+            public List<T> call(List<T> buffer, T t, Boolean completed, Observer<List<T>> observer) {
+                List<T> list = new ArrayList<T>(buffer);
+                if (!completed) {
+                    list.add(t);
                     if (list.size() == bufferSize) {
                         observer.onNext(list);
-                        return new Buffer();
+                        return Collections.emptyList();
                     } else {
-                        return new Buffer(list);
+                        return new ArrayList<T>(list);
                     }
                 } else {
-                    //do error check first because should cut ahead
-                    if (n.getKind()== Kind.OnError) {
-                        observer.onError(n.getThrowable());
-                    } else {
-                    if (buffer.list.size() > 0)
-                        observer.onNext(buffer.list);
-                        observer.onCompleted();
-                    }
+                    if (buffer.size() > 0)
+                        observer.onNext(buffer);
                     return null;
                 }
 
             }
         };
-        List<List<Object>> list = Observable.just(1, 2, 3, 4, 5)
-                .compose(Transformers.withState(initialState, transition)).toList().toBlocking()
-                .single();
-        System.out.println(list);
-        assertEquals(asList(asList(1,2,3), asList(4,5)), list);
-    }
-
-    private static class Buffer {
-        List<Object> list;
-
-        Buffer(List<Object> list) {
-            this.list = list;
-        }
-
-        Buffer() {
-            this(new ArrayList<Object>());
-        }
 
     }
+
 }

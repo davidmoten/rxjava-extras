@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import rx.Notification;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
@@ -14,7 +13,7 @@ import rx.Observer;
 import rx.Scheduler;
 import rx.functions.Func0;
 import rx.functions.Func1;
-import rx.functions.Func3;
+import rx.functions.Func4;
 
 import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.operators.OperatorFromTransformer;
@@ -90,7 +89,7 @@ public final class Transformers {
     }
 
     public static <State, In, Out> Transformer<In, Out> withState(Func0<State> initialState,
-            Func3<State, Notification<In>, Observer<Out>, State> transition) {
+            Func4<State, In, Boolean, Observer<Out>, State> transition) {
         return TransformerWithState.<State, In, Out> create(initialState, transition);
     }
 
