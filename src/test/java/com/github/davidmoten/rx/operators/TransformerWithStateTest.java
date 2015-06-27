@@ -110,7 +110,7 @@ public class TransformerWithStateTest {
                         observer.onNext(temperatureCelsius);
                         return state;
                     } else {
-                        ArrayList<Integer> temps = new ArrayList<Integer>(state.temps);
+                        List<Integer> temps = new ArrayList<Integer>(state.temps);
                         temps.add(temperatureCelsius);
                         if (temps.size() == minLength) {
                             for (Integer t : temps) {
