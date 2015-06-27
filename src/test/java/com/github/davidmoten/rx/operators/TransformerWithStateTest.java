@@ -21,6 +21,8 @@ public class TransformerWithStateTest {
     @Test
     public void testBufferThree() {
         final int bufferSize = 3;
+        
+        //In this case the type of State is List<Integer>
         List<Integer> initialState = Collections.<Integer> emptyList();
         List<List<Integer>> list = Observable
                 .just(1, 2, 3, 4, 5)
