@@ -7,26 +7,30 @@ import rx.Notification;
 import rx.Observable;
 import rx.Observable.Transformer;
 import rx.Observer;
+import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
-import rx.functions.Func4;
 
 public final class TransformerWithState<State, In, Out> implements Transformer<In, Out> {
 
     private final Func0<State> initialState;
-    private final Func4<State, In, Boolean, Observer<Out>, State> transition;
+    private final Func3<State, In, Observer<Out>, State> transition;
+    private final Action2<State, Observer<Out>> completionAction;
 
     private TransformerWithState(Func0<State> initialState,
-            Func4<State, In, Boolean, Observer<Out>, State> transition) {
+            Func3<State, In, Observer<Out>, State> transition,
+            Action2<State, Observer<Out>> completionAction) {
         this.initialState = initialState;
         this.transition = transition;
+        this.completionAction = completionAction;
     }
 
     public static <State, In, Out> Transformer<In, Out> create(Func0<State> initialState,
-            Func4<State, In, Boolean, Observer<Out>, State> transition) {
-        return new TransformerWithState<State, In, Out>(initialState, transition);
+            Func3<State, In, Observer<Out>, State> transition,
+            Action2<State, Observer<Out>> completionAction) {
+        return new TransformerWithState<State, In, Out>(initialState, transition, completionAction);
     }
 
     @Override
@@ -36,35 +40,40 @@ public final class TransformerWithState<State, In, Out> implements Transformer<I
         return source.materialize()
         // do state transitions and record notifications
                 .scan(initial, transformStateAndRecordNotifications())
-                //as an optimisation throw away empty notification lists before hitting flatMap
-                .filter(nonEmptyNotifications()) 
+                // as an optimisation throw away empty notification lists before
+                // hitting flatMap
+                .filter(nonEmptyNotifications())
                 // use flatMap to emit notification values
                 .flatMap(emitNotifications());
     }
 
     private Func1<StateWithNotifications<State, Out>, Boolean> nonEmptyNotifications() {
-        return new Func1<StateWithNotifications<State,Out>, Boolean>(){
+        return new Func1<StateWithNotifications<State, Out>, Boolean>() {
 
             @Override
             public Boolean call(StateWithNotifications<State, Out> s) {
-                return s.notifications.size() >0;
-            }};
+                return s.notifications.size() > 0;
+            }
+        };
     }
 
     private Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>> transformStateAndRecordNotifications() {
         return new Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>>() {
             @Override
-            public StateWithNotifications<State, Out> call(StateWithNotifications<State, Out> se,
+            public StateWithNotifications<State, Out> call(StateWithNotifications<State, Out> sn,
                     Notification<In> in) {
                 Recorder<Out> recorder = new Recorder<Out>();
                 if (in.isOnError()) {
                     recorder.onError(in.getThrowable());
-                    return new StateWithNotifications<State, Out>(se.state, recorder.notifications);
+                    return new StateWithNotifications<State, Out>(sn.state, recorder.notifications);
+                } else if (in.isOnCompleted()) {
+                    if (completionAction != null)
+                        completionAction.call(sn.state, recorder);
+                    recorder.onCompleted();
+                    return new StateWithNotifications<State, Out>((State) null,
+                            recorder.notifications);
                 } else {
-                    In value = in.isOnCompleted() ? null : in.getValue();
-                    State state2 = transition.call(se.state, value, in.isOnCompleted(), recorder);
-                    if (in.isOnCompleted())
-                        recorder.onCompleted();
+                    State state2 = transition.call(sn.state, in.getValue(), recorder);
                     return new StateWithNotifications<State, Out>(state2, recorder.notifications);
                 }
             }
@@ -74,8 +83,10 @@ public final class TransformerWithState<State, In, Out> implements Transformer<I
     private Func1<StateWithNotifications<State, Out>, Observable<Out>> emitNotifications() {
         return new Func1<StateWithNotifications<State, Out>, Observable<Out>>() {
             @Override
-            public Observable<Out> call(StateWithNotifications<State, Out> se) {
-                return Observable.from(se.notifications).dematerialize();
+            public Observable<Out> call(StateWithNotifications<State, Out> sn) {
+                // TODO optimisation use Observable.just(item) for single item
+                // list gives better flatMap performance downstream
+                return Observable.from(sn.notifications).dematerialize();
             }
         };
     }

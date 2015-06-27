@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx.operators;
 
+import static com.github.davidmoten.rx.Transformers.emitViaStateTransitions;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 
@@ -12,7 +13,8 @@ import org.junit.Test;
 
 import rx.Observable;
 import rx.Observer;
-import rx.functions.Func4;
+import rx.functions.Action2;
+import rx.functions.Func3;
 
 import com.github.davidmoten.rx.Transformers;
 
@@ -28,64 +30,55 @@ public class TransformerWithStateTest {
         List<List<Integer>> list = Observable
                 .just(1, 2, 3, 4, 5)
                 .compose(
-                        Transformers.withState(initialState,
-                                TransformerWithStateTest.<Integer> transition(bufferSize)))
-                .toList().toBlocking().single();
+                        Transformers.emitViaStateTransitions(initialState,
+                                TransformerWithStateTest.<Integer> transition(bufferSize),
+                                TransformerWithStateTest.<Integer> completionAction())).toList()
+                .toBlocking().single();
         System.out.println(list);
         assertEquals(asList(asList(1, 2, 3), asList(4, 5)), list);
     }
 
-    private static <T> Func4<List<T>, T, Boolean, Observer<List<T>>, List<T>> transition(
-            final int bufferSize) {
-        return new Func4<List<T>, T, Boolean, Observer<List<T>>, List<T>>() {
+    private static <T> Func3<List<T>, T, Observer<List<T>>, List<T>> transition(final int bufferSize) {
+        return new Func3<List<T>, T, Observer<List<T>>, List<T>>() {
 
             @Override
-            public List<T> call(List<T> buffer, T value, Boolean completed,
-                    Observer<List<T>> observer) {
+            public List<T> call(List<T> buffer, T value, Observer<List<T>> observer) {
                 List<T> list = new ArrayList<T>(buffer);
-                if (completed) {
-                    if (buffer.size() > 0)
-                        observer.onNext(buffer);
-                    // return is irrelevant when complete
-                    return null;
+                list.add(value);
+                if (list.size() == bufferSize) {
+                    observer.onNext(list);
+                    return Collections.emptyList();
                 } else {
-                    list.add(value);
-                    if (list.size() == bufferSize) {
-                        observer.onNext(list);
-                        return Collections.emptyList();
-                    } else {
-                        return new ArrayList<T>(list);
-                    }
+                    return new ArrayList<T>(list);
                 }
-
             }
         };
 
     }
 
-    private static class Temperature {
-        final float temperatureCelcius;
-        final long time;
+    private static <T> Action2<List<T>, Observer<List<T>>> completionAction() {
+        return new Action2<List<T>, Observer<List<T>>>() {
 
-        Temperature(float temperatureCelcius, long time) {
-            this.temperatureCelcius = temperatureCelcius;
-            this.time = time;
-        }
-
-    }
-
-    static Temperature temperature(float t, long time) {
-        return new Temperature(t, time);
+            @Override
+            public void call(List<T> buffer, Observer<List<T>> observer) {
+                if (buffer.size() > 0)
+                    observer.onNext(buffer);
+            }
+        };
     }
 
     @Test
     public void testEmitLongCoolPeriods() {
         // we are going to emit only those temperatures that are less than zero
-        // and when there are at least 4 values less than zero in a row
+        // and only when there are at least 4 values less than zero in a row
+        int minLength = 4;
+        int maxTemperature = 0;
         List<Integer> list = Observable
                 .from(Arrays.asList(5, 3, 1, 0, -1, -2, -3, -3, -2, -1, 0, 1, 2, 3, 4, 0, -1, 2))
-                .compose(Transformers.withState(new State(false), temperatureTransition(4, 0)))
-                .toList().toBlocking().single();
+                .compose(
+                        emitViaStateTransitions(new State(false),
+                                temperatureTransition(minLength, maxTemperature))).toList()
+                .toBlocking().single();
         assertEquals(Arrays.asList(-1, -2, -3, -3, -2, -1), list);
     }
 
@@ -104,19 +97,16 @@ public class TransformerWithStateTest {
 
     }
 
-    private static Func4<State, Integer, Boolean, Observer<Integer>, State> temperatureTransition(
+    private static Func3<State, Integer, Observer<Integer>, State> temperatureTransition(
             final int minLength, final float maxTemperatureCelsius) {
 
-        return new Func4<State, Integer, Boolean, Observer<Integer>, State>() {
+        return new Func3<State, Integer, Observer<Integer>, State>() {
             @Override
-            public State call(State state, Integer temperatureCelsius, Boolean completed,
-                    Observer<Integer> observer) {
-                if (completed) {
-                    // return is irrelevant when complete
-                    return null;
-                } else if (temperatureCelsius >= maxTemperatureCelsius) {
+            public State call(State state, Integer temperatureCelsius, Observer<Integer> observer) {
+                if (temperatureCelsius >= maxTemperatureCelsius) {
                     return new State(false);
                 } else {
+                    // is cool enough
                     if (state.isOverMinLength) {
                         observer.onNext(temperatureCelsius);
                         return state;

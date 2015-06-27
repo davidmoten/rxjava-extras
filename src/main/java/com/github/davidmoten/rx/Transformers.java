@@ -11,9 +11,10 @@ import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Observer;
 import rx.Scheduler;
+import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
-import rx.functions.Func4;
+import rx.functions.Func3;
 
 import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.operators.OperatorFromTransformer;
@@ -88,15 +89,24 @@ public final class Transformers {
         };
     }
 
-    public static <State, In, Out> Transformer<In, Out> withState(Func0<State> initialState,
-            Func4<State, In, Boolean, Observer<Out>, State> transition) {
-        return TransformerWithState.<State, In, Out> create(initialState, transition);
+    public static <State, In, Out> Transformer<In, Out> emitViaStateTransitions(
+            Func0<State> initialState, Func3<State, In, Observer<Out>, State> transition,
+            Action2<State, Observer<Out>> completionAction) {
+        return TransformerWithState.<State, In, Out> create(initialState, transition,
+                completionAction);
     }
 
-    public static <State, In, Out> Transformer<In, Out> withState(State initialState,
-            Func4<State, In, Boolean, Observer<Out>, State> transition) {
+    public static <State, In, Out> Transformer<In, Out> emitViaStateTransitions(State initialState,
+            Func3<State, In, Observer<Out>, State> transition,
+            Action2<State, Observer<Out>> completionAction) {
         Func0<State> f = Functions.constant0(initialState);
-        return TransformerWithState.<State, In, Out> create(f, transition);
+        return TransformerWithState.<State, In, Out> create(f, transition, completionAction);
+    }
+
+    public static <State, In, Out> Transformer<In, Out> emitViaStateTransitions(State initialState,
+            Func3<State, In, Observer<Out>, State> transition) {
+        Func0<State> f = Functions.constant0(initialState);
+        return TransformerWithState.<State, In, Out> create(f, transition, null);
     }
 
     @SuppressWarnings("unchecked")
