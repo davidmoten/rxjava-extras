@@ -33,8 +33,9 @@ public class Benchmarks {
         list.add(3);
         list.add(4);
         list.add(5);
-        for (Integer elmeent : list) {
+        for (Integer element : list) {
         }
+        list.size();
     }
 
 }
