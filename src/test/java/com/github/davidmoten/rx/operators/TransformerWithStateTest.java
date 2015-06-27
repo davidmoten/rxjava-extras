@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -21,8 +22,8 @@ public class TransformerWithStateTest {
     @Test
     public void testBufferThree() {
         final int bufferSize = 3;
-        
-        //In this case the type of State is List<Integer>
+
+        // In this case the type of State is List<Integer>
         List<Integer> initialState = Collections.<Integer> emptyList();
         List<List<Integer>> list = Observable
                 .just(1, 2, 3, 4, 5)
@@ -39,7 +40,8 @@ public class TransformerWithStateTest {
         return new Func4<List<T>, T, Boolean, Observer<List<T>>, List<T>>() {
 
             @Override
-            public List<T> call(List<T> buffer, T value, Boolean completed, Observer<List<T>> observer) {
+            public List<T> call(List<T> buffer, T value, Boolean completed,
+                    Observer<List<T>> observer) {
                 List<T> list = new ArrayList<T>(buffer);
                 if (completed) {
                     if (buffer.size() > 0)
@@ -61,4 +63,74 @@ public class TransformerWithStateTest {
 
     }
 
+    private static class Temperature {
+        final float temperatureCelcius;
+        final long time;
+
+        Temperature(float temperatureCelcius, long time) {
+            this.temperatureCelcius = temperatureCelcius;
+            this.time = time;
+        }
+
+    }
+
+    static Temperature temperature(float t, long time) {
+        return new Temperature(t, time);
+    }
+
+    @Test
+    public void testEmitLongCoolPeriods() {
+        List<Integer> list = Observable
+                .from(Arrays.asList(5, 3, 1, 0, -1, -2, -3, -3, -2, -1, 0, 1, 2, 3, 4, 0, -1, 2))
+                .compose(Transformers.withState(new State(false), temperatureTransition(4, 0)))
+                .toList().toBlocking().single();
+        assertEquals(Arrays.asList(-1, -2, -3, -3, -2, -1), list);
+    }
+
+    private static class State {
+        final List<Integer> temps;
+        final boolean isOverMinLength;
+
+        State(List<Integer> temps, boolean isOverMinLength) {
+            this.temps = temps;
+            this.isOverMinLength = isOverMinLength;
+        }
+
+        State(boolean isOverMinLength) {
+            this(Collections.<Integer> emptyList(), isOverMinLength);
+        }
+
+    }
+
+    private static Func4<State, Integer, Boolean, Observer<Integer>, State> temperatureTransition(
+            final int minLength, final float maxTemperatureCelsius) {
+
+        return new Func4<State, Integer, Boolean, Observer<Integer>, State>() {
+            @Override
+            public State call(State state, Integer temperatureCelsius, Boolean completed,
+                    Observer<Integer> observer) {
+                if (completed) {
+                    // return is irrelevant when complete
+                    return null;
+                } else if (temperatureCelsius >= maxTemperatureCelsius) {
+                    return new State(false);
+                } else {
+                    if (state.isOverMinLength) {
+                        observer.onNext(temperatureCelsius);
+                        return state;
+                    } else {
+                        ArrayList<Integer> temps = new ArrayList<Integer>(state.temps);
+                        temps.add(temperatureCelsius);
+                        if (temps.size() == minLength) {
+                            for (Integer t : temps) {
+                                observer.onNext(t);
+                            }
+                            return new State(true);
+                        } else
+                            return new State(temps, false);
+                    }
+                }
+            }
+        };
+    }
 }
