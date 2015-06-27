@@ -97,6 +97,12 @@ public final class Transformers {
      * chain so the source may experience requests for more items than are
      * strictly required by the endpoint subscriber.
      * 
+     * <p>
+     * Internally this transformer uses {@link Observable#scan} emitting a
+     * stream of new states composed with emissions from the transition to each
+     * state and {@link Observable#flatMap} to emit the recorded emissions with
+     * backpressure.
+     * 
      * @param initialState
      *            the initial state of the state machine
      * @param transition
