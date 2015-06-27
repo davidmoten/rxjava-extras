@@ -93,6 +93,12 @@ public final class Transformers {
         return TransformerWithState.<State, In, Out> create(initialState, transition);
     }
 
+    public static <State, In, Out> Transformer<In, Out> withState(State initialState,
+            Func4<State, In, Boolean, Observer<Out>, State> transition) {
+        Func0<State> f = Functions.constant0(initialState);
+        return TransformerWithState.<State, In, Out> create(f, transition);
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> Transformer<T, T> bufferEmissions() {
         return (Transformer<T, T>) BufferEmissionsHolder.INSTANCE;

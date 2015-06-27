@@ -3,6 +3,7 @@ package com.github.davidmoten.rx;
 import java.util.Comparator;
 
 import rx.Observable;
+import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 
@@ -46,6 +47,15 @@ public final class Functions {
                 return r;
             }
         };
+    }
+    
+    public static <T> Func0<T> constant0(final T t) {
+        return new Func0<T>() {
+
+            @Override
+            public T call() {
+                return t;
+            }};
     }
 
     public static <T> Func1<T, Boolean> not(final Func1<T, Boolean> f) {

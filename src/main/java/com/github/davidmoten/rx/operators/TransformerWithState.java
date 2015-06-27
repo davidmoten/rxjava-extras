@@ -36,8 +36,19 @@ public final class TransformerWithState<State, In, Out> implements Transformer<I
         return source.materialize()
         // do state transitions and record notifications
                 .scan(initial, transformStateAndRecordNotifications())
+                //as an optimisation throw away empty notification lists before hitting flatMap
+                .filter(nonEmptyNotifications()) 
                 // use flatMap to emit notification values
                 .flatMap(emitNotifications());
+    }
+
+    private Func1<StateWithNotifications<State, Out>, Boolean> nonEmptyNotifications() {
+        return new Func1<StateWithNotifications<State,Out>, Boolean>(){
+
+            @Override
+            public Boolean call(StateWithNotifications<State, Out> s) {
+                return s.notifications.size() >0;
+            }};
     }
 
     private Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>> transformStateAndRecordNotifications() {
