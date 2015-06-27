@@ -9,11 +9,15 @@ import java.util.Set;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
+import rx.Observer;
 import rx.Scheduler;
+import rx.functions.Func0;
 import rx.functions.Func1;
+import rx.functions.Func3;
 
 import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.operators.OperatorFromTransformer;
+import com.github.davidmoten.rx.operators.TransformerWithState;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 
@@ -83,6 +87,11 @@ public final class Transformers {
             }
         };
     }
+    
+    public static <State,In,Out> Transformer<In,Out> withState(Func0<State> initialState,
+            Func3<State, In, Observer<Out>, State> transition) {
+        return TransformerWithState.<State,In,Out>create(initialState,transition);
+    }
 
     @SuppressWarnings("unchecked")
     public static <T> Transformer<T, T> bufferEmissions() {
@@ -94,4 +103,6 @@ public final class Transformers {
         static Transformer<Object, Object> INSTANCE = bufferEmissions(null);
     }
 
+    
+    
 }
