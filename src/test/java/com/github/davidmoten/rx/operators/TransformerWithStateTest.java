@@ -32,7 +32,7 @@ public class TransformerWithStateTest {
                 .compose(
                         Transformers.emitViaStateTransitions(initialState,
                                 TransformerWithStateTest.<Integer> transition(bufferSize),
-                                TransformerWithStateTest.<Integer> completionAction())).toList()
+                                TransformerWithStateTest.<Integer> bufferThreeCompletionAction())).toList()
                 .toBlocking().single();
         System.out.println(list);
         assertEquals(asList(asList(1, 2, 3), asList(4, 5)), list);
@@ -56,7 +56,7 @@ public class TransformerWithStateTest {
 
     }
 
-    private static <T> Action2<List<T>, Observer<List<T>>> completionAction() {
+    private static <T> Action2<List<T>, Observer<List<T>>> bufferThreeCompletionAction() {
         return new Action2<List<T>, Observer<List<T>>>() {
 
             @Override
