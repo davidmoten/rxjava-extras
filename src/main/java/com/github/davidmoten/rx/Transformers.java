@@ -92,7 +92,10 @@ public final class Transformers {
     /**
      * Returns a {@link Transformer} that allows processing of the source stream
      * to be defined in a state machine where transitions of the state machine
-     * may also emit items to downstream. Backpressure is supported.
+     * may also emit items to downstream that are buffered if necessary when
+     * backpressure is requested. <code>flatMap</code> is part of the processing
+     * chain so the source may experience requests for more items than are
+     * strictly required by the endpoint subscriber.
      * 
      * @param initialState
      *            the initial state of the state machine
