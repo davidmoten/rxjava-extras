@@ -13,13 +13,13 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
 
-public final class TransformerWithState<State, In, Out> implements Transformer<In, Out> {
+public final class TransformerStateMachine<State, In, Out> implements Transformer<In, Out> {
 
     private final Func0<State> initialState;
     private final Func3<State, In, Observer<Out>, State> transition;
     private final Action2<State, Observer<Out>> completionAction;
 
-    private TransformerWithState(Func0<State> initialState,
+    private TransformerStateMachine(Func0<State> initialState,
             Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
         this.initialState = initialState;
@@ -30,7 +30,7 @@ public final class TransformerWithState<State, In, Out> implements Transformer<I
     public static <State, In, Out> Transformer<In, Out> create(Func0<State> initialState,
             Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
-        return new TransformerWithState<State, In, Out>(initialState, transition, completionAction);
+        return new TransformerStateMachine<State, In, Out>(initialState, transition, completionAction);
     }
 
     @Override

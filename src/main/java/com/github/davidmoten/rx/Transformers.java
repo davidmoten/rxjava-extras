@@ -18,7 +18,7 @@ import rx.functions.Func3;
 
 import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.operators.OperatorFromTransformer;
-import com.github.davidmoten.rx.operators.TransformerWithState;
+import com.github.davidmoten.rx.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 
@@ -89,10 +89,28 @@ public final class Transformers {
         };
     }
 
-    public static <State, In, Out> Transformer<In, Out> stateMachine(
-            Func0<State> initialState, Func3<State, In, Observer<Out>, State> transition,
+    /**
+     * Returns a {@link Transformer} that allows processing of the source stream
+     * to be defined in a state machine where transitions of the state machine
+     * may also emit items to downstream. Backpressure is supported.
+     * 
+     * @param initialState
+     *            the initial state of the state machine
+     * @param transition
+     *            defines state transitions and consequent emissions to
+     *            downstream when an item arrives from upstream
+     * @param completionAction
+     *            defines activity that should happen based on the final state
+     *            just before downstream <code>onCompleted()</code> is called.
+     *            For example any buffered emissions in state could be emitted
+     *            at this point.
+     * @return a backpressure supporting Transformation that implements the
+     *         state machine specified by the parameters
+     */
+    public static <State, In, Out> Transformer<In, Out> stateMachine(Func0<State> initialState,
+            Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
-        return TransformerWithState.<State, In, Out> create(initialState, transition,
+        return TransformerStateMachine.<State, In, Out> create(initialState, transition,
                 completionAction);
     }
 
@@ -100,13 +118,13 @@ public final class Transformers {
             Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
         Func0<State> f = Functions.constant0(initialState);
-        return TransformerWithState.<State, In, Out> create(f, transition, completionAction);
+        return TransformerStateMachine.<State, In, Out> create(f, transition, completionAction);
     }
 
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
             Func3<State, In, Observer<Out>, State> transition) {
         Func0<State> f = Functions.constant0(initialState);
-        return TransformerWithState.<State, In, Out> create(f, transition, null);
+        return TransformerStateMachine.<State, In, Out> create(f, transition, null);
     }
 
     @SuppressWarnings("unchecked")

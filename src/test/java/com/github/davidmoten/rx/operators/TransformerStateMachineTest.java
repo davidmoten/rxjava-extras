@@ -18,7 +18,7 @@ import rx.functions.Func3;
 
 import com.github.davidmoten.rx.Transformers;
 
-public class TransformerWithStateTest {
+public class TransformerStateMachineTest {
 
     @SuppressWarnings("unchecked")
     @Test
@@ -31,8 +31,8 @@ public class TransformerWithStateTest {
                 .just(1, 2, 3, 4, 5)
                 .compose(
                         Transformers.stateMachine(initialState,
-                                TransformerWithStateTest.<Integer> transition(bufferSize),
-                                TransformerWithStateTest.<Integer> bufferThreeCompletionAction()))
+                                TransformerStateMachineTest.<Integer> transition(bufferSize),
+                                TransformerStateMachineTest.<Integer> bufferThreeCompletionAction()))
                 .toList().toBlocking().single();
         assertEquals(asList(asList(1, 2, 3), asList(4, 5)), list);
     }
