@@ -89,21 +89,21 @@ public final class Transformers {
         };
     }
 
-    public static <State, In, Out> Transformer<In, Out> emitViaStateTransitions(
+    public static <State, In, Out> Transformer<In, Out> stateMachine(
             Func0<State> initialState, Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
         return TransformerWithState.<State, In, Out> create(initialState, transition,
                 completionAction);
     }
 
-    public static <State, In, Out> Transformer<In, Out> emitViaStateTransitions(State initialState,
+    public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
             Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
         Func0<State> f = Functions.constant0(initialState);
         return TransformerWithState.<State, In, Out> create(f, transition, completionAction);
     }
 
-    public static <State, In, Out> Transformer<In, Out> emitViaStateTransitions(State initialState,
+    public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
             Func3<State, In, Observer<Out>, State> transition) {
         Func0<State> f = Functions.constant0(initialState);
         return TransformerWithState.<State, In, Out> create(f, transition, null);

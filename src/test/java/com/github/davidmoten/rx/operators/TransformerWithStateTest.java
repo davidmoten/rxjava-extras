@@ -1,6 +1,6 @@
 package com.github.davidmoten.rx.operators;
 
-import static com.github.davidmoten.rx.Transformers.emitViaStateTransitions;
+import static com.github.davidmoten.rx.Transformers.stateMachine;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 
@@ -30,7 +30,7 @@ public class TransformerWithStateTest {
         List<List<Integer>> list = Observable
                 .just(1, 2, 3, 4, 5)
                 .compose(
-                        Transformers.emitViaStateTransitions(initialState,
+                        Transformers.stateMachine(initialState,
                                 TransformerWithStateTest.<Integer> transition(bufferSize),
                                 TransformerWithStateTest.<Integer> bufferThreeCompletionAction()))
                 .toList().toBlocking().single();
@@ -75,7 +75,7 @@ public class TransformerWithStateTest {
         List<Integer> list = Observable
                 .from(Arrays.asList(5, 3, 1, 0, -1, -2, -3, -3, -2, -1, 0, 1, 2, 3, 4, 0, -1, 2))
                 .compose(
-                        emitViaStateTransitions(new State(false),
+                        stateMachine(new State(false),
                                 temperatureTransition(minLength, maxTemperature))).toList()
                 .toBlocking().single();
         assertEquals(Arrays.asList(-1, -2, -3, -3, -2, -1), list);
