@@ -87,10 +87,10 @@ public final class Transformers {
             }
         };
     }
-    
-    public static <State,In,Out> Transformer<In,Out> withState(Func0<State> initialState,
+
+    public static <State, In, Out> Transformer<In, Out> withState(Func0<State> initialState,
             Func3<State, In, Observer<Out>, State> transition) {
-        return TransformerWithState.<State,In,Out>create(initialState,transition);
+        return TransformerWithState.<State, In, Out> create(initialState, transition);
     }
 
     @SuppressWarnings("unchecked")
@@ -103,6 +103,4 @@ public final class Transformers {
         static Transformer<Object, Object> INSTANCE = bufferEmissions(null);
     }
 
-    
-    
 }
