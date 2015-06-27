@@ -112,7 +112,8 @@ public final class Transformers {
      *            defines activity that should happen based on the final state
      *            just before downstream <code>onCompleted()</code> is called.
      *            For example any buffered emissions in state could be emitted
-     *            at this point.
+     *            at this point. Don't call <code>observer.onCompleted()</code>
+     *            as it is called for you after the action completes. .
      * @return a backpressure supporting Transformation that implements the
      *         state machine specified by the parameters
      */
