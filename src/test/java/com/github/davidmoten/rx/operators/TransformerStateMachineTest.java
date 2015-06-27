@@ -84,11 +84,11 @@ public class TransformerStateMachineTest {
 
     private static class State {
         final List<Integer> temps;
-        final boolean isOverMinLength;
+        final boolean satisfiesMinLength;
 
-        State(List<Integer> temps, boolean isOverMinLength) {
+        State(List<Integer> temps, boolean satisfiesMinLength) {
             this.temps = temps;
-            this.isOverMinLength = isOverMinLength;
+            this.satisfiesMinLength = satisfiesMinLength;
         }
 
         State(boolean isOverMinLength) {
@@ -107,7 +107,7 @@ public class TransformerStateMachineTest {
                     return new State(false);
                 } else {
                     // is cool enough
-                    if (state.isOverMinLength) {
+                    if (state.satisfiesMinLength) {
                         observer.onNext(temperatureCelsius);
                         return state;
                     } else {
