@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import rx.Notification;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
@@ -89,7 +90,7 @@ public final class Transformers {
     }
 
     public static <State, In, Out> Transformer<In, Out> withState(Func0<State> initialState,
-            Func3<State, In, Observer<Out>, State> transition) {
+            Func3<State, Notification<In>, Observer<Out>, State> transition) {
         return TransformerWithState.<State, In, Out> create(initialState, transition);
     }
 

@@ -15,16 +15,16 @@ import rx.functions.Func3;
 public final class TransformerWithState<State, In, Out> implements Transformer<In, Out> {
 
     private final Func0<State> initialState;
-    private final Func3<State, In, Observer<Out>, State> transition;
+    private final Func3<State, Notification<In>, Observer<Out>, State> transition;
 
     private TransformerWithState(Func0<State> initialState,
-            Func3<State, In, Observer<Out>, State> transition) {
+            Func3<State, Notification<In>, Observer<Out>, State> transition) {
         this.initialState = initialState;
         this.transition = transition;
     }
     
     public static <State,In,Out> Transformer<In,Out> create(Func0<State> initialState,
-            Func3<State, In, Observer<Out>, State> transition) {
+            Func3<State, Notification<In>, Observer<Out>, State> transition) {
         return new TransformerWithState<State,In,Out>(initialState, transition);
     }
 
@@ -32,17 +32,17 @@ public final class TransformerWithState<State, In, Out> implements Transformer<I
     public Observable<Out> call(Observable<In> source) {
         StateWithNotifications<State, Out> initial = new StateWithNotifications<State, Out>(
                 initialState.call());
-        return source
+        return source.materialize()
         // do state transitions and record notifications
                 .scan(initial, transformStateAndRecordNotifications())
                 // use flatMap to emit notification values
                 .flatMap(emitNotifications());
     }
 
-    private Func2<StateWithNotifications<State, Out>, In, StateWithNotifications<State, Out>> transformStateAndRecordNotifications() {
-        return new Func2<StateWithNotifications<State, Out>, In, StateWithNotifications<State, Out>>() {
+    private Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>> transformStateAndRecordNotifications() {
+        return new Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>>() {
             @Override
-            public StateWithNotifications<State, Out> call(StateWithNotifications<State, Out> se, In in) {
+            public StateWithNotifications<State, Out> call(StateWithNotifications<State, Out> se, Notification<In> in) {
                 Recorder<Out> recorder = new Recorder<Out>();
                 State state2 = transition.call(se.state, in, recorder);
                 return new StateWithNotifications<State, Out>(state2,
