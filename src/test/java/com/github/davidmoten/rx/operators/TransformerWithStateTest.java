@@ -22,7 +22,7 @@ public class TransformerWithStateTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testBufferThree() {
+    public void testBufferThreeUsingTranformerWithState() {
         final int bufferSize = 3;
 
         // In this case the type of State is List<Integer>
@@ -32,9 +32,8 @@ public class TransformerWithStateTest {
                 .compose(
                         Transformers.emitViaStateTransitions(initialState,
                                 TransformerWithStateTest.<Integer> transition(bufferSize),
-                                TransformerWithStateTest.<Integer> bufferThreeCompletionAction())).toList()
-                .toBlocking().single();
-        System.out.println(list);
+                                TransformerWithStateTest.<Integer> bufferThreeCompletionAction()))
+                .toList().toBlocking().single();
         assertEquals(asList(asList(1, 2, 3), asList(4, 5)), list);
     }
 
@@ -68,7 +67,7 @@ public class TransformerWithStateTest {
     }
 
     @Test
-    public void testEmitLongCoolPeriods() {
+    public void testEmitLongCoolPeriodsUsingTransformerWithState() {
         // we are going to emit only those temperatures that are less than zero
         // and only when there are at least 4 values less than zero in a row
         int minLength = 4;
