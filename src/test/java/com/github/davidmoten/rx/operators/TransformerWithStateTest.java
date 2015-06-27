@@ -80,6 +80,8 @@ public class TransformerWithStateTest {
 
     @Test
     public void testEmitLongCoolPeriods() {
+        // we are going to emit only those temperatures that are less than zero
+        // and when there are at least 4 values less than zero in a row
         List<Integer> list = Observable
                 .from(Arrays.asList(5, 3, 1, 0, -1, -2, -3, -3, -2, -1, 0, 1, 2, 3, 4, 0, -1, 2))
                 .compose(Transformers.withState(new State(false), temperatureTransition(4, 0)))
