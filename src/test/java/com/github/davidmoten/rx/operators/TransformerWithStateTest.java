@@ -44,7 +44,7 @@ public class TransformerWithStateTest {
                 if (completed) {
                     if (buffer.size() > 0)
                         observer.onNext(buffer);
-                    // return is irrelevant
+                    // return is irrelevant when complete
                     return null;
                 } else {
                     list.add(value);
