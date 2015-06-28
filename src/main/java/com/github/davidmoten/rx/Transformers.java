@@ -97,6 +97,12 @@ public final class Transformers {
      * chain so the source may experience requests for more items than are
      * strictly required by the endpoint subscriber.
      * 
+     * <p>
+     * Internally this transformer uses {@link Observable#scan} emitting a
+     * stream of new states composed with emissions from the transition to each
+     * state and {@link Observable#flatMap} to emit the recorded emissions with
+     * backpressure.
+     * 
      * @param initialState
      *            the initial state of the state machine
      * @param transition
@@ -106,7 +112,8 @@ public final class Transformers {
      *            defines activity that should happen based on the final state
      *            just before downstream <code>onCompleted()</code> is called.
      *            For example any buffered emissions in state could be emitted
-     *            at this point.
+     *            at this point. Don't call <code>observer.onCompleted()</code>
+     *            as it is called for you after the action completes. .
      * @return a backpressure supporting Transformation that implements the
      *         state machine specified by the parameters
      */
