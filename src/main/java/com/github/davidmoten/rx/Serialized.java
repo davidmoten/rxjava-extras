@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,13 +24,13 @@ import rx.observables.AbstractOnSubscribe;
 
 public final class Serialized {
 
-    public static <T extends Serializable> Observable<T> from(final InputStream is) {
+    public static <T extends Serializable> Observable<T> read(final InputStream is) {
         return Observable.create(new AbstractOnSubscribe<T, ObjectInputStream>() {
 
             @Override
             protected ObjectInputStream onSubscribe(Subscriber<? super T> subscriber) {
                 try {
-                    return new ObjectInputStream(is);
+                    return new ObjectInputStream(new BufferedInputStream(is));
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -54,7 +56,7 @@ public final class Serialized {
         });
     }
 
-    public static <T extends Serializable> Observable<T> from(final File file) {
+    public static <T extends Serializable> Observable<T> read(final File file) {
         Func0<InputStream> resourceFactory = new Func0<InputStream>() {
             @Override
             public InputStream call() {
@@ -69,7 +71,7 @@ public final class Serialized {
 
             @Override
             public Observable<? extends T> call(InputStream is) {
-                return from(is);
+                return read(is);
             }
         };
         Action1<InputStream> disposeAction = new Action1<InputStream>() {
@@ -151,7 +153,7 @@ public final class Serialized {
             @Override
             public OutputStream call() {
                 try {
-                    return new FileOutputStream(file, append);
+                    return new BufferedOutputStream(new FileOutputStream(file, append));
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e);
                 }
