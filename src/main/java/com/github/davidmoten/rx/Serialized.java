@@ -4,12 +4,16 @@ import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 
 import rx.Observable;
+import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func0;
@@ -34,6 +38,7 @@ public final class Serialized {
             protected void next(SubscriptionState<T, ObjectInputStream> state) {
                 ObjectInputStream ois = state.state();
                 try {
+                    @SuppressWarnings("unchecked")
                     T t = (T) ois.readObject();
                     state.onNext(t);
                 } catch (ClassNotFoundException e) {
@@ -76,8 +81,100 @@ public final class Serialized {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            }};
+            }
+        };
         return Observable.using(resourceFactory, observableFactory, disposeAction, true);
     }
 
+    public static <T extends Serializable> Observable<T> write(Observable<T> source,
+            final OutputStream os) {
+        return source.lift(new Operator<T, T>() {
+
+            @Override
+            public Subscriber<? super T> call(final Subscriber<? super T> child) {
+                try {
+
+                    final ObjectOutputStream ois = new ObjectOutputStream(os);
+                    return new Subscriber<T>(child) {
+
+                        @Override
+                        public void onCompleted() {
+                            child.onCompleted();
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+                            child.onError(e);
+                        }
+
+                        @Override
+                        public void onNext(T t) {
+                            try {
+                                ois.writeObject(t);
+                            } catch (IOException e) {
+                                onError(e);
+                                return;
+                            }
+                            child.onNext(t);
+                        }
+
+                    };
+
+                } catch (IOException e) {
+                    // ignore everything that the parent does
+                    // but ensure gets unsubscribed
+                    Subscriber<T> parent = new Subscriber<T>(child) {
+
+                        @Override
+                        public void onCompleted() {
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+                        }
+
+                        @Override
+                        public void onNext(T t) {
+                        }
+                    };
+                    child.add(parent);
+                    child.onError(e);
+                    return parent;
+                }
+            }
+        });
+    }
+
+    public static <T extends Serializable> Observable<T> write(final Observable<T> source,
+            final File file, final boolean append) {
+        Func0<OutputStream> resourceFactory = new Func0<OutputStream>() {
+            @Override
+            public OutputStream call() {
+                try {
+                    return new FileOutputStream(file, append);
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        Func1<OutputStream, Observable<? extends T>> observableFactory = new Func1<OutputStream, Observable<? extends T>>() {
+
+            @Override
+            public Observable<? extends T> call(OutputStream os) {
+                return write(source, os);
+            }
+        };
+        Action1<OutputStream> disposeAction = new Action1<OutputStream>() {
+
+            @Override
+            public void call(OutputStream os) {
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+        return Observable.using(resourceFactory, observableFactory, disposeAction, true);
+    }
 }
