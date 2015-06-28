@@ -23,14 +23,16 @@ import rx.functions.Func1;
 import rx.observables.AbstractOnSubscribe;
 
 public final class Serialized {
+    
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
 
-    public static <T extends Serializable> Observable<T> read(final InputStream is) {
+    public static <T extends Serializable> Observable<T> read(final InputStream is, final int bufferSize) {
         return Observable.create(new AbstractOnSubscribe<T, ObjectInputStream>() {
 
             @Override
             protected ObjectInputStream onSubscribe(Subscriber<? super T> subscriber) {
                 try {
-                    return new ObjectInputStream(new BufferedInputStream(is));
+                    return new ObjectInputStream(new BufferedInputStream(is, bufferSize));
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -55,8 +57,12 @@ public final class Serialized {
             }
         });
     }
+    
+    public static <T extends Serializable> Observable<T> read(final InputStream is) {
+        return read(is, DEFAULT_BUFFER_SIZE);
+    }
 
-    public static <T extends Serializable> Observable<T> read(final File file) {
+    public static <T extends Serializable> Observable<T> read(final File file, final int bufferSize) {
         Func0<InputStream> resourceFactory = new Func0<InputStream>() {
             @Override
             public InputStream call() {
@@ -71,7 +77,7 @@ public final class Serialized {
 
             @Override
             public Observable<? extends T> call(InputStream is) {
-                return read(is);
+                return read(is, bufferSize);
             }
         };
         Action1<InputStream> disposeAction = new Action1<InputStream>() {
@@ -86,6 +92,10 @@ public final class Serialized {
             }
         };
         return Observable.using(resourceFactory, observableFactory, disposeAction, true);
+    }
+    
+    public static <T extends Serializable> Observable<T> read(final File file) {
+        return read(file, DEFAULT_BUFFER_SIZE);
     }
 
     public static <T extends Serializable> Observable<T> write(Observable<T> source,
@@ -148,12 +158,12 @@ public final class Serialized {
     }
 
     public static <T extends Serializable> Observable<T> write(final Observable<T> source,
-            final File file, final boolean append) {
+            final File file, final boolean append, final int bufferSize) {
         Func0<OutputStream> resourceFactory = new Func0<OutputStream>() {
             @Override
             public OutputStream call() {
                 try {
-                    return new BufferedOutputStream(new FileOutputStream(file, append));
+                    return new BufferedOutputStream(new FileOutputStream(file, append), bufferSize);
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e);
                 }
@@ -178,5 +188,10 @@ public final class Serialized {
             }
         };
         return Observable.using(resourceFactory, observableFactory, disposeAction, true);
+    }
+    
+    public static <T extends Serializable> Observable<T> write(final Observable<T> source,
+            final File file, final boolean append) {
+        return write(source, file, append, DEFAULT_BUFFER_SIZE);
     }
 }
