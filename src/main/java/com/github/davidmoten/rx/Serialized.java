@@ -70,7 +70,8 @@ public final class Serialized {
 
     /**
      * Returns the deserialized objects from the given {@link File} as an
-     * {@link Observable} stream. Uses buffer of size <code>bufferSize</code> buffer reads from the File.
+     * {@link Observable} stream. Uses buffer of size <code>bufferSize</code>
+     * buffer reads from the File.
      * 
      * @param file
      *            the input file
@@ -119,7 +120,7 @@ public final class Serialized {
 
     /**
      * Returns the deserialized objects from the given {@link File} as an
-     * {@link Observable} stream. A buffer size of 8192 is used by default.
+     * {@link Observable} stream. A buffer size of 8192 bytes is used by default.
      * 
      * @param file
      *            the input file containing serialized java objects
@@ -134,17 +135,20 @@ public final class Serialized {
     }
 
     /**
-     * Returns duplicate of the input stream but with the side effect that
+     * Returns a duplicate of the input stream but with the side effect that
      * emissions from the source are written to the input stream wrapped as an
-     * ObjectOutputStream. If the output stream is already an ObjectOutputStream
-     * then the stream is not wrapped again.
+     * ObjectOutputStream.
      * 
      * @param source
-     * @param os
+     *            the source of objects to write
+     * @param oos
+     *            the output stream to write to
+     * @param <T>
+     *            the generic type of the objects being serialized
      * @return
      */
     public static <T extends Serializable> Observable<T> write(Observable<T> source,
-            final ObjectOutputStream ois) {
+            final ObjectOutputStream oos) {
         return source.doOnNext(new Action1<T>() {
 
             @Override
@@ -158,6 +162,23 @@ public final class Serialized {
         });
     }
 
+    /**
+     * Writes the source stream to the given file in given append mode and using
+     * the given buffer size.
+     * 
+     * @param source
+     *            observable stream to write
+     * @param file
+     *            file to write to
+     * @param append
+     *            if true writes are appended to file otherwise overwrite the
+     *            file
+     * @param bufferSize
+     *            the buffer size in bytes to use.
+     * @param <T>
+     *            the generic type of the input stream
+     * @return
+     */
     public static <T extends Serializable> Observable<T> write(final Observable<T> source,
             final File file, final boolean append, final int bufferSize) {
         Func0<ObjectOutputStream> resourceFactory = new Func0<ObjectOutputStream>() {
@@ -193,7 +214,21 @@ public final class Serialized {
         };
         return Observable.using(resourceFactory, observableFactory, disposeAction, true);
     }
-
+    /**
+     * Writes the source stream to the given file in given append mode and using
+     * the a buffer size of 8192 bytes.
+     * 
+     * @param source
+     *            observable stream to write
+     * @param file
+     *            file to write to
+     * @param append
+     *            if true writes are appended to file otherwise overwrite the
+     *            file
+     * @param <T>
+     *            the generic type of the input stream
+     * @return
+     */
     public static <T extends Serializable> Observable<T> write(final Observable<T> source,
             final File file, final boolean append) {
         return write(source, file, append, DEFAULT_BUFFER_SIZE);
