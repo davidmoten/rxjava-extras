@@ -31,7 +31,7 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.5.6</version>
+  <version>0.5.8</version>
 </dependency>
 ```
 
@@ -73,7 +73,6 @@ To write an Observable to a file:
 ```java
 Serialized.write(observable, file).subscribe();
 ```
-
 
 TestingHelper
 -----------------
