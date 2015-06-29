@@ -13,6 +13,8 @@ Utilities for use with rxjava:
 * `TestingHelper`
 * `Transformers.toOperator`
 * `Tranformers.mapWithIndex`
+* `Transformers.stateMachine`
+* `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
 
@@ -57,6 +59,21 @@ you can write:
 source.doOnNext(Checked.a1(s -> os.write(s.getBytes())))
       .subscribe();
 ```
+
+Serialized
+------------------
+To read serialized objects from a file:
+
+```java
+Observable<Item> items = Serialized.read(file);
+```
+
+To write an Observable to a file:
+
+```java
+Serialized.write(observable, file).subscribe();
+```
+
 
 TestingHelper
 -----------------
