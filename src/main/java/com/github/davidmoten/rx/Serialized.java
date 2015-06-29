@@ -120,7 +120,8 @@ public final class Serialized {
 
     /**
      * Returns the deserialized objects from the given {@link File} as an
-     * {@link Observable} stream. A buffer size of 8192 bytes is used by default.
+     * {@link Observable} stream. A buffer size of 8192 bytes is used by
+     * default.
      * 
      * @param file
      *            the input file containing serialized java objects
@@ -154,7 +155,7 @@ public final class Serialized {
             @Override
             public void call(T t) {
                 try {
-                    ois.writeObject(t);
+                    oos.writeObject(t);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -214,6 +215,7 @@ public final class Serialized {
         };
         return Observable.using(resourceFactory, observableFactory, disposeAction, true);
     }
+
     /**
      * Writes the source stream to the given file in given append mode and using
      * the a buffer size of 8192 bytes.
