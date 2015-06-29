@@ -39,6 +39,10 @@ public final class TestingHelper {
      * 
      * @param function
      *            the transformation to be tested
+    * @param <T>
+     *            generic type of the from side of the transformation being tested
+     * @param <R>
+     *            generic type of the to side of the transformation being tested
      * @return builder for creating test cases
      */
     public static <T, R> Builder<T, R> function(Func1<Observable<T>, Observable<R>> function) {
@@ -49,9 +53,9 @@ public final class TestingHelper {
      * Defines test cases and builds a JUnit test suite.
      * 
      * @param <T>
-     *            type of the from side of the transformation being tested
+     *            generic type of the from side of the transformation being tested
      * @param <R>
-     *            type of the to side of the transformation being tested
+     *            generic type of the to side of the transformation being tested
      */
     public static class Builder<T, R> {
 

@@ -23,10 +23,12 @@ import java.util.concurrent.atomic.AtomicLongFieldUpdater;
  *
  */
 public final class BackpressureUtils {
+
     /** Utility class, no instances. */
     private BackpressureUtils() {
         throw new IllegalStateException("No instances!");
     }
+
     /**
      * Adds {@code n} to {@code requested} field and returns the value prior to
      * addition once the addition is successful (uses CAS semantics). If
@@ -38,6 +40,7 @@ public final class BackpressureUtils {
      *            contains the field updated by the updater
      * @param n
      *            the number of requests to add to the requested count
+     * @param <T> then type of the volatile being updated
      * @return requested value just prior to successful addition
      */
     public static <T> long getAndAddRequest(AtomicLongFieldUpdater<T> requested, T object, long n) {
@@ -56,9 +59,9 @@ public final class BackpressureUtils {
     }
 
     /**
-     * Adds {@code n} to {@code requested} and returns the value prior to addition once the
-     * addition is successful (uses CAS semantics). If overflows then sets
-     * {@code requested} field to {@code Long.MAX_VALUE}.
+     * Adds {@code n} to {@code requested} and returns the value prior to
+     * addition once the addition is successful (uses CAS semantics). If
+     * overflows then sets {@code requested} field to {@code Long.MAX_VALUE}.
      * 
      * @param requested
      *            atomic field updater for a request count

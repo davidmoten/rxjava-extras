@@ -11,7 +11,7 @@ import rx.internal.operators.NotificationLite;
  * Optimized for when request method is called on same thread as the Observer
  * methods.
  * 
- * @param <T>
+ * @param <T> type of the items being queued and emitted by this drainer
  */
 public class DrainerSyncBiased<T> implements Drainer<T> {
 
