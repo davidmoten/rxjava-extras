@@ -13,6 +13,8 @@ Utilities for use with rxjava:
 * `TestingHelper`
 * `Transformers.toOperator`
 * `Tranformers.mapWithIndex`
+* `Transformers.stateMachine`
+* `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
 
