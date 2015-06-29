@@ -134,8 +134,7 @@ public final class Serialized {
 
     /**
      * Returns a duplicate of the input stream but with the side effect that
-     * emissions from the source are written to the input stream wrapped as an
-     * ObjectOutputStream.
+     * emissions from the source are written to the {@link ObjectOutputStream}.
      * 
      * @param source
      *            the source of objects to write
