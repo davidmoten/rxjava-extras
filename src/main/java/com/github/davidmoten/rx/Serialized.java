@@ -70,8 +70,7 @@ public final class Serialized {
 
     /**
      * Returns the deserialized objects from the given {@link File} as an
-     * {@link Observable} stream. Uses buffering internally if desired to
-     * optimize file system interaction.
+     * {@link Observable} stream. Uses buffer of size <code>bufferSize</code> buffer reads from the File.
      * 
      * @param file
      *            the input file
