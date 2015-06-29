@@ -60,6 +60,21 @@ source.doOnNext(Checked.a1(s -> os.write(s.getBytes())))
       .subscribe();
 ```
 
+Serialized
+------------------
+To read serialized objects from a file:
+
+```java
+Observable<Item> items = Serialized.read(file);
+```
+
+To write a stream of `Item` to a file like this:
+
+```java
+Serialized.write(items, file, false).subscribe();
+```
+
+
 TestingHelper
 -----------------
 For a given named test the following variations  are tested:
