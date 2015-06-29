@@ -68,7 +68,7 @@ To read serialized objects from a file:
 Observable<Item> items = Serialized.read(file);
 ```
 
-To write a stream of `Item` to a file like this:
+To write a stream of `Item` to a file:
 
 ```java
 Serialized.write(items, file, false).subscribe();
