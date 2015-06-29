@@ -235,4 +235,21 @@ public final class Serialized {
             final File file, final boolean append) {
         return write(source, file, append, DEFAULT_BUFFER_SIZE);
     }
+
+    /**
+     * Writes the source stream to the given file in given append mode and using
+     * the a buffer size of 8192 bytes.
+     * 
+     * @param source
+     *            observable stream to write
+     * @param file
+     *            file to write to
+     * @param <T>
+     *            the generic type of the input stream
+     * @return
+     */
+    public static <T extends Serializable> Observable<T> write(final Observable<T> source,
+            final File file) {
+        return write(source, file, false, DEFAULT_BUFFER_SIZE);
+    }
 }

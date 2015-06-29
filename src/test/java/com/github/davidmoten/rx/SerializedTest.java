@@ -18,7 +18,7 @@ public class SerializedTest {
         File file = new File("target/temp1");
         file.delete();
         Observable<Integer> source = Observable.just(1, 2, 3);
-        Serialized.write(source, file, false).subscribe();
+        Serialized.write(source, file).subscribe();
         assertTrue(file.exists());
         assertTrue(file.length() > 0);
         List<Integer> list = Serialized.<Integer> read(file).toList().toBlocking().single();
@@ -42,7 +42,7 @@ public class SerializedTest {
         File file = new File("target/temp2");
         file.delete();
         Observable<Integer> source = Observable.empty();
-        Serialized.write(source, file, false).subscribe();
+        Serialized.write(source, file).subscribe();
         assertTrue(file.exists());
         List<Integer> list = Serialized.<Integer> read(file).toList().toBlocking().single();
         assertTrue(list.isEmpty());
