@@ -65,8 +65,6 @@ public final class BackpressureUtils {
      * 
      * @param requested
      *            atomic field updater for a request count
-     * @param object
-     *            contains the field updated by the updater
      * @param n
      *            the number of requests to add to the requested count
      * @return requested value just prior to successful addition
