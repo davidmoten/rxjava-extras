@@ -16,8 +16,8 @@ import rx.functions.Func2;
  * 
  * <pre>
  * OutputStream os =  ...;
- * Observable<String> source = ...;
- * source.doOnNext(s -> {
+ * Observable&lt;String&gt; source = ...;
+ * source.doOnNext(s -&gt; {
  *         try {
  *             os.write(s.getBytes());
  *         } catch (IOException e) {

@@ -32,8 +32,8 @@ public final class Serialized {
      * Returns the deserialized objects from the given {@link InputStream} as an
      * {@link Observable} stream.
      * 
-     * @param is
-     *            the input stream
+     * @param ois
+     *            the {@link ObjectInputStream}
      * @param <T>
      *            the generic type of the returned stream
      * @return the stream of deserialized objects from the {@link InputStream}
@@ -54,15 +54,12 @@ public final class Serialized {
                     @SuppressWarnings("unchecked")
                     T t = (T) ois.readObject();
                     state.onNext(t);
-
                 } catch (EOFException e) {
                     state.onCompleted();
                 } catch (ClassNotFoundException e) {
                     state.onError(e);
-                    return;
                 } catch (IOException e) {
                     state.onError(e);
-                    return;
                 }
             }
         });
@@ -146,7 +143,7 @@ public final class Serialized {
      *            the output stream to write to
      * @param <T>
      *            the generic type of the objects being serialized
-     * @return
+     * @return re-emits the input stream
      */
     public static <T extends Serializable> Observable<T> write(Observable<T> source,
             final ObjectOutputStream oos) {
@@ -178,7 +175,7 @@ public final class Serialized {
      *            the buffer size in bytes to use.
      * @param <T>
      *            the generic type of the input stream
-     * @return
+     * @return re-emits the input stream
      */
     public static <T extends Serializable> Observable<T> write(final Observable<T> source,
             final File file, final boolean append, final int bufferSize) {
@@ -229,7 +226,7 @@ public final class Serialized {
      *            file
      * @param <T>
      *            the generic type of the input stream
-     * @return
+     * @return re-emits the input stream
      */
     public static <T extends Serializable> Observable<T> write(final Observable<T> source,
             final File file, final boolean append) {
@@ -246,7 +243,7 @@ public final class Serialized {
      *            file to write to
      * @param <T>
      *            the generic type of the input stream
-     * @return
+     * @return re-emits the input stream
      */
     public static <T extends Serializable> Observable<T> write(final Observable<T> source,
             final File file) {

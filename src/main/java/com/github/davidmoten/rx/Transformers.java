@@ -113,7 +113,13 @@ public final class Transformers {
      *            just before downstream <code>onCompleted()</code> is called.
      *            For example any buffered emissions in state could be emitted
      *            at this point. Don't call <code>observer.onCompleted()</code>
-     *            as it is called for you after the action completes. .
+     *            as it is called for you after the action completes.
+     * @param <State>
+     *            the class representing the state of the state machine
+     * @param <In>
+     *            the input observable type
+     * @param <Out>
+     *            the output observable type
      * @return a backpressure supporting Transformation that implements the
      *         state machine specified by the parameters
      */

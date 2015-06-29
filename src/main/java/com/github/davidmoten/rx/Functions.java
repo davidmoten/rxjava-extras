@@ -48,14 +48,15 @@ public final class Functions {
             }
         };
     }
-    
+
     public static <T> Func0<T> constant0(final T t) {
         return new Func0<T>() {
 
             @Override
             public T call() {
                 return t;
-            }};
+            }
+        };
     }
 
     public static <T> Func1<T, Boolean> not(final Func1<T, Boolean> f) {
@@ -80,6 +81,8 @@ public final class Functions {
      * Returns a Func2 that adds numbers. Useful for Observable.reduce but not
      * particularly performant as it does instanceOf checks.
      * 
+     * @param <T>
+     *            generic type of Number being added
      * @return Func2 that adds numbers
      */
     public static <T extends Number> Func2<T, T, T> add() {
