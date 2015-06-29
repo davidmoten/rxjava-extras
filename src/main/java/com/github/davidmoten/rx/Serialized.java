@@ -11,31 +11,40 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.Serializable;
 
 import rx.Observable;
-import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.observables.AbstractOnSubscribe;
 
+/**
+ * Utility class for writing Observable streams to ObjectOutputStreams and
+ * reading Observable streams of indeterminate size from ObjectInputStreams.
+ */
 public final class Serialized {
-    
+
     private static final int DEFAULT_BUFFER_SIZE = 8192;
 
-    public static <T extends Serializable> Observable<T> read(final InputStream is) {
+    /**
+     * Returns the deserialized objects from the given {@link InputStream} as an
+     * {@link Observable} stream.
+     * 
+     * @param is
+     *            the input stream
+     * @param <T>
+     *            the generic type of the returned stream
+     * @return the stream of deserialized objects from the {@link InputStream}
+     *         as an {@link Observable}.
+     */
+    public static <T extends Serializable> Observable<T> read(final ObjectInputStream ois) {
         return Observable.create(new AbstractOnSubscribe<T, ObjectInputStream>() {
 
             @Override
             protected ObjectInputStream onSubscribe(Subscriber<? super T> subscriber) {
-                try {
-                    return new ObjectInputStream(is);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                return ois;
             }
 
             @Override
@@ -45,11 +54,12 @@ public final class Serialized {
                     @SuppressWarnings("unchecked")
                     T t = (T) ois.readObject();
                     state.onNext(t);
+
+                } catch (EOFException e) {
+                    state.onCompleted();
                 } catch (ClassNotFoundException e) {
                     state.onError(e);
                     return;
-                } catch (EOFException e) {
-                    state.onCompleted();
                 } catch (IOException e) {
                     state.onError(e);
                     return;
@@ -57,31 +67,49 @@ public final class Serialized {
             }
         });
     }
-    
+
+    /**
+     * Returns the deserialized objects from the given {@link File} as an
+     * {@link Observable} stream. Uses buffering internally if desired to
+     * optimize file system interaction.
+     * 
+     * @param file
+     *            the input file
+     * @param bufferSize
+     *            the buffer size for reading bytes from the file.
+     * @param <T>
+     *            the generic type of the deserialized objects returned in the
+     *            stream
+     * @return the stream of deserialized objects from the {@link InputStream}
+     *         as an {@link Observable}.
+     */
     public static <T extends Serializable> Observable<T> read(final File file, final int bufferSize) {
-        Func0<InputStream> resourceFactory = new Func0<InputStream>() {
+        Func0<ObjectInputStream> resourceFactory = new Func0<ObjectInputStream>() {
             @Override
-            public InputStream call() {
+            public ObjectInputStream call() {
                 try {
-                    return new BufferedInputStream(new FileInputStream(file), bufferSize);
+                    return new ObjectInputStream(new BufferedInputStream(new FileInputStream(file),
+                            bufferSize));
                 } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
         };
-        Func1<InputStream, Observable<? extends T>> observableFactory = new Func1<InputStream, Observable<? extends T>>() {
+        Func1<ObjectInputStream, Observable<? extends T>> observableFactory = new Func1<ObjectInputStream, Observable<? extends T>>() {
 
             @Override
-            public Observable<? extends T> call(InputStream is) {
+            public Observable<? extends T> call(ObjectInputStream is) {
                 return read(is);
             }
         };
-        Action1<InputStream> disposeAction = new Action1<InputStream>() {
+        Action1<ObjectInputStream> disposeAction = new Action1<ObjectInputStream>() {
 
             @Override
-            public void call(InputStream is) {
+            public void call(ObjectInputStream ois) {
                 try {
-                    is.close();
+                    ois.close();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -89,65 +117,43 @@ public final class Serialized {
         };
         return Observable.using(resourceFactory, observableFactory, disposeAction, true);
     }
-    
+
+    /**
+     * Returns the deserialized objects from the given {@link File} as an
+     * {@link Observable} stream. A buffer size of 8192 is used by default.
+     * 
+     * @param file
+     *            the input file containing serialized java objects
+     * @param <T>
+     *            the generic type of the deserialized objects returned in the
+     *            stream
+     * @return the stream of deserialized objects from the {@link InputStream}
+     *         as an {@link Observable}.
+     */
     public static <T extends Serializable> Observable<T> read(final File file) {
         return read(file, DEFAULT_BUFFER_SIZE);
     }
 
+    /**
+     * Returns duplicate of the input stream but with the side effect that
+     * emissions from the source are written to the input stream wrapped as an
+     * ObjectOutputStream. If the output stream is already an ObjectOutputStream
+     * then the stream is not wrapped again.
+     * 
+     * @param source
+     * @param os
+     * @return
+     */
     public static <T extends Serializable> Observable<T> write(Observable<T> source,
-            final OutputStream os) {
-        return source.lift(new Operator<T, T>() {
+            final ObjectOutputStream ois) {
+        return source.doOnNext(new Action1<T>() {
 
             @Override
-            public Subscriber<? super T> call(final Subscriber<? super T> child) {
+            public void call(T t) {
                 try {
-
-                    final ObjectOutputStream ois = new ObjectOutputStream(os);
-                    return new Subscriber<T>(child) {
-
-                        @Override
-                        public void onCompleted() {
-                            child.onCompleted();
-                        }
-
-                        @Override
-                        public void onError(Throwable e) {
-                            child.onError(e);
-                        }
-
-                        @Override
-                        public void onNext(T t) {
-                            try {
-                                ois.writeObject(t);
-                            } catch (IOException e) {
-                                onError(e);
-                                return;
-                            }
-                            child.onNext(t);
-                        }
-
-                    };
-
+                    ois.writeObject(t);
                 } catch (IOException e) {
-                    // ignore everything that the parent does
-                    // but ensure gets unsubscribed
-                    Subscriber<T> parent = new Subscriber<T>(child) {
-
-                        @Override
-                        public void onCompleted() {
-                        }
-
-                        @Override
-                        public void onError(Throwable e) {
-                        }
-
-                        @Override
-                        public void onNext(T t) {
-                        }
-                    };
-                    child.add(parent);
-                    child.onError(e);
-                    return parent;
+                    throw new RuntimeException(e);
                 }
             }
         });
@@ -155,29 +161,32 @@ public final class Serialized {
 
     public static <T extends Serializable> Observable<T> write(final Observable<T> source,
             final File file, final boolean append, final int bufferSize) {
-        Func0<OutputStream> resourceFactory = new Func0<OutputStream>() {
+        Func0<ObjectOutputStream> resourceFactory = new Func0<ObjectOutputStream>() {
             @Override
-            public OutputStream call() {
+            public ObjectOutputStream call() {
                 try {
-                    return new BufferedOutputStream(new FileOutputStream(file, append), bufferSize);
+                    return new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(
+                            file, append), bufferSize));
                 } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
             }
         };
-        Func1<OutputStream, Observable<? extends T>> observableFactory = new Func1<OutputStream, Observable<? extends T>>() {
+        Func1<ObjectOutputStream, Observable<? extends T>> observableFactory = new Func1<ObjectOutputStream, Observable<? extends T>>() {
 
             @Override
-            public Observable<? extends T> call(OutputStream os) {
-                return write(source, os);
+            public Observable<? extends T> call(ObjectOutputStream oos) {
+                return write(source, oos);
             }
         };
-        Action1<OutputStream> disposeAction = new Action1<OutputStream>() {
+        Action1<ObjectOutputStream> disposeAction = new Action1<ObjectOutputStream>() {
 
             @Override
-            public void call(OutputStream os) {
+            public void call(ObjectOutputStream oos) {
                 try {
-                    os.close();
+                    oos.close();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -185,7 +194,7 @@ public final class Serialized {
         };
         return Observable.using(resourceFactory, observableFactory, disposeAction, true);
     }
-    
+
     public static <T extends Serializable> Observable<T> write(final Observable<T> source,
             final File file, final boolean append) {
         return write(source, file, append, DEFAULT_BUFFER_SIZE);
