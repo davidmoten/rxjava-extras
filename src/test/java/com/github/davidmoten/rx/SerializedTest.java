@@ -20,11 +20,23 @@ public class SerializedTest {
         Observable<Integer> source = Observable.just(1, 2, 3);
         Serialized.write(source, file, false).subscribe();
         assertTrue(file.exists());
-        assertTrue(file.length()>0);
+        assertTrue(file.length() > 0);
         List<Integer> list = Serialized.<Integer> read(file).toList().toBlocking().single();
-        assertEquals(Arrays.asList(1,2,3),list);
+        assertEquals(Arrays.asList(1, 2, 3), list);
     }
-    
+
+    @Test
+    public void testSerializeAndDeserializeOfNonEmptyStreamWithSmallBuffer() {
+        File file = new File("target/temp1");
+        file.delete();
+        Observable<Integer> source = Observable.just(1, 2, 3);
+        Serialized.write(source, file, false, 1).subscribe();
+        assertTrue(file.exists());
+        assertTrue(file.length() > 0);
+        List<Integer> list = Serialized.<Integer> read(file, 1).toList().toBlocking().single();
+        assertEquals(Arrays.asList(1, 2, 3), list);
+    }
+
     @Test
     public void testSerializeAndDeserializeOfEmptyStream() {
         File file = new File("target/temp2");
