@@ -30,7 +30,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     public static <State, In, Out> Transformer<In, Out> create(Func0<State> initialState,
             Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
-        return new TransformerStateMachine<State, In, Out>(initialState, transition, completionAction);
+        return new TransformerStateMachine<State, In, Out>(initialState, transition,
+                completionAction);
     }
 
     @Override
@@ -40,8 +41,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         return source.materialize()
         // do state transitions and record notifications
                 .scan(initial, transformStateAndRecordNotifications())
-                // as an optimisation throw away empty notification lists before
-                // hitting flatMap
+                // as an optimisation? throw away empty notification lists
+                // before hitting flatMap
                 .filter(nonEmptyNotifications())
                 // use flatMap to emit notification values
                 .flatMap(emitNotifications());

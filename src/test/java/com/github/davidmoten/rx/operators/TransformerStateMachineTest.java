@@ -75,9 +75,9 @@ public class TransformerStateMachineTest {
         State initialState = new State(false);
         Func3<State, Integer, Observer<Integer>, State> transition = temperatureTransition(
                 minLength, maxTemperature);
-        Observable<Integer> data = Observable.from(Arrays.asList(5, 3, 1, 0, -1, -2, -3, -3, -2,
+        Observable<Integer> temperatures = Observable.from(Arrays.asList(5, 3, 1, 0, -1, -2, -3, -3, -2,
                 -1, 0, 1, 2, 3, 4, 0, -1, 2));
-        List<Integer> list = data.compose(stateMachine(initialState, transition)).toList()
+        List<Integer> list = temperatures.compose(stateMachine(initialState, transition)).toList()
                 .toBlocking().single();
         assertEquals(Arrays.asList(-1, -2, -3, -3, -2, -1), list);
     }
