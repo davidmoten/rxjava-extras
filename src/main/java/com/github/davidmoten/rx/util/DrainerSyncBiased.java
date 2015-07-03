@@ -48,7 +48,15 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
             if (expected < 0) {
                 expected = Long.MAX_VALUE;
             }
-            total += expected - expectedBefore;
+            if (total > 0) {
+                total += expected - expectedBefore;
+                if (total < 0)
+                    total = Long.MAX_VALUE;
+            } else {
+                // cannot overflow if total is negative because expected -
+                // expectedBefore cannot be more than Long.MAX_VALUE
+                total += expected - expectedBefore;
+            }
             if (busy) {
                 counter++;
                 return;
@@ -119,7 +127,6 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
 
     @SuppressWarnings("unchecked")
     private void drain() {
-        long emittedTotal = 0;
         long r;
         synchronized (this) {
             r = expected;
@@ -167,14 +174,12 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
                 }
             }
             if (emitted > 0) {
-                emittedTotal += emitted;
                 // interested in initial request being Long.MAX_VALUE rather
                 // than accumulated requests reaching Long.MAX_VALUE so is fine
                 // just to test the value of `r` instead of `requested`.
                 if (r != Long.MAX_VALUE) {
                     synchronized (this) {
                         expected -= emitted;
-                        total -= emitted;
                         r = expected;
                     }
                 }
@@ -188,9 +193,6 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
                     }
                 }
             }
-        }
-        if (emittedTotal > 0) {
-            // producer.request(emittedTotal);
         }
     }
 
