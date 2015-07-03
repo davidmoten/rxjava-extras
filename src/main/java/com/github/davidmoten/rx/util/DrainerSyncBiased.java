@@ -2,7 +2,6 @@ package com.github.davidmoten.rx.util;
 
 import java.util.Queue;
 
-import rx.Producer;
 import rx.Subscriber;
 import rx.exceptions.MissingBackpressureException;
 import rx.internal.operators.NotificationLite;
@@ -11,41 +10,45 @@ import rx.internal.operators.NotificationLite;
  * Optimized for when request method is called on same thread as the Observer
  * methods.
  * 
- * @param <T> type of the items being queued and emitted by this drainer
+ * @param <T>
+ *            type of the items being queued and emitted by this drainer
  */
 public class DrainerSyncBiased<T> implements Drainer<T> {
 
     private final NotificationLite<Object> on = NotificationLite.instance();
     private final Queue<T> queue;
     private final Subscriber<? super T> child;
-    private final Producer producer;
 
-    public static <T> DrainerSyncBiased<T> create(Queue<T> queue, Subscriber<? super T> child,
-            Producer producer) {
-        return new DrainerSyncBiased<T>(queue, child, producer);
+    public static <T> DrainerSyncBiased<T> create(Queue<T> queue, Subscriber<? super T> child) {
+        return new DrainerSyncBiased<T>(queue, child);
     }
 
-    private DrainerSyncBiased(Queue<T> queue, Subscriber<? super T> child, Producer producer) {
+    private DrainerSyncBiased(Queue<T> queue, Subscriber<? super T> child) {
         this.queue = queue;
         this.child = child;
-        this.producer = producer;
     }
 
-    private long requested;
+    private long expected;
     private boolean busy;
     private boolean finished;
     private Throwable error;
     private long counter;
+    // this is the value we take off any new request so that only what is
+    // required is requested of upstream
+    private long total;// totalRequested - currentExpected - numQueued -
+                       // numEmitted
 
     @Override
     public void request(long n) {
         if (n <= 0)
             return;
         synchronized (this) {
-            requested += n;
-            if (requested < 0) {
-                requested = Long.MAX_VALUE;
+            long expectedBefore = expected;
+            expected += n;
+            if (expected < 0) {
+                expected = Long.MAX_VALUE;
             }
+            total += expected - expectedBefore;
             if (busy) {
                 counter++;
                 return;
@@ -107,6 +110,9 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
             // this should only happen when the queue is bounded
             onError(new MissingBackpressureException());
         } else {
+            synchronized (this) {
+                total--;
+            }
             drain();
         }
     }
@@ -116,7 +122,7 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
         long emittedTotal = 0;
         long r;
         synchronized (this) {
-            r = requested;
+            r = expected;
         }
         while (true) {
             long emitted = 0;
@@ -148,6 +154,9 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
                     Object o = queue.poll();
                     if (o != null) {
                         child.onNext((T) on.getValue(o));
+                        synchronized (this) {
+                            total--;
+                        }
                         r--;
                         emitted++;
                     } else {
@@ -164,8 +173,9 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
                 // just to test the value of `r` instead of `requested`.
                 if (r != Long.MAX_VALUE) {
                     synchronized (this) {
-                        requested -= emitted;
-                        r = requested;
+                        expected -= emitted;
+                        total -= emitted;
+                        r = expected;
                     }
                 }
             } else {
@@ -174,13 +184,20 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
                         break;
                     } else {
                         // update r for the next time through the loop
-                        r = requested;
+                        r = expected;
                     }
                 }
             }
         }
         if (emittedTotal > 0) {
-            producer.request(emittedTotal);
+            // producer.request(emittedTotal);
+        }
+    }
+
+    @Override
+    public long total() {
+        synchronized (this) {
+            return total;
         }
     }
 

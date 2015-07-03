@@ -3,7 +3,6 @@ package com.github.davidmoten.rx.util;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
-import rx.Producer;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.Subscription;
@@ -15,19 +14,19 @@ import rx.internal.operators.NotificationLite;
  * Optimized for when request method is called on a different thread from the
  * Observer methods.
  * 
- * @param <T> type of the items being queued and emitted by this drainer
+ * @param <T>
+ *            type of the items being queued and emitted by this drainer
  */
 public class DrainerAsyncBiased<T> implements Drainer<T> {
 
     public static <T> DrainerAsyncBiased<T> create(Queue<Object> queue, Subscription subscription,
-            Worker worker, Subscriber<? super T> child, Producer producer) {
-        return new DrainerAsyncBiased<T>(queue, subscription, worker, child, producer);
+            Worker worker, Subscriber<? super T> child) {
+        return new DrainerAsyncBiased<T>(queue, subscription, worker, child);
     }
 
     private final Subscription subscription;
     private final Worker worker;
     private final Subscriber<? super T> child;
-    private final Producer producer;
     private final Queue<Object> queue;
 
     // the status of the current stream
@@ -59,12 +58,11 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
     };
 
     private DrainerAsyncBiased(Queue<Object> queue, Subscription subscription, Worker worker,
-            Subscriber<? super T> child, Producer producer) {
+            Subscriber<? super T> child) {
         this.queue = queue;
         this.subscription = subscription;
         this.worker = worker;
         this.child = child;
-        this.producer = producer;
     }
 
     @Override
@@ -166,8 +164,13 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
             }
         }
         if (emittedTotal > 0) {
-            producer.request(emittedTotal);
+            // producer.request(emittedTotal);
         }
+    }
+
+    @Override
+    public long total() {
+        return 0;
     }
 
 }
