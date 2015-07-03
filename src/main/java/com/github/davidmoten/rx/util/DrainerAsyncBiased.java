@@ -2,6 +2,7 @@ package com.github.davidmoten.rx.util;
 
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
+import java.util.concurrent.atomic.AtomicReference;
 
 import rx.Scheduler.Worker;
 import rx.Subscriber;
@@ -32,11 +33,8 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
     // the status of the current stream
     private volatile boolean finished = false;
 
-    private volatile long expected = 0;
-
-    @SuppressWarnings("rawtypes")
-    private static final AtomicLongFieldUpdater<DrainerAsyncBiased> EXPECTED = AtomicLongFieldUpdater
-            .newUpdater(DrainerAsyncBiased.class, "expected");
+    private final AtomicReference<ExpectedAndSurplus> counts = new AtomicReference<ExpectedAndSurplus>(
+            new ExpectedAndSurplus(0, 0));
 
     @SuppressWarnings("unused")
     private volatile long counter;
@@ -67,7 +65,9 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
 
     @Override
     public void request(long n) {
-        BackpressureUtils.getAndAddRequest(EXPECTED, this, n);
+        if (n <= 0)
+            return;
+        addToCounts(n, -n);
         drain();
     }
 
@@ -81,6 +81,7 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
             onError(new MissingBackpressureException());
             return;
         }
+        addToCounts(0, 1);
         drain();
     }
 
@@ -114,8 +115,7 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
     }
 
     private void pollQueue() {
-        int emittedTotal = 0;
-        long r = expected;
+        long r = counts.get().expected;
         while (true) {
             counter = 1;
             long emitted = 0;
@@ -153,24 +153,42 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
                 // than accumulated requests reaching Long.MAX_VALUE so is fine
                 // just to test the value of `r` instead of `requested`.
                 if (r != Long.MAX_VALUE) {
-                    r = EXPECTED.addAndGet(this, -emitted);
+                    r = addToCounts(-emitted, emitted).expected;
                 }
-                emittedTotal += emitted;
             } else if (COUNTER.decrementAndGet(this) == 0) {
                 break;
             } else {
                 // update r for the next time through the loop
-                r = EXPECTED.get(this);
+                r = counts.get().expected;
             }
-        }
-        if (emittedTotal > 0) {
-            // producer.request(emittedTotal);
         }
     }
 
     @Override
     public long surplus() {
         return 0;
+    }
+
+    private static final class ExpectedAndSurplus {
+        final long expected;
+        final long surplus;
+
+        ExpectedAndSurplus(long expected, long surplus) {
+            this.expected = expected;
+            this.surplus = surplus;
+        }
+    }
+
+    private ExpectedAndSurplus addToCounts(long expectedToAdd, long surplusToAdd) {
+        while (true) {
+            ExpectedAndSurplus c = counts.get();
+            long ex = c.expected + expectedToAdd;
+            if (ex < 0)
+                ex = Long.MAX_VALUE;
+            ExpectedAndSurplus c2 = new ExpectedAndSurplus(ex, c.surplus + surplusToAdd);
+            if (counts.compareAndSet(c, c2))
+                return c2;
+        }
     }
 
 }

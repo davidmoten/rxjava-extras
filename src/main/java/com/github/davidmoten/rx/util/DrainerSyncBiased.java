@@ -161,9 +161,6 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
                     Object o = queue.poll();
                     if (o != null) {
                         child.onNext((T) on.getValue(o));
-                        synchronized (this) {
-                            surplus++;
-                        }
                         r--;
                         emitted++;
                     } else {
@@ -180,6 +177,7 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
                 if (r != Long.MAX_VALUE) {
                     synchronized (this) {
                         expected -= emitted;
+                        surplus += emitted;
                         r = expected;
                     }
                 }
