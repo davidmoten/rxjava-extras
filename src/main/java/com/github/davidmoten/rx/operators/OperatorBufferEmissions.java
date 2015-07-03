@@ -36,10 +36,10 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
             public void request(long n) {
                 if (n <= 0)
                     return;
-                long t = drainer.total();
+                long t = drainer.surplus();
                 // only request what is needed to fulfill total requests
-                long r = n + t;
-                if (t < 0) {
+                long r = n - t;
+                if (t > 0) {
                     if (r > 0)
                         parent.requestMore(r);
                 } else {

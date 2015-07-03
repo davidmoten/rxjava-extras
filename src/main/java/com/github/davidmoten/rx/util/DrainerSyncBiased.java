@@ -35,8 +35,8 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
     private long counter;
     // this is the value we take off any new request so that only what is
     // required is requested of upstream
-    private long total;// totalRequested - currentExpected - numQueued -
-                       // numEmitted
+    private long surplus;// currentExpected + numQueued -
+                         // + numEmitted - totalRequested
 
     @Override
     public void request(long n) {
@@ -48,14 +48,14 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
             if (expected < 0) {
                 expected = Long.MAX_VALUE;
             }
-            if (total > 0) {
-                total += expected - expectedBefore;
-                if (total < 0)
-                    total = Long.MAX_VALUE;
+            if (surplus > 0) {
+                surplus -= expected - expectedBefore;
+                if (surplus < 0)
+                    surplus = Long.MAX_VALUE;
             } else {
                 // cannot overflow if total is negative because expected -
                 // expectedBefore cannot be more than Long.MAX_VALUE
-                total += expected - expectedBefore;
+                surplus -= expected - expectedBefore;
             }
             if (busy) {
                 counter++;
@@ -119,7 +119,7 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
             onError(new MissingBackpressureException());
         } else {
             synchronized (this) {
-                total--;
+                surplus++;
             }
             drain();
         }
@@ -162,7 +162,7 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
                     if (o != null) {
                         child.onNext((T) on.getValue(o));
                         synchronized (this) {
-                            total--;
+                            surplus++;
                         }
                         r--;
                         emitted++;
@@ -197,9 +197,9 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
     }
 
     @Override
-    public long total() {
+    public long surplus() {
         synchronized (this) {
-            return total;
+            return surplus;
         }
     }
 

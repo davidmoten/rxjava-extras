@@ -32,11 +32,11 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
     // the status of the current stream
     private volatile boolean finished = false;
 
-    private volatile long requested = 0;
+    private volatile long expected = 0;
 
     @SuppressWarnings("rawtypes")
-    private static final AtomicLongFieldUpdater<DrainerAsyncBiased> REQUESTED = AtomicLongFieldUpdater
-            .newUpdater(DrainerAsyncBiased.class, "requested");
+    private static final AtomicLongFieldUpdater<DrainerAsyncBiased> EXPECTED = AtomicLongFieldUpdater
+            .newUpdater(DrainerAsyncBiased.class, "expected");
 
     @SuppressWarnings("unused")
     private volatile long counter;
@@ -67,7 +67,7 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
 
     @Override
     public void request(long n) {
-        BackpressureUtils.getAndAddRequest(REQUESTED, this, n);
+        BackpressureUtils.getAndAddRequest(EXPECTED, this, n);
         drain();
     }
 
@@ -115,7 +115,7 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
 
     private void pollQueue() {
         int emittedTotal = 0;
-        long r = requested;
+        long r = expected;
         while (true) {
             counter = 1;
             long emitted = 0;
@@ -153,14 +153,14 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
                 // than accumulated requests reaching Long.MAX_VALUE so is fine
                 // just to test the value of `r` instead of `requested`.
                 if (r != Long.MAX_VALUE) {
-                    r = REQUESTED.addAndGet(this, -emitted);
+                    r = EXPECTED.addAndGet(this, -emitted);
                 }
                 emittedTotal += emitted;
             } else if (COUNTER.decrementAndGet(this) == 0) {
                 break;
             } else {
                 // update r for the next time through the loop
-                r = REQUESTED.get(this);
+                r = EXPECTED.get(this);
             }
         }
         if (emittedTotal > 0) {
@@ -169,7 +169,7 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
     }
 
     @Override
-    public long total() {
+    public long surplus() {
         return 0;
     }
 
