@@ -185,10 +185,15 @@ public class DrainerAsyncBiased<T> implements Drainer<T> {
             long ex = c.expected + expectedToAdd;
             if (ex < 0)
                 ex = Long.MAX_VALUE;
+            long surplus = c.surplus + surplusToAdd;
+            if (c.surplus > 0) {
+                if (surplus < 0)
+                    surplus = Long.MAX_VALUE;
+            }
+
             ExpectedAndSurplus c2 = new ExpectedAndSurplus(ex, c.surplus + surplusToAdd);
             if (counts.compareAndSet(c, c2))
                 return c2;
         }
     }
-
 }
