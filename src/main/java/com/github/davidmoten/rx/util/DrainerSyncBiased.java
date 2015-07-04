@@ -35,7 +35,7 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
     private long counter;
     // this is the value we take off any new request so that only what is
     // required is requested of upstream
-    private long surplus;// currentExpected + numQueued
+    private long surplus;// expected + numQueued
                          // + numEmitted - totalRequested
 
     @Override

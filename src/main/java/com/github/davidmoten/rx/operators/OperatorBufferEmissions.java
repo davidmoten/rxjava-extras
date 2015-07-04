@@ -11,7 +11,7 @@ import com.github.davidmoten.rx.util.Drainer;
 import com.github.davidmoten.rx.util.DrainerAsyncBiased;
 import com.github.davidmoten.rx.util.DrainerSyncBiased;
 
-public class OperatorBufferEmissions<T> implements Operator<T, T> {
+public final class OperatorBufferEmissions<T> implements Operator<T, T> {
 
     private final Scheduler observeOnScheduler;
 
@@ -37,7 +37,10 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
                 if (n <= 0)
                     return;
                 long t = drainer.surplus();
-                // only request what is needed to fulfill total requests
+                // only request what is needed to fulfill total requests (best
+                // endeavours). There are race conditons where we request too
+                // many but that's ok. The main thing is not to request too
+                // little because a stream could stall.
                 long r = n - t;
                 if (t > 0) {
                     if (r > 0)
@@ -56,7 +59,7 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
     private static <T> Drainer<T> createDrainer(Subscriber<? super T> child,
             Scheduler observeOnScheduler) {
         final Drainer<T> drainer;
-        if (observeOnScheduler == null)
+        if (observeOnScheduler == null || true)
             drainer = DrainerSyncBiased.create(new ConcurrentLinkedQueue<T>(), child);
         else
             drainer = DrainerAsyncBiased.create(new ConcurrentLinkedQueue<Object>(), child,
@@ -64,7 +67,7 @@ public class OperatorBufferEmissions<T> implements Operator<T, T> {
         return drainer;
     }
 
-    private static class ParentSubscriber<T> extends Subscriber<T> {
+    private static final class ParentSubscriber<T> extends Subscriber<T> {
 
         private final Drainer<T> drainer;
 
