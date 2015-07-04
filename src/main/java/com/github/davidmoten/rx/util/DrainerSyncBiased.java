@@ -35,7 +35,7 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
     private long counter;
     // this is the value we take off any new request so that only what is
     // required is requested of upstream
-    private long surplus;// currentExpected + numQueued -
+    private long surplus;// currentExpected + numQueued
                          // + numEmitted - totalRequested
 
     @Override
@@ -48,14 +48,19 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
             if (expected < 0) {
                 expected = Long.MAX_VALUE;
             }
+            long diff = expected - expectedBefore;
             if (surplus > 0) {
-                surplus -= expected - expectedBefore;
-                if (surplus < 0)
-                    surplus = Long.MAX_VALUE;
+                if (diff > n) {
+                    surplus += diff - n;
+                    if (surplus < 0)
+                        surplus = Long.MAX_VALUE;
+                }
             } else {
-                // cannot overflow if total is negative because expected -
-                // expectedBefore cannot be more than Long.MAX_VALUE
-                surplus -= expected - expectedBefore;
+                surplus += diff - n;
+                if (diff < n) {
+                    if (surplus > 0)
+                        surplus = Long.MIN_VALUE;
+                }
             }
             if (busy) {
                 counter++;
