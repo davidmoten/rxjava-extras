@@ -182,7 +182,6 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
                 if (r != Long.MAX_VALUE) {
                     synchronized (this) {
                         expected -= emitted;
-                        surplus += emitted;
                         r = expected;
                     }
                 }
