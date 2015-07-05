@@ -1,8 +1,10 @@
 package com.github.davidmoten.rx.operators;
 
 import static org.junit.Assert.assertEquals;
+import static rx.Observable.range;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -100,7 +102,9 @@ public class OperatorBufferEmissionsTest {
     }
 
     @Test
-    public void testBuffering() {
-
+    public void testWithMaxValueRequests() {
+        List<Integer> list = range(1, 3).compose(Transformers.<Integer> bufferEmissions()).toList()
+                .toBlocking().single();
+        assertEquals(Arrays.asList(1, 2, 3), list);
     }
 }
