@@ -107,4 +107,37 @@ public class OperatorBufferEmissionsTest {
                 .toBlocking().single();
         assertEquals(Arrays.asList(1, 2, 3), list);
     }
+
+    @Test
+    public void testUnsubscribeAfterOne() {
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
+
+            @Override
+            public void onNext(Integer t) {
+                super.onNext(t);
+                unsubscribe();
+            }
+
+        };
+        range(1, 3).compose(Transformers.<Integer> bufferEmissions()).subscribe(ts);
+        ts.assertUnsubscribed();
+        ts.assertValues(1);
+    }
+
+    @Test
+    public void test() {
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
+
+            @Override
+            public void onNext(Integer t) {
+                super.onNext(t);
+                throw new RuntimeException("boo");
+            }
+
+        };
+        range(1, 3).compose(Transformers.<Integer> bufferEmissions()).subscribe(ts);
+        ts.assertUnsubscribed();
+        ts.assertValues(1);
+        ts.assertError(RuntimeException.class);
+    }
 }
