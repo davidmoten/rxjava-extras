@@ -13,7 +13,7 @@ import rx.internal.operators.NotificationLite;
  * @param <T>
  *            type of the items being queued and emitted by this drainer
  */
-public class DrainerSyncBiased<T> implements Drainer<T> {
+public final class DrainerSyncBiased<T> implements Drainer<T> {
 
     private final NotificationLite<Object> on = NotificationLite.instance();
     private final Queue<T> queue;
@@ -35,8 +35,7 @@ public class DrainerSyncBiased<T> implements Drainer<T> {
     private long counter;
     // this is the value we take off any new request so that only what is
     // required is requested of upstream
-    private long surplus;// expected + numQueued
-                         // + numEmitted - totalRequested
+    private long surplus;// expected + numOnNext - totalRequested
 
     @Override
     public void request(long n) {
