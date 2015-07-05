@@ -2,6 +2,7 @@ package com.github.davidmoten.rx.operators;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -79,4 +80,27 @@ public class OperatorBufferEmissionsTest {
         assertEquals(100, requests.get());
     }
 
+    @Test
+    public void testRequestOverflow() {
+        final TestSubscriber<Integer> ts = new TestSubscriber<Integer>(Long.MAX_VALUE - 2);
+        Observable.range(1, 10)
+        //
+                .doOnNext(new Action1<Integer>() {
+
+                    @Override
+                    public void call(Integer n) {
+                        ts.requestMore(5);
+                    }
+                }) // buffer
+                .compose(Transformers.<Integer> bufferEmissions())
+                //
+                .subscribe(ts);
+        ts.assertCompleted();
+        assertEquals(Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), ts.getOnNextEvents());
+    }
+
+    @Test
+    public void testBuffering() {
+
+    }
 }

@@ -42,24 +42,20 @@ public final class DrainerSyncBiased<T> implements Drainer<T> {
         if (n <= 0)
             return;
         synchronized (this) {
-            long expectedBefore = expected;
+            // calculate the actual increase in number requested once request
+            // overflow is taken into account
+            long previous = expected;
             expected += n;
             if (expected < 0) {
                 expected = Long.MAX_VALUE;
             }
-            long diff = expected - expectedBefore;
-            if (surplus > 0) {
-                if (diff > n) {
-                    surplus += diff - n;
-                    if (surplus < 0)
-                        surplus = Long.MAX_VALUE;
-                }
-            } else {
+            long diff = expected - previous;
+            // 0<= diff <=n
+            surplus += diff - n;
+            if (surplus <= 0) {
                 surplus += diff - n;
-                if (diff < n) {
-                    if (surplus > 0)
-                        surplus = Long.MIN_VALUE;
-                }
+                if (surplus > 0)
+                    surplus = Long.MIN_VALUE;
             }
             if (busy) {
                 counter++;
