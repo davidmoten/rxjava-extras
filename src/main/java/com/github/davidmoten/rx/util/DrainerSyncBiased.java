@@ -49,11 +49,15 @@ public final class DrainerSyncBiased<T> implements Drainer<T> {
             if (expected < 0) {
                 expected = Long.MAX_VALUE;
             }
-            long diff = expected - previous;
-            // 0<= diff <=n
-            surplus += diff - n;
+            long actualIncrease = expected - previous;
+            // 0<= actualIncrease <=n
+            // expected has increased by actualIncrease and totalRequested has
+            // increased by n so change in surplus is given by
+            // actualIncrease - n
+            surplus += actualIncrease - n;
             if (surplus <= 0) {
-                surplus += diff - n;
+                // check for negative overflow
+                surplus += actualIncrease - n;
                 if (surplus > 0)
                     surplus = Long.MIN_VALUE;
             }
