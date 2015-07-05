@@ -44,23 +44,13 @@ public final class DrainerSyncBiased<T> implements Drainer<T> {
         synchronized (this) {
             // calculate the actual increase in number requested once request
             // overflow is taken into account
-            long previous = expected;
             expected += n;
             if (expected < 0) {
                 expected = Long.MAX_VALUE;
             }
-            long actualIncrease = expected - previous;
-            // 0<= actualIncrease <=n
-            // expected has increased by actualIncrease and totalRequested has
-            // increased by n so change in surplus is given by
-            // actualIncrease - n
-            surplus += actualIncrease - n;
-            if (surplus <= 0) {
-                // check for negative overflow
-                surplus += actualIncrease - n;
-                if (surplus > 0)
-                    surplus = Long.MIN_VALUE;
-            }
+            if (expected == Long.MAX_VALUE)
+                surplus = 0;
+
             if (busy) {
                 counter++;
                 return;
@@ -123,7 +113,8 @@ public final class DrainerSyncBiased<T> implements Drainer<T> {
             onError(new MissingBackpressureException());
         } else {
             synchronized (this) {
-                surplus++;
+                if (expected != Long.MAX_VALUE)
+                    surplus++;
             }
             drain();
         }
