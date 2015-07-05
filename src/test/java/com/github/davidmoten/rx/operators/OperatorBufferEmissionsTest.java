@@ -125,19 +125,12 @@ public class OperatorBufferEmissionsTest {
     }
 
     @Test
-    public void test() {
-        TestSubscriber<Integer> ts = new TestSubscriber<Integer>() {
-
-            @Override
-            public void onNext(Integer t) {
-                super.onNext(t);
-                throw new RuntimeException("boo");
-            }
-
-        };
-        range(1, 3).compose(Transformers.<Integer> bufferEmissions()).subscribe(ts);
+    public void testError() {
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        range(1, 3).concatWith(Observable.<Integer> error(new RuntimeException()))
+                .compose(Transformers.<Integer> bufferEmissions()).subscribe(ts);
         ts.assertUnsubscribed();
-        ts.assertValues(1);
+        ts.assertValues(1, 2, 3);
         ts.assertError(RuntimeException.class);
     }
 }
