@@ -14,6 +14,7 @@ import rx.Scheduler;
 import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
+import rx.functions.Func2;
 import rx.functions.Func3;
 
 import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
@@ -21,6 +22,7 @@ import com.github.davidmoten.rx.operators.OperatorFromTransformer;
 import com.github.davidmoten.rx.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
+import com.github.davidmoten.rx.util.Pair;
 
 public final class Transformers {
 
@@ -34,6 +36,23 @@ public final class Transformers {
             @Override
             public Observable<Statistics> call(Observable<T> o) {
                 return o.scan(Statistics.create(), Functions.collectStats());
+            }
+        };
+    }
+
+    public static <T, R extends Number> Transformer<T, Pair<T, Statistics>> collectStats(
+            final Func1<T, R> function) {
+        return new Transformer<T, Pair<T, Statistics>>() {
+
+            @Override
+            public Observable<Pair<T, Statistics>> call(Observable<T> source) {
+                return source.scan(Pair.create((T) null, Statistics.create()),
+                        new Func2<Pair<T, Statistics>, T, Pair<T, Statistics>>() {
+                            @Override
+                            public Pair<T, Statistics> call(Pair<T, Statistics> pair, T t) {
+                                return Pair.create(t, pair.b().add(function.call(t)));
+                            }
+                        }).skip(1);
             }
         };
     }
