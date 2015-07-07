@@ -20,7 +20,7 @@ public class OperatorOrderedMergeTest {
                                 new Func2<Integer, Integer, Integer>() {
                                     @Override
                                     public Integer call(Integer a, Integer b) {
-                                        return Integer.compare(a, b);
+                                        return a.compareTo(b);
                                     }
                                 })).toList().toBlocking().single();
         System.out.println(list);
