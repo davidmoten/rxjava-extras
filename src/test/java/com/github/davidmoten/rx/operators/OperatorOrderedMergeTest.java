@@ -38,7 +38,6 @@ public class OperatorOrderedMergeTest {
     private static void check(Observable<Integer> o1, Observable<Integer> o2, Integer... values) {
         List<Integer> list = o1.compose(Transformers.mergeOrderedWith(o2, comparator)).toList()
                 .toBlocking().single();
-        System.out.println(list);
         assertEquals(Arrays.asList(values), list);
     }
 
@@ -55,4 +54,33 @@ public class OperatorOrderedMergeTest {
         Observable<Integer> o2 = Observable.just(4, 5, 6);
         check(o1, o2, 1, 2, 3, 4, 5, 6);
     }
+
+    @Test
+    public void testOneAfterTheOtherReversed() {
+        Observable<Integer> o1 = Observable.just(4, 5, 6);
+        Observable<Integer> o2 = Observable.just(1, 2, 3);
+        check(o1, o2, 1, 2, 3, 4, 5, 6);
+    }
+
+    @Test
+    public void testSlightOverlap() {
+        Observable<Integer> o1 = Observable.just(1, 3, 5);
+        Observable<Integer> o2 = Observable.just(4, 6, 8);
+        check(o1, o2, 1, 3, 4, 5, 6, 8);
+    }
+
+    @Test
+    public void testSameValues() {
+        Observable<Integer> o1 = Observable.just(1, 2, 3);
+        Observable<Integer> o2 = Observable.just(1, 2, 3, 4);
+        check(o1, o2, 1, 1, 2, 2, 3, 3, 4);
+    }
+
+    @Test
+    public void testBeforeAndAfter() {
+        Observable<Integer> o1 = Observable.just(1, 5);
+        Observable<Integer> o2 = Observable.just(2, 3, 4);
+        check(o1, o2, 1, 2, 3, 4, 5);
+    }
+
 }
