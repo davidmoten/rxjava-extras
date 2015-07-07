@@ -60,6 +60,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                                     child.onNext(value);
                                     event.subscriber.requestMore(1);
                                 } else {
+                                    child.onNext(buffer);
                                     buffer = value;
                                     if (mainRef.get() == event.subscriber) {
                                         otherRef.get().requestMore(1);
@@ -97,6 +98,17 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         Event(MergeSubscriber<T> subscriber, Notification<T> notification) {
             this.subscriber = subscriber;
             this.notification = notification;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("Event [subscriber=");
+            builder.append(subscriber);
+            builder.append(", notification=");
+            builder.append(notification);
+            builder.append("]");
+            return builder.toString();
         }
 
     }

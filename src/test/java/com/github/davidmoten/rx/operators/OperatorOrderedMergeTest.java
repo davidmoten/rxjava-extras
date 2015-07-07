@@ -1,5 +1,8 @@
 package com.github.davidmoten.rx.operators;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -24,5 +27,6 @@ public class OperatorOrderedMergeTest {
                                     }
                                 })).toList().toBlocking().single();
         System.out.println(list);
+        assertEquals(Arrays.asList(1, 2, 3, 4, 5, 10, 11), list);
     }
 }
