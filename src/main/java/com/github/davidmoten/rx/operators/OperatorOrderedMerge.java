@@ -48,6 +48,8 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
                     @Override
                     public void onNext(Event<T> event) {
+                        // System.out.println("buffer = " + buffer + " " +
+                        // event);
                         if (event.notification.hasValue()) {
                             T value = event.notification.getValue();
                             if (completedCount == 1) {
@@ -62,20 +64,29 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                                 } else {
                                     child.onNext(buffer);
                                     buffer = value;
-                                    if (mainRef.get() == event.subscriber) {
-                                        otherRef.get().requestMore(1);
-                                    } else
-                                        mainRef.get().requestMore(1);
+                                    requestFromOther(event);
                                 }
                             }
                         } else if (event.notification.isOnCompleted()) {
                             completedCount += 1;
-                            if (completedCount == 2) {
-                                if (buffer != EMPTY_SENTINEL)
-                                    child.onNext(buffer);
-                                child.onCompleted();
+                            if (buffer != EMPTY_SENTINEL) {
+                                child.onNext(buffer);
+                                buffer = (T) EMPTY_SENTINEL;
                             }
+                            if (completedCount == 2) {
+                                child.onCompleted();
+                            } else {
+                                requestFromOther(event);
+                            }
+
                         }
+                    }
+
+                    private void requestFromOther(Event<T> event) {
+                        if (mainRef.get() == event.subscriber) {
+                            otherRef.get().requestMore(1);
+                        } else
+                            mainRef.get().requestMore(1);
                     }
                 });
 
