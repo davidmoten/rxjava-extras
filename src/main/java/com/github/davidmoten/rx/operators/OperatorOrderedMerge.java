@@ -46,6 +46,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                         child.onError(e);
                     }
 
+                    @SuppressWarnings("unchecked")
                     @Override
                     public void onNext(Event<T> event) {
                         // System.out.println("buffer = " + buffer + " " +
@@ -76,6 +77,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                             if (completedCount == 2) {
                                 child.onCompleted();
                             } else {
+                                // TODO may request more than required
                                 requestFromOther(event);
                             }
 
