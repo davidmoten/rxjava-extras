@@ -173,7 +173,18 @@ public final class Transformers {
         static Transformer<Object, Object> INSTANCE = bufferEmissions(null);
     }
 
-    public static final <T> Transformer<T, T> mergeWithOrdered(final Observable<T> other,
+    /**
+     * Returns the source Observable merged with the <code>other</code>
+     * observable using the given {@link Comparator} for order. A precondition
+     * is that the source and other are already ordered.
+     * 
+     * @param other
+     *            the other already ordered observable
+     * @param comparator
+     *            the ordering to use
+     * @return merged and ordered observable
+     */
+    public static final <T> Transformer<T, T> mergeOrderedWith(final Observable<T> other,
             final Func2<? super T, ? super T, Integer> comparator) {
         return new Transformer<T, T>() {
 

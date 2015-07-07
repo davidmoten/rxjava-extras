@@ -19,7 +19,7 @@ public class OperatorOrderedMergeTest {
         List<Integer> list = Observable
                 .just(1, 2, 4, 10)
                 .compose(
-                        Transformers.mergeWithOrdered(Observable.just(3, 5, 11),
+                        Transformers.mergeOrderedWith(Observable.just(3, 5, 11),
                                 new Func2<Integer, Integer, Integer>() {
                                     @Override
                                     public Integer call(Integer a, Integer b) {
