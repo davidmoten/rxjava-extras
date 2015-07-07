@@ -1,0 +1,28 @@
+package com.github.davidmoten.rx.operators;
+
+import java.util.List;
+
+import org.junit.Test;
+
+import rx.Observable;
+import rx.functions.Func2;
+
+import com.github.davidmoten.rx.Transformers;
+
+public class OperatorOrderedMergeTest {
+
+    @Test
+    public void test() {
+        List<Integer> list = Observable
+                .just(1, 2, 4, 10)
+                .compose(
+                        Transformers.mergeWithOrdered(Observable.just(3, 5, 11),
+                                new Func2<Integer, Integer, Integer>() {
+                                    @Override
+                                    public Integer call(Integer a, Integer b) {
+                                        return Integer.compare(a, b);
+                                    }
+                                })).toList().toBlocking().single();
+        System.out.println(list);
+    }
+}

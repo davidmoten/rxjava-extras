@@ -19,6 +19,7 @@ import rx.functions.Func3;
 
 import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.operators.OperatorFromTransformer;
+import com.github.davidmoten.rx.operators.OperatorOrderedMerge;
 import com.github.davidmoten.rx.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
@@ -170,6 +171,17 @@ public final class Transformers {
     // holder lazy singleton pattern
     private static class BufferEmissionsHolder {
         static Transformer<Object, Object> INSTANCE = bufferEmissions(null);
+    }
+
+    public static final <T> Transformer<T, T> mergeWithOrdered(final Observable<T> other,
+            final Func2<? super T, ? super T, Integer> comparator) {
+        return new Transformer<T, T>() {
+
+            @Override
+            public Observable<T> call(Observable<T> source) {
+                return source.lift(new OperatorOrderedMerge<T>(other, comparator));
+            }
+        };
     }
 
 }
