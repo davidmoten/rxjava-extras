@@ -6,6 +6,7 @@ import rx.Notification;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observer;
+import rx.Producer;
 import rx.Subscriber;
 import rx.functions.Func2;
 import rx.observers.SerializedSubscriber;
@@ -175,5 +176,78 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
             } else
                 mainRef.get().requestOne();
         }
+    }
+
+    private static class Processor<T> implements Observer<T>, Producer {
+
+        private final Subscriber<T> child;
+        private final T EMPTY = (T) new Object();
+        private long expected;
+        private boolean completed;
+        private T value = EMPTY;
+        private boolean busy = false;
+        private int counter = 0;
+
+        Processor(Subscriber<T> child) {
+            this.child = child;
+        }
+
+        @Override
+        public void request(long n) {
+            if (n <= 0)
+                return;
+            synchronized (this) {
+                expected += n;
+                if (expected < 0)
+                    expected = Long.MAX_VALUE;
+                if (busy) {
+                    counter++;
+                    return;
+                } else
+                    busy = true;
+            }
+            drain();
+        }
+
+        @Override
+        public void onCompleted() {
+            synchronized (this) {
+                completed = true;
+                if (busy) {
+                    counter++;
+                    return;
+                } else
+                    busy = true;
+            }
+            drain();
+        }
+
+        @Override
+        public void onError(Throwable e) {
+            child.onError(e);
+        }
+
+        @Override
+        public void onNext(T t) {
+            synchronized (this) {
+                if (value != EMPTY) {
+                    throw new RuntimeException(
+                            "onNext has arrived without being requested. OrderedMerge source observables must support backpressure!");
+                }
+                value = t;
+                if (busy) {
+                    counter++;
+                    return;
+                } else
+                    busy = true;
+            }
+            drain();
+        }
+
+        private void drain() {
+            // TODO Auto-generated method stub
+
+        }
+
     }
 }
