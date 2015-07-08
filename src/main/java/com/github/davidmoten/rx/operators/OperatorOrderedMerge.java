@@ -110,7 +110,6 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
     private static final class EventSubscriber<T> extends Subscriber<Event<T>> {
 
-        private final Subscriber<? super T> child;
         private final Func2<? super T, ? super T, Integer> comparator;
         private final AtomicReference<MergeSubscriber<T>> mainRef;
         private final AtomicReference<MergeSubscriber<T>> otherRef;
@@ -120,7 +119,6 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                 Func2<? super T, ? super T, Integer> comparator,
                 AtomicReference<MergeSubscriber<T>> mainRef,
                 AtomicReference<MergeSubscriber<T>> otherRef) {
-            this.child = child;
             this.comparator = comparator;
             this.mainRef = mainRef;
             this.otherRef = otherRef;
@@ -142,7 +140,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
         @Override
         public void onError(Throwable e) {
-            child.onError(e);
+            producerObserver.onError(e);
         }
 
         @SuppressWarnings("unchecked")
@@ -170,12 +168,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                     producerObserver.onNext(buffer, other(event));
                     buffer = (T) EMPTY_SENTINEL;
                 }
-                if (completedCount == 2) {
-                    producerObserver.onCompleted();
-                } else {
-                    producerObserver.onCompleted(other(event));
-                }
-
+                producerObserver.onCompleted(other(event));
             }
         }
 
@@ -193,7 +186,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         @SuppressWarnings("unchecked")
         private final T EMPTY = (T) new Object();
         private long expected;
-        private boolean completed;
+        private int completed;
         private T value = EMPTY;
         private boolean busy = false;
         private int counter = 0;
@@ -221,12 +214,8 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         }
 
         void onCompleted(MergeSubscriber<T> other) {
-            other.requestOne();
-        }
-
-        void onCompleted() {
             synchronized (this) {
-                completed = true;
+                completed++;
                 if (busy) {
                     counter++;
                     return;
@@ -268,19 +257,25 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                         counter = 1;
                     }
                     if (!child.isUnsubscribed()) {
-                        if (value == EMPTY && completed) {
+                        if (value == EMPTY && completed == 2) {
                             // don't need to check requested to complete
                             child.onCompleted();
                             return;
                         } else if (r > 0) {
-                            if (value != EMPTY) {
+                            boolean valueIsPresent = value != EMPTY;
+                            if (valueIsPresent) {
                                 child.onNext(value);
+                                value = EMPTY;
                             }
-                            if (completed) {
+                            if (completed == 2) {
                                 child.onCompleted();
                                 return;
-                            } else if (value != EMPTY) {
-                                requestFrom.requestOne();
+                            } else if (valueIsPresent && r > 1) {
+                                MergeSubscriber<T> reqFrom;
+                                synchronized (this) {
+                                    reqFrom = requestFrom;
+                                }
+                                reqFrom.requestOne();
                             }
                         }
                     }
