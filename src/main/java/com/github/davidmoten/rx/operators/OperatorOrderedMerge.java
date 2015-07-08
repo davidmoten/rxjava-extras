@@ -178,7 +178,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         }
     }
 
-    private static class Processor<T> implements Observer<T>, Producer {
+    private static class Processor<T> implements Producer {
 
         private final Subscriber<T> child;
         private final T EMPTY = (T) new Object();
@@ -187,6 +187,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         private T value = EMPTY;
         private boolean busy = false;
         private int counter = 0;
+        private MergeSubscriber<T> requestFrom;
 
         Processor(Subscriber<T> child) {
             this.child = child;
@@ -209,8 +210,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
             drain();
         }
 
-        @Override
-        public void onCompleted() {
+        void onCompleted() {
             synchronized (this) {
                 completed = true;
                 if (busy) {
@@ -222,19 +222,18 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
             drain();
         }
 
-        @Override
-        public void onError(Throwable e) {
+        void onError(Throwable e) {
             child.onError(e);
         }
 
-        @Override
-        public void onNext(T t) {
+        void onNext(T t, MergeSubscriber<T> requestFrom) {
             synchronized (this) {
                 if (value != EMPTY) {
                     throw new RuntimeException(
                             "onNext has arrived without being requested. OrderedMerge source observables must support backpressure!");
                 }
                 value = t;
+                this.requestFrom = requestFrom;
                 if (busy) {
                     counter++;
                     return;
@@ -245,9 +244,45 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         }
 
         private void drain() {
-            // TODO Auto-generated method stub
-
+            try {
+                long r;
+                synchronized (this) {
+                    r = expected;
+                }
+                while (true) {
+                    synchronized (this) {
+                        counter = 1;
+                    }
+                    if (!child.isUnsubscribed()) {
+                        if (value == EMPTY && completed) {
+                            // don't need to check requested to complete
+                            child.onCompleted();
+                            return;
+                        } else if (r > 0) {
+                            if (value != EMPTY) {
+                                child.onNext(value);
+                            }
+                            if (completed) {
+                                child.onCompleted();
+                                return;
+                            } else {
+                                requestFrom.requestOne();
+                            }
+                        }
+                    }
+                    synchronized (this) {
+                        if (--counter == 0) {
+                            return;
+                        } else {
+                            r = --expected;
+                        }
+                    }
+                }
+            } finally {
+                synchronized (this) {
+                    busy = false;
+                }
+            }
         }
-
     }
 }
