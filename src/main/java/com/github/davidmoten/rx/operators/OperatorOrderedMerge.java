@@ -143,7 +143,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                     event.subscriber.requestMore(1);
                 } else if (buffer == EMPTY_SENTINEL) {
                     buffer = value;
-                } else if (buffer != EMPTY_SENTINEL) {
+                } else {
                     if (comparator.call(value, buffer) <= 0) {
                         child.onNext(value);
                         event.subscriber.requestMore(1);
