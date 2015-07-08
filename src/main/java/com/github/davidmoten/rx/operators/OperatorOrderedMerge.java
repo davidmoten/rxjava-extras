@@ -75,13 +75,13 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
             this.observer = observer;
         }
 
-        void requestMore(long n) {
-            request(n);
+        void requestOne() {
+            request(1);
         }
 
         @Override
         public void onStart() {
-            request(1);
+            requestOne();
         }
 
         @Override
@@ -140,13 +140,13 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                 T value = event.notification.getValue();
                 if (completedCount == 1) {
                     child.onNext(value);
-                    event.subscriber.requestMore(1);
+                    event.subscriber.requestOne();
                 } else if (buffer == EMPTY_SENTINEL) {
                     buffer = value;
                 } else {
                     if (comparator.call(value, buffer) <= 0) {
                         child.onNext(value);
-                        event.subscriber.requestMore(1);
+                        event.subscriber.requestOne();
                     } else {
                         child.onNext(buffer);
                         buffer = value;
@@ -171,9 +171,9 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
         private void requestFromOther(Event<T> event) {
             if (mainRef.get() == event.subscriber) {
-                otherRef.get().requestMore(1);
+                otherRef.get().requestOne();
             } else
-                mainRef.get().requestMore(1);
+                mainRef.get().requestOne();
         }
     }
 }
