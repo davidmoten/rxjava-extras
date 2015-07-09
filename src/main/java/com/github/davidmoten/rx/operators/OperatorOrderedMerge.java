@@ -84,6 +84,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         }
 
         void requestOne() {
+            System.out.println("requesting one from " + this);
             request(1);
         }
 
@@ -133,6 +134,11 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         }
 
         @Override
+        public void onStart() {
+            request(0);
+        }
+
+        @Override
         public void onCompleted() {
             // should not get called
         }
@@ -145,7 +151,8 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         @SuppressWarnings("unchecked")
         @Override
         public void onNext(Event<T> event) {
-            System.out.println("buffer = " + buffer + " " + event);
+            System.out
+                    .println("buffer = " + buffer + " " + event + ", completed=" + completedCount);
             if (event.notification.hasValue()) {
                 T value = event.notification.getValue();
                 if (completedCount == 1) {
@@ -234,7 +241,8 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
             synchronized (this) {
                 if (value != EMPTY) {
                     throw new RuntimeException(
-                            "onNext has arrived without being requested. OrderedMerge source observables must support backpressure!");
+                            "onNext has arrived without being requested. OrderedMerge source observables must support backpressure! value="
+                                    + value + ", newValue=" + t);
                 }
                 value = t;
                 this.requestFrom = requestFrom;
@@ -248,12 +256,24 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         }
 
         private void drain() {
-            System.out.println("draining");
+            synchronized (this) {
+                System.out.println("draining value=" + value + ", completed=" + completed
+                        + ",requestFrom=" + requestFrom);
+            }
             try {
                 long r;
+                MergeSubscriber<T> reqFrom;
                 synchronized (this) {
                     r = expected;
                     System.out.println("r=" + r);
+                    if (value == EMPTY && requestFrom != null) {
+                        reqFrom = requestFrom;
+                        requestFrom = null;
+                    } else
+                        reqFrom = null;
+                }
+                if (reqFrom != null) {
+                    reqFrom.requestOne();
                 }
                 while (true) {
                     synchronized (this) {
@@ -284,11 +304,11 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                             if (numCompleted == 2) {
                                 child.onCompleted();
                                 return;
-                            } else if (valueIsPresent) {
+                            } else if (valueIsPresent && r > 1) {
                                 // need to request another one
-                                MergeSubscriber<T> reqFrom;
                                 synchronized (this) {
                                     reqFrom = requestFrom;
+                                    requestFrom = null;
                                 }
                                 System.out.println("requesting one from " + reqFrom);
                                 reqFrom.requestOne();
@@ -306,6 +326,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
             } finally {
                 synchronized (this) {
                     busy = false;
+                    System.out.println("exited drain");
                 }
             }
         }

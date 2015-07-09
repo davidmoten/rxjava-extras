@@ -184,7 +184,7 @@ public final class Transformers {
      *            the ordering to use
      * @return merged and ordered observable
      */
-    public static final <T> Transformer<T, T> mergeOrderedWith(final Observable<T> other,
+    public static final <T> Transformer<T, T> orderedMergeWith(final Observable<T> other,
             final Func2<? super T, ? super T, Integer> comparator) {
         return new Transformer<T, T>() {
 

@@ -36,7 +36,7 @@ public class OperatorOrderedMergeHelperTest extends TestCase {
 
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return o.compose(Transformers.mergeOrderedWith(Observable.just(3, 5, 11),
+            return o.compose(Transformers.orderedMergeWith(Observable.just(3, 5, 11),
                     OperatorOrderedMergeTest.comparator));
         }
     };
