@@ -5,16 +5,19 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.net.ssl.HttpsURLConnection;
+
 import org.junit.Test;
 
 import rx.Observable;
 import rx.functions.Func2;
+import rx.observers.TestSubscriber;
 
 import com.github.davidmoten.rx.Transformers;
 
 public class OperatorOrderedMergeTest {
 
-    private static final Func2<Integer, Integer, Integer> comparator = new Func2<Integer, Integer, Integer>() {
+    static final Func2<Integer, Integer, Integer> comparator = new Func2<Integer, Integer, Integer>() {
         @Override
         public Integer call(Integer a, Integer b) {
             return a.compareTo(b);
@@ -65,7 +68,7 @@ public class OperatorOrderedMergeTest {
     @Test
     public void testSlightOverlap() {
         Observable<Integer> o1 = Observable.just(1, 3, 5);
-        Observable<Integer> o2 = Observable.just(4, 6, 8);
+        Observable<Integer> o2 = Observable.just(4, 6, 8).distinct();
         check(o1, o2, 1, 3, 4, 5, 6, 8);
     }
 
@@ -83,4 +86,17 @@ public class OperatorOrderedMergeTest {
         check(o1, o2, 1, 2, 3, 4, 5);
     }
 
+    @Test
+    public void testOneByOneBackpressure() {
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>(1);
+        Observable<Integer> o1 = Observable.just(1, 2, 4, 10);
+        Observable<Integer> o2 = Observable.just(3, 5, 11);
+        o1.compose(Transformers.mergeOrderedWith(o2, comparator)).subscribe(ts);
+        ts.assertNotCompleted();
+        ts.assertValues(1);
+        ts.requestMore(1);
+        ts.assertNotCompleted();
+        ts.assertValues(1, 2);
+        HttpsURLConnection a;
+    }
 }

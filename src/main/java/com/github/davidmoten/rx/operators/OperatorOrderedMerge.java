@@ -114,6 +114,9 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         private final AtomicReference<MergeSubscriber<T>> mainRef;
         private final AtomicReference<MergeSubscriber<T>> otherRef;
         private final ProducerObserver<T> producerObserver;
+        @SuppressWarnings("unchecked")
+        private T buffer = (T) EMPTY_SENTINEL;
+        private int completedCount = 0;
 
         EventSubscriber(Subscriber<? super T> child,
                 Func2<? super T, ? super T, Integer> comparator,
@@ -129,10 +132,6 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
             producerObserver.request(n);
         }
 
-        @SuppressWarnings("unchecked")
-        T buffer = (T) EMPTY_SENTINEL;
-        int completedCount = 0;
-
         @Override
         public void onCompleted() {
             // should not get called
@@ -146,8 +145,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         @SuppressWarnings("unchecked")
         @Override
         public void onNext(Event<T> event) {
-            // System.out.println("buffer = " + buffer + " " +
-            // event);
+            System.out.println("buffer = " + buffer + " " + event);
             if (event.notification.hasValue()) {
                 T value = event.notification.getValue();
                 if (completedCount == 1) {
@@ -198,6 +196,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
         @Override
         public void request(long n) {
+            System.out.println("request(" + n + ")");
             if (n <= 0)
                 return;
             synchronized (this) {
@@ -214,6 +213,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         }
 
         void onCompleted(MergeSubscriber<T> other) {
+            System.out.println("onCompleted(other=" + other + ")");
             synchronized (this) {
                 completed++;
                 if (busy) {
@@ -230,6 +230,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         }
 
         void onNext(T t, MergeSubscriber<T> requestFrom) {
+            System.out.println("onNext(" + t + ", " + requestFrom + ")");
             synchronized (this) {
                 if (value != EMPTY) {
                     throw new RuntimeException(
@@ -247,34 +248,49 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         }
 
         private void drain() {
+            System.out.println("draining");
             try {
                 long r;
                 synchronized (this) {
                     r = expected;
+                    System.out.println("r=" + r);
                 }
                 while (true) {
                     synchronized (this) {
                         counter = 1;
                     }
                     if (!child.isUnsubscribed()) {
-                        if (value == EMPTY && completed == 2) {
+                        int numCompleted;
+                        T val;
+                        synchronized (this) {
+                            numCompleted = completed;
+                            val = value;
+                        }
+                        boolean valueIsPresent = val != EMPTY;
+                        if (!valueIsPresent && numCompleted == 2) {
                             // don't need to check requested to complete
                             child.onCompleted();
                             return;
                         } else if (r > 0) {
-                            boolean valueIsPresent = value != EMPTY;
+
                             if (valueIsPresent) {
-                                child.onNext(value);
-                                value = EMPTY;
+                                child.onNext(val);
+                                synchronized (this) {
+                                    if (r != Long.MAX_VALUE)
+                                        expected--;
+                                    value = EMPTY;
+                                }
                             }
-                            if (completed == 2) {
+                            if (numCompleted == 2) {
                                 child.onCompleted();
                                 return;
-                            } else if (valueIsPresent && r > 1) {
+                            } else if (valueIsPresent) {
+                                // need to request another one
                                 MergeSubscriber<T> reqFrom;
                                 synchronized (this) {
                                     reqFrom = requestFrom;
                                 }
+                                System.out.println("requesting one from " + reqFrom);
                                 reqFrom.requestOne();
                             }
                         }
@@ -283,7 +299,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                         if (--counter == 0) {
                             return;
                         } else {
-                            r = --expected;
+                            r = expected;
                         }
                     }
                 }
