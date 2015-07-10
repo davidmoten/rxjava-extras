@@ -29,17 +29,18 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                 .create();
         final AtomicReference<MergeSubscriber<T>> mainRef = new AtomicReference<MergeSubscriber<T>>();
         final AtomicReference<MergeSubscriber<T>> otherRef = new AtomicReference<MergeSubscriber<T>>();
-        EventSubscriber<T> eventSubscriber = new EventSubscriber<T>(child, comparator, mainRef,
-                otherRef);
+        @SuppressWarnings("unchecked")
+        final MergeSubscriber<T>[] subscribers = new MergeSubscriber[2];
+        EventSubscriber<T> eventSubscriber = new EventSubscriber<T>(child, comparator, subscribers);
         Subscriber<Event<T>> serializedEventSubscriber = new SerializedSubscriber<Event<T>>(
                 eventSubscriber);
-        MergeSubscriber<T> mainSubscriber = new MergeSubscriber<T>(serializedEventSubscriber,
-                "main");
-        MergeSubscriber<T> otherSubscriber = new MergeSubscriber<T>(serializedEventSubscriber,
-                "other");
-        mainRef.set(mainSubscriber);
-        otherRef.set(otherSubscriber);
+        MergeSubscriber<T> mainSubscriber = new MergeSubscriber<T>(serializedEventSubscriber, 0);
+        MergeSubscriber<T> otherSubscriber = new MergeSubscriber<T>(serializedEventSubscriber, 1);
         child.add(mainSubscriber);
+        synchronized (this) {
+            subscribers[0] = mainSubscriber;
+            subscribers[1] = otherSubscriber;
+        }
         child.add(otherSubscriber);
         child.add(serializedEventSubscriber);
         subject.unsafeSubscribe(serializedEventSubscriber);
@@ -48,11 +49,11 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
     }
 
     private static class Event<T> {
-        final MergeSubscriber<T> subscriber;
+        final int subscriberIndex;
         final Notification<T> notification;
 
-        Event(MergeSubscriber<T> subscriber, Notification<T> notification) {
-            this.subscriber = subscriber;
+        Event(int subscriberIndex, Notification<T> notification) {
+            this.subscriberIndex = subscriberIndex;
             this.notification = notification;
         }
 
@@ -60,7 +61,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         public String toString() {
             StringBuilder builder = new StringBuilder();
             builder.append("Event [subscriber=");
-            builder.append(subscriber);
+            builder.append(subscriberIndex);
             builder.append(", notification=");
             builder.append(notification);
             builder.append("]");
@@ -72,11 +73,11 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
     private static class MergeSubscriber<T> extends Subscriber<T> {
 
         private final Observer<Event<T>> observer;
-        private final String name;
+        private final int index;
 
-        MergeSubscriber(Observer<Event<T>> observer, String name) {
+        MergeSubscriber(Observer<Event<T>> observer, int index) {
             this.observer = observer;
-            this.name = name;
+            this.index = index;
         }
 
         void requestOne() {
@@ -90,7 +91,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
         @Override
         public void onCompleted() {
-            observer.onNext(new Event<T>(this, Notification.<T> createOnCompleted()));
+            observer.onNext(new Event<T>(index, Notification.<T> createOnCompleted()));
         }
 
         @Override
@@ -100,12 +101,15 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
         @Override
         public void onNext(T t) {
-            observer.onNext(new Event<T>(this, Notification.<T> createOnNext(t)));
+            observer.onNext(new Event<T>(index, Notification.<T> createOnNext(t)));
         }
 
         @Override
         public String toString() {
-            return name;
+            if (index == 0)
+                return "main";
+            else
+                return "other";
         }
     }
 
@@ -113,27 +117,18 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
         private final Subscriber<? super T> child;
         private final Func2<? super T, ? super T, Integer> comparator;
-        private final AtomicReference<MergeSubscriber<T>> mainRef;
-        private final AtomicReference<MergeSubscriber<T>> otherRef;
 
         @SuppressWarnings("unchecked")
-        T buffer = (T) EMPTY_SENTINEL;
-        MergeSubscriber<T> bufferSubscriber;
-        int completedCount = 0;
+        private T buffer = (T) EMPTY_SENTINEL;
+        private int bufferSubscriberIndex = -1;
+        private int completedCount = 0;
+        private final MergeSubscriber<T>[] subscribers;
 
         public EventSubscriber(Subscriber<? super T> child,
-                Func2<? super T, ? super T, Integer> comparator,
-                AtomicReference<MergeSubscriber<T>> mainRef,
-                AtomicReference<MergeSubscriber<T>> otherRef) {
+                Func2<? super T, ? super T, Integer> comparator, MergeSubscriber<T>[] subscribers) {
             this.child = child;
             this.comparator = comparator;
-            this.mainRef = mainRef;
-            this.otherRef = otherRef;
-        }
-
-        @Override
-        public void onStart() {
-            // TODO cache subscribers so don't call volatile gets
+            this.subscribers = subscribers;
         }
 
         @Override
@@ -153,20 +148,20 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                 T value = event.notification.getValue();
                 if (completedCount == 1 && buffer == EMPTY_SENTINEL) {
                     child.onNext(value);
-                    event.subscriber.requestOne();
+                    subscribers[event.subscriberIndex].requestOne();
                 } else if (buffer == EMPTY_SENTINEL) {
                     buffer = value;
-                    bufferSubscriber = event.subscriber;
+                    bufferSubscriberIndex = event.subscriberIndex;
                 } else {
                     if (comparator.call(value, buffer) <= 0) {
                         child.onNext(value);
-                        event.subscriber.requestOne();
+                        subscribers[event.subscriberIndex].requestOne();
                     } else {
                         child.onNext(buffer);
-                        MergeSubscriber<T> requestFrom = bufferSubscriber;
+                        int requestFrom = bufferSubscriberIndex;
                         buffer = value;
-                        bufferSubscriber = event.subscriber;
-                        requestFrom.requestOne();
+                        bufferSubscriberIndex = event.subscriberIndex;
+                        subscribers[requestFrom].requestOne();
                     }
                 }
             } else if (event.notification.isOnCompleted()) {
@@ -178,18 +173,14 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                     }
                     child.onCompleted();
                 } else {
-                    // TODO may request more than required
-                    other(event.subscriber).requestOne();
+                    other(event.subscriberIndex).requestOne();
                 }
 
             }
         }
 
-        private MergeSubscriber<T> other(MergeSubscriber<T> subscriber) {
-            if (mainRef.get() == subscriber) {
-                return otherRef.get();
-            } else
-                return mainRef.get();
+        private MergeSubscriber<T> other(int subscriberIndex) {
+            return subscribers[(subscriberIndex + 1) % 2];
         }
     }
 }
