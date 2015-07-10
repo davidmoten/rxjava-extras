@@ -195,7 +195,8 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> source) {
-                return source.lift(new OperatorOrderedMerge<T>(other, comparator));
+                return source.lift(new OperatorOrderedMerge<T>(other, comparator)).compose(
+                        Transformers.<T> bufferEmissions());
             }
         };
     }
