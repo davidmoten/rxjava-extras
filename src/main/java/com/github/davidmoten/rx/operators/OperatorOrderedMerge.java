@@ -4,6 +4,7 @@ import rx.Notification;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observer;
+import rx.Producer;
 import rx.Subscriber;
 import rx.functions.Func2;
 import rx.observers.SerializedSubscriber;
@@ -27,7 +28,8 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                 .create();
         @SuppressWarnings("unchecked")
         final MergeSubscriber<T>[] subscribers = new MergeSubscriber[2];
-        EventSubscriber<T> eventSubscriber = new EventSubscriber<T>(child, comparator, subscribers);
+        Requester<T> requester = new Requester<T>(subscribers);
+        EventSubscriber<T> eventSubscriber = new EventSubscriber<T>(child, comparator, requester);
         Subscriber<Event<T>> serializedEventSubscriber = new SerializedSubscriber<Event<T>>(
                 eventSubscriber);
         MergeSubscriber<T> mainSubscriber = new MergeSubscriber<T>(serializedEventSubscriber, 0);
@@ -41,6 +43,7 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         child.add(serializedEventSubscriber);
         subject.unsafeSubscribe(serializedEventSubscriber);
         other.unsafeSubscribe(otherSubscriber);
+        child.setProducer(requester);
         return mainSubscriber;
     }
 
@@ -118,13 +121,13 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         private T buffer = (T) EMPTY_SENTINEL;
         private int bufferSubscriberIndex = -1;
         private int completedCount = 0;
-        private final MergeSubscriber<T>[] subscribers;
+        private final Requester<T> requester;
 
         public EventSubscriber(Subscriber<? super T> child,
-                Func2<? super T, ? super T, Integer> comparator, MergeSubscriber<T>[] subscribers) {
+                Func2<? super T, ? super T, Integer> comparator, Requester<T> requester) {
             this.child = child;
             this.comparator = comparator;
-            this.subscribers = subscribers;
+            this.requester = requester;
         }
 
         @Override
@@ -144,20 +147,20 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                 T value = event.notification.getValue();
                 if (completedCount == 1 && buffer == EMPTY_SENTINEL) {
                     child.onNext(value);
-                    subscribers[event.subscriberIndex].requestOne();
+                    requester.requestOne(event.subscriberIndex);
                 } else if (buffer == EMPTY_SENTINEL) {
                     buffer = value;
                     bufferSubscriberIndex = event.subscriberIndex;
                 } else {
                     if (comparator.call(value, buffer) <= 0) {
                         child.onNext(value);
-                        subscribers[event.subscriberIndex].requestOne();
+                        requester.requestOne(event.subscriberIndex);
                     } else {
                         child.onNext(buffer);
                         int requestFrom = bufferSubscriberIndex;
                         buffer = value;
                         bufferSubscriberIndex = event.subscriberIndex;
-                        subscribers[requestFrom].requestOne();
+                        requester.requestOne(requestFrom);
                     }
                 }
             } else if (event.notification.isOnCompleted()) {
@@ -169,14 +172,64 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
                     }
                     child.onCompleted();
                 } else {
-                    other(event.subscriberIndex).requestOne();
+                    requester.requestOne(other(event.subscriberIndex));
                 }
 
             }
         }
 
-        private MergeSubscriber<T> other(int subscriberIndex) {
-            return subscribers[(subscriberIndex + 1) % 2];
+        private int other(int subscriberIndex) {
+            return (subscriberIndex + 1) % 2;
+        }
+    }
+
+    private static final class Requester<T> implements Producer {
+
+        private final MergeSubscriber<T>[] subscribers;
+        private long requested = 0;
+        private int requestFromIndex = -1;
+
+        Requester(MergeSubscriber<T>[] subscribers) {
+            this.subscribers = subscribers;
+        }
+
+        @Override
+        public void request(long n) {
+            if (n <= 0)
+                return;
+            int reqFrom;
+            synchronized (this) {
+                requested += n;
+                if (requested < 0) {
+                    requested = Long.MAX_VALUE;
+                }
+                reqFrom = requestFromIndex;
+                requestFromIndex = -1;
+            }
+            if (reqFrom >= 0) {
+                subscribers[reqFrom].requestOne();
+            }
+        }
+
+        void requestOne(int subscriberIndex) {
+            boolean canRequest;
+            synchronized (this) {
+                canRequest = requested > 0;
+            }
+            if (canRequest) {
+                subscribers[subscriberIndex].requestOne();
+                synchronized (this) {
+                    requestFromIndex = -1;
+                    if (requested != Long.MAX_VALUE)
+                        requested--;
+                }
+            } else {
+                synchronized (this) {
+                    if (requestFromIndex >= 0)
+                        throw new RuntimeException("requesting too much");
+                    requestFromIndex = subscriberIndex;
+                }
+            }
         }
     }
 }
