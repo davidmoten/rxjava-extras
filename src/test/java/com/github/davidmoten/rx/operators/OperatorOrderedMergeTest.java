@@ -7,11 +7,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
 import rx.Observable;
+import rx.Scheduler;
 import rx.functions.Func2;
+import rx.schedulers.Schedulers;
 
 import com.github.davidmoten.rx.Transformers;
 import com.google.common.collect.Lists;
@@ -37,6 +40,18 @@ public class OperatorOrderedMergeTest {
 
     @Test
     public void testWithAllCombinationsFromPowerSet() {
+        checkAllCombinationsFromPowerSet(Schedulers.immediate());
+    }
+
+    @Test
+    public void testWithAllCombinationsFromPowerSetAsync() {
+        long t = System.currentTimeMillis();
+        while (System.currentTimeMillis() - t <= TimeUnit.SECONDS.toMillis(5)) {
+            checkAllCombinationsFromPowerSet(Schedulers.computation());
+        }
+    }
+
+    private void checkAllCombinationsFromPowerSet(Scheduler scheduler) {
         // this test covers everything!
         for (int n = 0; n <= 10; n++) {
             Set<Integer> numbers = Sets.newTreeSet();
@@ -46,8 +61,8 @@ public class OperatorOrderedMergeTest {
             for (Set<Integer> a : Sets.powerSet(numbers)) {
                 TreeSet<Integer> x = Sets.newTreeSet(a);
                 TreeSet<Integer> y = Sets.newTreeSet(Sets.difference(numbers, x));
-                Observable<Integer> o1 = from(x);
-                Observable<Integer> o2 = from(y);
+                Observable<Integer> o1 = from(x).subscribeOn(scheduler);
+                Observable<Integer> o2 = from(y).subscribeOn(scheduler);
                 List<Integer> list = o1.compose(Transformers.orderedMergeWith(o2, comparator))
                         .toList().toBlocking().single();
                 // System.out.println(x + "   " + y);
