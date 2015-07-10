@@ -176,15 +176,20 @@ public final class Transformers {
     /**
      * Returns the source Observable merged with the <code>other</code>
      * observable using the given {@link Comparator} for order. A precondition
-     * is that the source and other are already ordered.
+     * is that the source and other are already ordered. This transformer does
+     * not support backpressure but its inputs must support backpressure. If you
+     * need backpressure support then compose with
+     * <code>.onBackpressureXXX</code>.
      * 
      * @param other
      *            the other already ordered observable
      * @param comparator
      *            the ordering to use
+     * @param <T>
+     *            the generic type of the objects being compared
      * @return merged and ordered observable
      */
-    public static final <T> Transformer<T, T> mergeOrderedWith(final Observable<T> other,
+    public static final <T> Transformer<T, T> orderedMergeWith(final Observable<T> other,
             final Func2<? super T, ? super T, Integer> comparator) {
         return new Transformer<T, T>() {
 

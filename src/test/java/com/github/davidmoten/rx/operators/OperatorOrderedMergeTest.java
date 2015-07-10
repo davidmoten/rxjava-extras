@@ -48,7 +48,7 @@ public class OperatorOrderedMergeTest {
                 TreeSet<Integer> y = Sets.newTreeSet(Sets.difference(numbers, x));
                 Observable<Integer> o1 = from(x);
                 Observable<Integer> o2 = from(y);
-                List<Integer> list = o1.compose(Transformers.mergeOrderedWith(o2, comparator))
+                List<Integer> list = o1.compose(Transformers.orderedMergeWith(o2, comparator))
                         .toList().toBlocking().single();
                 // System.out.println(x + "   " + y);
                 assertEquals(Lists.newArrayList(numbers), list);
@@ -57,7 +57,7 @@ public class OperatorOrderedMergeTest {
     }
 
     private static void check(Observable<Integer> o1, Observable<Integer> o2, Integer... values) {
-        List<Integer> list = o1.compose(Transformers.mergeOrderedWith(o2, comparator)).toList()
+        List<Integer> list = o1.compose(Transformers.orderedMergeWith(o2, comparator)).toList()
                 .toBlocking().single();
         assertEquals(Arrays.asList(values), list);
     }
