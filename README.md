@@ -14,6 +14,7 @@ Utilities for use with rxjava:
 * `Transformers.toOperator`
 * `Tranformers.mapWithIndex`
 * `Transformers.stateMachine`
+* `Transformers.orderedMerge`
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
