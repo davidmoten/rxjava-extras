@@ -28,7 +28,7 @@ public class OperatorOrderedMergeTest {
 
     @Test
     public void testMerge() {
-        // hang on to one standalone test like this so we can customise for
+        // hang on to one stand-alone test like this so we can customize for
         // failure cases arriving out of testWithAllCombinationsFromPowerSet
         Observable<Integer> o1 = Observable.just(1, 2, 4, 10);
         Observable<Integer> o2 = Observable.just(3, 5, 11);
@@ -43,7 +43,7 @@ public class OperatorOrderedMergeTest {
             for (int i = 1; i <= n; i++) {
                 numbers.add(i);
             }
-            for (Set a : Sets.powerSet(numbers)) {
+            for (Set<Integer> a : Sets.powerSet(numbers)) {
                 TreeSet<Integer> x = Sets.newTreeSet(a);
                 TreeSet<Integer> y = Sets.newTreeSet(Sets.difference(numbers, x));
                 Observable<Integer> o1 = from(x);
