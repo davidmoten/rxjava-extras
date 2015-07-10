@@ -1,7 +1,5 @@
 package com.github.davidmoten.rx.operators;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import rx.Notification;
 import rx.Observable;
 import rx.Observable.Operator;
@@ -27,8 +25,6 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
     public Subscriber<? super T> call(final Subscriber<? super T> child) {
         final PublishSubjectSingleSubscriber<Event<T>> subject = PublishSubjectSingleSubscriber
                 .create();
-        final AtomicReference<MergeSubscriber<T>> mainRef = new AtomicReference<MergeSubscriber<T>>();
-        final AtomicReference<MergeSubscriber<T>> otherRef = new AtomicReference<MergeSubscriber<T>>();
         @SuppressWarnings("unchecked")
         final MergeSubscriber<T>[] subscribers = new MergeSubscriber[2];
         EventSubscriber<T> eventSubscriber = new EventSubscriber<T>(child, comparator, subscribers);
