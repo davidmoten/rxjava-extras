@@ -50,7 +50,7 @@ public class OperatorOrderedMergeTest {
                 Observable<Integer> o2 = from(y);
                 List<Integer> list = o1.compose(Transformers.mergeOrderedWith(o2, comparator))
                         .toList().toBlocking().single();
-                System.out.println(x + "   " + y);
+                // System.out.println(x + "   " + y);
                 assertEquals(Lists.newArrayList(numbers), list);
             }
         }
