@@ -9,7 +9,6 @@ import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.functions.Func1;
 
-import com.github.davidmoten.rx.Operators;
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.testing.TestingHelper;
 
@@ -21,10 +20,6 @@ public class OperatorBufferEmissionsHelperTest extends TestCase {
                 .function(BUFFER_SYNC)
                 //
                 .name("testHandlesOverproducingSourceWithSyncDrainer").expect(1, 2, 3, 4, 5)
-                //
-                .function(BUFFER_ASYNC)
-                //
-                .name("testHandlesOverproducingSourceWithAsyncDrainer").expect(1, 2, 3, 4, 5)
                 // get test suites
                 .testSuite(OperatorBufferEmissionsHelperTest.class);
     }
@@ -37,14 +32,6 @@ public class OperatorBufferEmissionsHelperTest extends TestCase {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
             return BUFFER_BASE.call(o).compose(Transformers.<Integer> bufferEmissions());
-        }
-    };
-
-    private static final Func1<Observable<Integer>, Observable<Integer>> BUFFER_ASYNC = new Func1<Observable<Integer>, Observable<Integer>>() {
-        @Override
-        public Observable<Integer> call(Observable<Integer> o) {
-            return BUFFER_BASE.call(o).lift(
-                    Operators.<Integer> bufferEmissionsObserveOnComputation());
         }
     };
 
