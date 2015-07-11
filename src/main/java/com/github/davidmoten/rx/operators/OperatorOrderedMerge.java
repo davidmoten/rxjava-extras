@@ -90,12 +90,20 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
         @Override
         public void onCompleted() {
-            observer.onNext(new Event<T>(index, Notification.<T> createOnCompleted()));
+            try {
+                observer.onNext(new Event<T>(index, Notification.<T> createOnCompleted()));
+            } finally {
+                unsubscribe();
+            }
         }
 
         @Override
         public void onError(Throwable e) {
-            observer.onError(e);
+            try {
+                observer.onError(e);
+            } finally {
+                unsubscribe();
+            }
         }
 
         @Override
