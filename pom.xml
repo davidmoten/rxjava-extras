@@ -269,4 +269,18 @@
 		</profile>
 	</profiles>
 
+	<repositories>
+		<repository>
+			<id>rxjava-snapshots</id>
+			<name>rxjava-snapshots</name>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>false</enabled>
+			</releases>
+			<url>https://oss.jfrog.org/libs-snapshot</url>
+		</repository>
+	</repositories>
+
 </project>
