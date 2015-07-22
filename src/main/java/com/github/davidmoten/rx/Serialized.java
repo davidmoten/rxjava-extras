@@ -20,6 +20,10 @@ import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.observables.AbstractOnSubscribe;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+
 /**
  * Utility class for writing Observable streams to ObjectOutputStreams and
  * reading Observable streams of indeterminate size from ObjectInputStreams.
@@ -248,4 +252,120 @@ public final class Serialized {
             final File file) {
         return write(source, file, false, DEFAULT_BUFFER_SIZE);
     }
+
+    public static KryoBuilder kryo() {
+        return kryo(new Kryo());
+    }
+
+    public static KryoBuilder kryo(Kryo kryo) {
+        return new KryoBuilder(kryo);
+    }
+
+    public static class KryoBuilder {
+
+        private static final int DEFAULT_BUFFER_SIZE = 4096;
+
+        private final Kryo kryo;
+
+        private KryoBuilder(Kryo kryo) {
+            this.kryo = kryo;
+        }
+
+        public <T> Observable<T> write(final Observable<T> source, final File file) {
+            return write(source, file, false, DEFAULT_BUFFER_SIZE);
+        }
+
+        public <T> Observable<T> write(final Observable<T> source, final File file, boolean append) {
+            return write(source, file, append, DEFAULT_BUFFER_SIZE);
+        }
+
+        public <T> Observable<T> write(final Observable<T> source, final File file,
+                final boolean append, final int bufferSize) {
+            Func0<Output> resourceFactory = new Func0<Output>() {
+                @Override
+                public Output call() {
+                    try {
+                        return new Output(new FileOutputStream(file, append), bufferSize);
+                    } catch (FileNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            };
+            Func1<Output, Observable<? extends T>> observableFactory = new Func1<Output, Observable<? extends T>>() {
+
+                @Override
+                public Observable<? extends T> call(final Output output) {
+                    return source.doOnNext(new Action1<T>() {
+                        @Override
+                        public void call(T t) {
+                            kryo.writeObject(output, t);
+                        }
+                    });
+                }
+            };
+            Action1<Output> disposeAction = new Action1<Output>() {
+
+                @Override
+                public void call(Output output) {
+                    output.close();
+                }
+            };
+            return Observable.using(resourceFactory, observableFactory, disposeAction, true);
+        }
+
+        public <T> Observable<T> read(Class<T> cls, final File file) {
+            return read(cls, file, DEFAULT_BUFFER_SIZE);
+        }
+
+        public <T> Observable<T> read(final Class<T> cls, final File file, final int bufferSize) {
+            Func0<Input> resourceFactory = new Func0<Input>() {
+                @Override
+                public Input call() {
+                    try {
+                        return new Input(new FileInputStream(file), bufferSize);
+                    } catch (FileNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            };
+            Func1<Input, Observable<? extends T>> observableFactory = new Func1<Input, Observable<? extends T>>() {
+
+                @Override
+                public Observable<? extends T> call(final Input input) {
+                    return read(cls, input, bufferSize);
+                }
+            };
+            Action1<Input> disposeAction = new Action1<Input>() {
+
+                @Override
+                public void call(Input input) {
+                    input.close();
+                }
+            };
+            return Observable.using(resourceFactory, observableFactory, disposeAction, true);
+        }
+
+        public <T> Observable<T> read(final Class<T> cls, final Input input, final int bufferSize) {
+
+            return Observable.create(new AbstractOnSubscribe<T, Input>() {
+
+                @Override
+                protected Input onSubscribe(Subscriber<? super T> subscriber) {
+                    return input;
+                }
+
+                @Override
+                protected void next(SubscriptionState<T, Input> state) {
+                    Input input = state.state();
+                    if (input.eof()) {
+                        state.onCompleted();
+                    } else {
+                        T t = kryo.readObject(input, cls);
+                        state.onNext(t);
+                    }
+                }
+            });
+        }
+    }
+
 }
