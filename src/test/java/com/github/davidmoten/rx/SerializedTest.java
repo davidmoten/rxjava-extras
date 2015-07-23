@@ -89,14 +89,14 @@ public class SerializedTest {
         assertEquals(32, list.get(1).age);
     }
 
-    private static class Person {
+    static class Person {
         // Note Person class doesn't need to implement Serializable to be
         // serialized by kryo
 
         final String name;
         final int age;
 
-        private Person() {
+        Person() {
             // requires no-arg constructor to be serialized by kryo
             this("", 0);
         }
