@@ -176,7 +176,7 @@ public final class Transformers {
     }
 
     /**
-     * Returns the source Observable merged with the <code>other</code>
+     * Returns the source {@link Observable} merged with the <code>other</code>
      * observable using the given {@link Comparator} for order. A precondition
      * is that the source and other are already ordered. This transformer does
      * not support backpressure but its inputs must support backpressure. If you
@@ -203,8 +203,9 @@ public final class Transformers {
     }
 
     /**
-     * Returns a Transformation that returns an Observable that is a buffering
-     * of the source Observable into lists of items that are sequentially equal.
+     * Returns a {@link Transformation} that returns an {@link Observable} that
+     * is a buffering of the source Observable into lists of items that are
+     * sequentially equal.
      * 
      * <p>
      * For example, the stream
@@ -213,6 +214,7 @@ public final class Transformers {
      * 
      * @param <T>
      *            the generic type of the source Observable
+     * @return transformation as above
      */
     public static <T> Transformer<T, List<T>> toListUntilChanged() {
         Func2<Collection<T>, T, Boolean> together = HolderEquals.instance();
@@ -234,14 +236,14 @@ public final class Transformers {
     }
 
     /**
-     * Returns a Transformation that returns an Observable that is a buffering
-     * of the source Observable into lists of items that satisfy the condition
-     * {@code together}.
+     * Returns a {@link Transformation} that returns an {@link Observable} that
+     * is a buffering of the source Observable into lists of items that satisfy
+     * the condition {@code together}.
      * 
      * @param together
      *            condition function that must return true if an item is to be
      *            part of the list being prepared for emission
-     * @return
+     * @return transformation as above
      */
     public static <T> Transformer<T, List<T>> toListUntilChanged(
             final Func2<? super List<T>, ? super T, Boolean> together) {
@@ -263,11 +265,45 @@ public final class Transformers {
         return collectUntilChanged(initialState, collect, together);
     }
 
+    /**
+     * Returns a {@link Transformation} that returns an {@link Observable} that
+     * is collected into {@code Collection} instances created by {@code factory}
+     * that are emitted when items are not equal or on completion.
+     * 
+     * @param factory
+     *            collection instance creator
+     * @param collect
+     *            collection action
+     * @param <T>
+     *            generic type of source observable
+     * @param <R>
+     *            collection type emitted by transformation
+     * @return transformation as above
+     */
     public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
             final Func0<R> factory, final Action2<R, ? super T> collect) {
         return collectUntilChanged(factory, collect, HolderEquals.<T> instance());
     }
 
+    /**
+     * Returns a {@link Transformation} that returns an {@link Observable} that
+     * is collected into {@code Collection} instances created by {@code factory}
+     * that are emitted when the collection and latest emission do not satisfy
+     * {@code together} condition or on completion.
+     * 
+     * @param factory
+     *            collection instance creator
+     * @param collect
+     *            collection action
+     * @param together
+     *            returns true if and only if emission should be collected in
+     *            current collection being prepared for emission
+     * @param <T>
+     *            generic type of source observable
+     * @param <R>
+     *            collection type emitted by transformation
+     * @return transformation as above
+     */
     public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
             final Func0<R> factory, final Action2<R, ? super T> collect,
             final Func2<? super R, ? super T, Boolean> together) {
@@ -295,9 +331,7 @@ public final class Transformers {
                 }
             }
         };
-
         return Transformers.stateMachine(factory, transition, completionAction);
-
     }
 
 }
