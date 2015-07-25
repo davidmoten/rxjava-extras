@@ -236,9 +236,9 @@ public final class Transformers {
     }
 
     /**
-     * Returns a {@link Transformation} that returns an {@link Observable} that
-     * is a buffering of the source Observable into lists of items that satisfy
-     * the condition {@code together}.
+     * Returns a {@link Transformer} that returns an {@link Observable} that is
+     * a buffering of the source Observable into lists of items that satisfy the
+     * condition {@code together}.
      * 
      * @param together
      *            condition function that must return true if an item is to be
@@ -266,8 +266,8 @@ public final class Transformers {
     }
 
     /**
-     * Returns a {@link Transformation} that returns an {@link Observable} that
-     * is collected into {@code Collection} instances created by {@code factory}
+     * Returns a {@link Transformer} that returns an {@link Observable} that is
+     * collected into {@code Collection} instances created by {@code factory}
      * that are emitted when items are not equal or on completion.
      * 
      * @param factory
@@ -277,7 +277,7 @@ public final class Transformers {
      * @param <T>
      *            generic type of source observable
      * @param <R>
-     *            collection type emitted by transformation
+     *            collection type emitted by transformed Observable
      * @return transformation as above
      */
     public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
@@ -286,8 +286,8 @@ public final class Transformers {
     }
 
     /**
-     * Returns a {@link Transformation} that returns an {@link Observable} that
-     * is collected into {@code Collection} instances created by {@code factory}
+     * Returns a {@link Transformer} that returns an {@link Observable} that is
+     * collected into {@code Collection} instances created by {@code factory}
      * that are emitted when the collection and latest emission do not satisfy
      * {@code together} condition or on completion.
      * 
@@ -301,7 +301,7 @@ public final class Transformers {
      * @param <T>
      *            generic type of source observable
      * @param <R>
-     *            collection type emitted by transformation
+     *            collection type emitted by transformed Observable
      * @return transformation as above
      */
     public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
