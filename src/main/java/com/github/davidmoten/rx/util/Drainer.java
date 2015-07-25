@@ -15,7 +15,7 @@ public interface Drainer<T> extends Observer<T>, Producer {
      * This value can then be subtracted from a request from downstream to
      * estimate the number required from upstream.
      * 
-     * @return
+     * @return the current count of surplus emissions
      */
     long surplus();
 }
