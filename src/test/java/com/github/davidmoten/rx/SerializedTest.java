@@ -73,4 +73,38 @@ public class SerializedTest {
         assertTrue(list.isEmpty());
     }
 
+    @Test
+    public void testSerializeAndDeserializeOfPersonStreamUsingKryo() {
+        File file = new File("target/temp6");
+        file.delete();
+        Observable<Person> source = Observable.just(new Person("fred", 24), new Person("jane", 32));
+        Serialized.kryo().write(source, file).subscribe();
+        assertTrue(file.exists());
+        List<Person> list = Serialized.kryo().read(Person.class, file).toList().toBlocking()
+                .single();
+        assertEquals(2, list.size());
+        assertEquals("fred", list.get(0).name);
+        assertEquals(24, list.get(0).age);
+        assertEquals("jane", list.get(1).name);
+        assertEquals(32, list.get(1).age);
+    }
+
+    static class Person {
+        // Note Person class doesn't need to implement Serializable to be
+        // serialized by kryo
+
+        final String name;
+        final int age;
+
+        Person() {
+            // requires no-arg constructor to be serialized by kryo
+            this("", 0);
+        }
+
+        Person(String name, int age) {
+            this.name = name;
+            this.age = age;
+        }
+
+    }
 }
