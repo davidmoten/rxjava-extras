@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx;
 
+import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -83,6 +84,44 @@ public class TransformersTest {
         List<Integer> list = o.compose(Transformers.<Integer> sort()).toList().toBlocking()
                 .single();
         assertEquals(Arrays.asList(1, 2, 3, 4, 5), list);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testToListUntilChanged() {
+        Observable<Integer> o = Observable.just(1, 1, 1, 2, 2, 3);
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
+        // get as list
+                .toList().toBlocking().single();
+        assertEquals(asList(asList(1, 1, 1), asList(2, 2), asList(3)), lists);
+    }
+
+    @Test
+    public void testToListUntilChangedWithEmpty() {
+        Observable<Integer> o = Observable.empty();
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
+        // get as list
+                .toList().toBlocking().single();
+        assertTrue(lists.isEmpty());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testToListUntilChangedWithNoChange() {
+        Observable<Integer> o = Observable.just(1, 1, 1);
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
+        // get as list
+                .toList().toBlocking().single();
+        assertEquals(asList(asList(1, 1, 1)), lists);
+    }
+
+    @Test
+    public void testToListUntilChangedWithOnlyChange() {
+        Observable<Integer> o = Observable.just(1, 2, 3);
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
+        // get as list
+                .toList().toBlocking().single();
+        assertEquals(asList(asList(1), asList(2), asList(3)), lists);
     }
 
 }

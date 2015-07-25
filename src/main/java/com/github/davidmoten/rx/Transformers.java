@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -200,4 +201,54 @@ public final class Transformers {
         };
     }
 
+    public static <T> Transformer<T, List<T>> toListUntilChanged() {
+        Func2<List<T>, T, Boolean> together = new Func2<List<T>, T, Boolean>() {
+            @Override
+            public Boolean call(List<T> list, T t) {
+                return list.size() == 0 || list.get(list.size() - 1).equals(t);
+            }
+        };
+        return toListUntilChanged(together);
+    }
+
+    public static <T> Transformer<T, List<T>> toListUntilChanged(
+            final Func2<List<T>, T, Boolean> together) {
+
+        Func0<List<T>> initialState = new Func0<List<T>>() {
+            @Override
+            public List<T> call() {
+                return Collections.emptyList();
+            }
+        };
+
+        Func3<List<T>, T, Observer<List<T>>, List<T>> transition = new Func3<List<T>, T, Observer<List<T>>, List<T>>() {
+
+            @Override
+            public List<T> call(List<T> list, T t, Observer<List<T>> observer) {
+                if (together.call(list, t)) {
+                    return add(list, t);
+                } else {
+                    observer.onNext(list);
+                    return Collections.singletonList(t);
+                }
+            }
+
+        };
+        Action2<List<T>, Observer<List<T>>> completionAction = new Action2<List<T>, Observer<List<T>>>() {
+            @Override
+            public void call(List<T> list, Observer<List<T>> observer) {
+                if (list.size() > 0) {
+                    observer.onNext(list);
+                }
+            }
+        };
+
+        return Transformers.stateMachine(initialState, transition, completionAction);
+    }
+
+    private static <T> List<T> add(List<T> list, T item) {
+        List<T> result = new ArrayList<T>(list);
+        result.add(item);
+        return result;
+    }
 }
