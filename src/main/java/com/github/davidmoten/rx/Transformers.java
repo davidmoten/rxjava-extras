@@ -1,6 +1,7 @@
 package com.github.davidmoten.rx;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -201,54 +202,102 @@ public final class Transformers {
         };
     }
 
+    /**
+     * Returns a Transformation that returns an Observable that is a buffering
+     * of the source Observable into lists of items that are sequentially equal.
+     * 
+     * <p>
+     * For example, the stream
+     * {@code Observable.just(1, 1, 2, 2, 1).compose(toListUntilChanged())}
+     * would emit {@code [1,1], [2], [1]}.
+     * 
+     * @param <T>
+     *            the generic type of the source Observable
+     */
     public static <T> Transformer<T, List<T>> toListUntilChanged() {
-        Func2<List<T>, T, Boolean> together = new Func2<List<T>, T, Boolean>() {
-            @Override
-            public Boolean call(List<T> list, T t) {
-                return list.size() == 0 || list.get(list.size() - 1).equals(t);
-            }
-        };
+        Func2<Collection<T>, T, Boolean> together = HolderEquals.instance();
         return toListUntilChanged(together);
     }
 
+    private static class HolderEquals {
+        private static final Func2<Collection<Object>, Object, Boolean> INSTANCE = new Func2<Collection<Object>, Object, Boolean>() {
+            @Override
+            public Boolean call(Collection<Object> list, Object t) {
+                return list.isEmpty() || list.iterator().next().equals(t);
+            }
+        };
+
+        @SuppressWarnings("unchecked")
+        static <T> Func2<Collection<T>, T, Boolean> instance() {
+            return (Func2<Collection<T>, T, Boolean>) (Func2<?, ?, Boolean>) INSTANCE;
+        }
+    }
+
+    /**
+     * Returns a Transformation that returns an Observable that is a buffering
+     * of the source Observable into lists of items that satisfy the condition
+     * {@code together}.
+     * 
+     * @param together
+     *            condition function that must return true if an item is to be
+     *            part of the list being prepared for emission
+     * @return
+     */
     public static <T> Transformer<T, List<T>> toListUntilChanged(
-            final Func2<List<T>, T, Boolean> together) {
+            final Func2<? super List<T>, ? super T, Boolean> together) {
 
         Func0<List<T>> initialState = new Func0<List<T>>() {
             @Override
             public List<T> call() {
-                return Collections.emptyList();
+                return new ArrayList<T>();
             }
         };
 
-        Func3<List<T>, T, Observer<List<T>>, List<T>> transition = new Func3<List<T>, T, Observer<List<T>>, List<T>>() {
+        Action2<List<T>, T> collect = new Action2<List<T>, T>() {
 
             @Override
-            public List<T> call(List<T> list, T t, Observer<List<T>> observer) {
-                if (together.call(list, t)) {
-                    return add(list, t);
+            public void call(List<T> list, T n) {
+                list.add(n);
+            }
+        };
+        return collectUntilChanged(initialState, collect, together);
+    }
+
+    public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
+            final Func0<R> factory, final Action2<R, ? super T> collect) {
+        return collectUntilChanged(factory, collect, HolderEquals.<T> instance());
+    }
+
+    public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
+            final Func0<R> factory, final Action2<R, ? super T> collect,
+            final Func2<? super R, ? super T, Boolean> together) {
+        Func3<R, T, Observer<R>, R> transition = new Func3<R, T, Observer<R>, R>() {
+
+            @Override
+            public R call(R collection, T t, Observer<R> observer) {
+                if (together.call(collection, t)) {
+                    collect.call(collection, t);
+                    return collection;
                 } else {
-                    observer.onNext(list);
-                    return Collections.singletonList(t);
+                    observer.onNext(collection);
+                    R r = factory.call();
+                    collect.call(r, t);
+                    return r;
                 }
             }
 
         };
-        Action2<List<T>, Observer<List<T>>> completionAction = new Action2<List<T>, Observer<List<T>>>() {
+        Action2<R, Observer<R>> completionAction = new Action2<R, Observer<R>>() {
             @Override
-            public void call(List<T> list, Observer<List<T>> observer) {
-                if (list.size() > 0) {
-                    observer.onNext(list);
+            public void call(R collection, Observer<R> observer) {
+                if (!collection.isEmpty()) {
+                    observer.onNext(collection);
                 }
             }
         };
 
-        return Transformers.stateMachine(initialState, transition, completionAction);
+        return Transformers.stateMachine(factory, transition, completionAction);
+
     }
 
-    private static <T> List<T> add(List<T> list, T item) {
-        List<T> result = new ArrayList<T>(list);
-        result.add(item);
-        return result;
-    }
 }
