@@ -97,6 +97,15 @@ public class TransformersTest {
     }
 
     @Test
+    public void testToListUntilChangedMultipleAtEnd() {
+        Observable<Integer> o = Observable.just(1, 1, 1, 2, 2, 3, 3);
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
+        // get as list
+                .toList().toBlocking().single();
+        assertEquals(asList(asList(1, 1, 1), asList(2, 2), asList(3, 3)), lists);
+    }
+
+    @Test
     public void testToListUntilChangedWithEmpty() {
         Observable<Integer> o = Observable.empty();
         List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
