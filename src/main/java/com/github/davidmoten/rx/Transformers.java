@@ -126,7 +126,7 @@ public final class Transformers {
      * backpressure.
      * 
      * @param initialState
-     *            the initial state of the state machine
+     *            the initial state of the state machine.
      * @param transition
      *            defines state transitions and consequent emissions to
      *            downstream when an item arrives from upstream
@@ -142,6 +142,8 @@ public final class Transformers {
      *            the input observable type
      * @param <Out>
      *            the output observable type
+     * @throws {@link NullPointerException} if {@code initialState}, {@code},or
+     *         {@code} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
