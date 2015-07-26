@@ -243,6 +243,8 @@ public final class Transformers {
      * @param together
      *            condition function that must return true if an item is to be
      *            part of the list being prepared for emission
+     * @param <T>
+     *            the generic type of the source Observable
      * @return transformer as above
      */
     public static <T> Transformer<T, List<T>> toListUntilChanged(
