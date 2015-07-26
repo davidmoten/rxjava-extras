@@ -204,8 +204,8 @@ public final class Transformers {
 
     /**
      * Returns a {@link Transformer} that returns an {@link Observable} that is
-     * a buffering of the source Observable into lists of items that are
-     * sequentially equal.
+     * a buffering of the source Observable into lists of sequential items that
+     * are equal.
      * 
      * <p>
      * For example, the stream
@@ -237,8 +237,8 @@ public final class Transformers {
 
     /**
      * Returns a {@link Transformer} that returns an {@link Observable} that is
-     * a buffering of the source Observable into lists of items that satisfy the
-     * condition {@code together}.
+     * a buffering of the source Observable into lists of sequential items that
+     * satisfy the condition {@code together}.
      * 
      * @param together
      *            condition function that must return true if an item is to be
