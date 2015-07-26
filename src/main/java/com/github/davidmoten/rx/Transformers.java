@@ -142,8 +142,9 @@ public final class Transformers {
      *            the input observable type
      * @param <Out>
      *            the output observable type
-     * @throws {@link NullPointerException} if {@code initialStateFactory} or
-     *         {@code transition},or {@code completionAction} is null
+     * @throws NullPointerException
+     *             if {@code initialStateFactory} or {@code transition},or
+     *             {@code completionAction} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
@@ -185,8 +186,8 @@ public final class Transformers {
      *            the input observable type
      * @param <Out>
      *            the output observable type
-     * @throws {@link NullPointerException} if {@code transition} or
-     *         {@code completionAction} is null
+     * @throws NullPointerException
+     *             if {@code transition} or {@code completionAction} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
@@ -224,8 +225,8 @@ public final class Transformers {
      *            the input observable type
      * @param <Out>
      *            the output observable type
-     * @throws {@link NullPointerException} if {@code initialState} or
-     *         {@code transition} is null
+     * @throws NullPointerException
+     *             if {@code initialState} or {@code transition} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
