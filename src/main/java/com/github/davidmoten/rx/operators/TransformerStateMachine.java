@@ -13,6 +13,8 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
 
+import com.github.davidmoten.util.Preconditions;
+
 public final class TransformerStateMachine<State, In, Out> implements Transformer<In, Out> {
 
     private final Func0<State> initialState;
@@ -22,6 +24,9 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     private TransformerStateMachine(Func0<State> initialState,
             Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
+        Preconditions.checkNotNull(initialState);
+        Preconditions.checkNotNull(transition);
+        Preconditions.checkNotNull(completionAction);
         this.initialState = initialState;
         this.transition = transition;
         this.completionAction = completionAction;
@@ -68,8 +73,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                     recorder.onError(in.getThrowable());
                     return new StateWithNotifications<State, Out>(sn.state, recorder.notifications);
                 } else if (in.isOnCompleted()) {
-                    if (completionAction != null)
-                        completionAction.call(sn.state, recorder);
+                    completionAction.call(sn.state, recorder);
                     recorder.onCompleted();
                     return new StateWithNotifications<State, Out>((State) null,
                             recorder.notifications);
