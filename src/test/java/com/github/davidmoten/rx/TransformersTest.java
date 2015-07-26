@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.Test;
 
 import rx.Observable;
+import rx.observers.TestSubscriber;
 
 import com.github.davidmoten.rx.util.Pair;
 
@@ -124,6 +125,7 @@ public class TransformersTest {
         assertEquals(asList(asList(1, 1, 1)), lists);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testToListUntilChangedWithOnlyChange() {
         Observable<Integer> o = Observable.just(1, 2, 3);
@@ -131,6 +133,17 @@ public class TransformersTest {
         // get as list
                 .toList().toBlocking().single();
         assertEquals(asList(asList(1), asList(2), asList(3)), lists);
+    }
+
+    @Test
+    public void testToListUntilChangedWithError() {
+        Exception ex = new Exception("boo");
+        Observable<Integer> o = Observable.error(ex);
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        o.subscribe(ts);
+        ts.awaitTerminalEvent();
+        ts.assertError(ex);
+        ts.assertUnsubscribed();
     }
 
 }
