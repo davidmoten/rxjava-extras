@@ -126,7 +126,7 @@ public final class Transformers {
      * backpressure.
      * 
      * @param initialState
-     *            the initial state of the state machine.
+     *            the factory to create the initial state of the state machine.
      * @param transition
      *            defines state transitions and consequent emissions to
      *            downstream when an item arrives from upstream
@@ -154,6 +154,42 @@ public final class Transformers {
                 completionAction);
     }
 
+    /**
+     * Returns a {@link Transformer} that allows processing of the source stream
+     * to be defined in a state machine where transitions of the state machine
+     * may also emit items to downstream that are buffered if necessary when
+     * backpressure is requested. <code>flatMap</code> is part of the processing
+     * chain so the source may experience requests for more items than are
+     * strictly required by the endpoint subscriber.
+     * 
+     * <p>
+     * Internally this transformer uses {@link Observable#scan} emitting a
+     * stream of new states composed with emissions from the transition to each
+     * state and {@link Observable#flatMap} to emit the recorded emissions with
+     * backpressure.
+     * 
+     * @param initialState
+     *            the initial state of the state machine.
+     * @param transition
+     *            defines state transitions and consequent emissions to
+     *            downstream when an item arrives from upstream
+     * @param completionAction
+     *            defines activity that should happen based on the final state
+     *            just before downstream <code>onCompleted()</code> is called.
+     *            For example any buffered emissions in state could be emitted
+     *            at this point. Don't call <code>observer.onCompleted()</code>
+     *            as it is called for you after the action completes.
+     * @param <State>
+     *            the class representing the state of the state machine
+     * @param <In>
+     *            the input observable type
+     * @param <Out>
+     *            the output observable type
+     * @throws {@link NullPointerException} if {@code initialState}, {@code},or
+     *         {@code} is null
+     * @return a backpressure supporting transformer that implements the state
+     *         machine specified by the parameters
+     */
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
             Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
@@ -161,6 +197,38 @@ public final class Transformers {
         return TransformerStateMachine.<State, In, Out> create(f, transition, completionAction);
     }
 
+    /**
+     * Returns a {@link Transformer} that allows processing of the source stream
+     * to be defined in a state machine where transitions of the state machine
+     * may also emit items to downstream that are buffered if necessary when
+     * backpressure is requested. <code>flatMap</code> is part of the processing
+     * chain so the source may experience requests for more items than are
+     * strictly required by the endpoint subscriber. This overload uses a do
+     * nothing {@link completionAction} which may leave some emissions recorded
+     * in State as unemitted.
+     * 
+     * <p>
+     * Internally this transformer uses {@link Observable#scan} emitting a
+     * stream of new states composed with emissions from the transition to each
+     * state and {@link Observable#flatMap} to emit the recorded emissions with
+     * backpressure.
+     * 
+     * @param initialState
+     *            the initial state of the state machine.
+     * @param transition
+     *            defines state transitions and consequent emissions to
+     *            downstream when an item arrives from upstream
+     * @param <State>
+     *            the class representing the state of the state machine
+     * @param <In>
+     *            the input observable type
+     * @param <Out>
+     *            the output observable type
+     * @throws {@link NullPointerException} if {@code initialState}, {@code},or
+     *         {@code} is null
+     * @return a backpressure supporting transformer that implements the state
+     *         machine specified by the parameters
+     */
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
             Func3<State, In, Observer<Out>, State> transition) {
         Func0<State> f = Functions.constant0(initialState);
