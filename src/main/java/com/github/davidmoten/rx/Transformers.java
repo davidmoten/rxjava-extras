@@ -204,7 +204,7 @@ public final class Transformers {
      * backpressure is requested. <code>flatMap</code> is part of the processing
      * chain so the source may experience requests for more items than are
      * strictly required by the endpoint subscriber. This overload uses a do
-     * nothing {@link completionAction} which may leave some emissions recorded
+     * nothing {@code completionAction} which may leave some emissions recorded
      * in State as unemitted.
      * 
      * <p>
@@ -225,7 +225,7 @@ public final class Transformers {
      * @param <Out>
      *            the output observable type
      * @throws {@link NullPointerException} if {@code initialState} or
-     *         {@code transition}
+     *         {@code transition} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
