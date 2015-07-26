@@ -70,7 +70,7 @@ public final class Transformers {
         };
     }
 
-    public static <T extends Comparable<T>> Transformer<T, T> sort(final Comparator<T> comparator) {
+    public static <T> Transformer<T, T> sort(final Comparator<T> comparator) {
         return new Transformer<T, T>() {
 
             @Override

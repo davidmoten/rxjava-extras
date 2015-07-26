@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 import org.junit.Test;
@@ -89,6 +90,19 @@ public class TransformersTest {
         List<Integer> list = o.compose(Transformers.<Integer> sort()).toList().toBlocking()
                 .single();
         assertEquals(Arrays.asList(1, 2, 3, 4, 5), list);
+    }
+
+    @Test
+    public void testSortWithComparator() {
+        Observable<Integer> o = Observable.just(5, 3, 1, 4, 2);
+        List<Integer> list = o.compose(Transformers.<Integer> sort(new Comparator<Integer>() {
+
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return o2.compareTo(o1);
+            }
+        })).toList().toBlocking().single();
+        assertEquals(Arrays.asList(5, 4, 3, 2, 1), list);
     }
 
     @Test
