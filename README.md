@@ -15,6 +15,8 @@ Utilities for use with rxjava:
 * `Tranformers.mapWithIndex`
 * `Transformers.stateMachine`
 * `Transformers.orderedMerge`
+* `Transformers.collectUntilChanged`
+* `Transformers.toListUntilChanged`
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
@@ -32,7 +34,7 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.5.8</version>
+  <version>0.5.10</version>
 </dependency>
 ```
 
