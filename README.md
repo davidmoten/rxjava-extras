@@ -15,7 +15,7 @@ Utilities for use with rxjava:
 * `Tranformers.mapWithIndex`
 * `Transformers.stateMachine`
 * `Transformers.orderedMerge`
-* `Transformers.collectUntilChanged`
+* [`Transformers.collectUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectUntilChanged(rx.functions.Func0,%20rx.functions.Action2))
 * `Transformers.toListUntilChanged`
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
