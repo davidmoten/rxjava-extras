@@ -1,6 +1,5 @@
 package com.github.davidmoten.rx;
 
-import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -10,6 +9,11 @@ import java.util.List;
 import org.junit.Test;
 
 import rx.Observable;
+import rx.Observable.Transformer;
+import rx.Observer;
+import rx.functions.Action2;
+import rx.functions.Func0;
+import rx.functions.Func3;
 import rx.observers.TestSubscriber;
 
 import com.github.davidmoten.rx.util.Pair;
@@ -87,63 +91,34 @@ public class TransformersTest {
         assertEquals(Arrays.asList(1, 2, 3, 4, 5), list);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
-    public void testToListUntilChanged() {
-        Observable<Integer> o = Observable.just(1, 1, 1, 2, 2, 3);
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
-        // get as list
-                .toList().toBlocking().single();
-        assertEquals(asList(asList(1, 1, 1), asList(2, 2), asList(3)), lists);
-    }
+    public void testStateTransitionThrowsError() {
+        final RuntimeException ex = new RuntimeException("boo");
+        Func0<Integer> initialState = new Func0<Integer>() {
 
-    @Test
-    public void testToListUntilChangedMultipleAtEnd() {
-        Observable<Integer> o = Observable.just(1, 1, 1, 2, 2, 3, 3);
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
-        // get as list
-                .toList().toBlocking().single();
-        assertEquals(asList(asList(1, 1, 1), asList(2, 2), asList(3, 3)), lists);
-    }
+            @Override
+            public Integer call() {
+                return 1;
+            }
+        };
+        Func3<Integer, Integer, Observer<Integer>, Integer> transition = new Func3<Integer, Integer, Observer<Integer>, Integer>() {
 
-    @Test
-    public void testToListUntilChangedWithEmpty() {
-        Observable<Integer> o = Observable.empty();
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
-        // get as list
-                .toList().toBlocking().single();
-        assertTrue(lists.isEmpty());
-    }
+            @Override
+            public Integer call(Integer collection, Integer t, Observer<Integer> observer) {
+                throw ex;
+            }
 
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testToListUntilChangedWithNoChange() {
-        Observable<Integer> o = Observable.just(1, 1, 1);
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
-        // get as list
-                .toList().toBlocking().single();
-        assertEquals(asList(asList(1, 1, 1)), lists);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testToListUntilChangedWithOnlyChange() {
-        Observable<Integer> o = Observable.just(1, 2, 3);
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
-        // get as list
-                .toList().toBlocking().single();
-        assertEquals(asList(asList(1), asList(2), asList(3)), lists);
-    }
-
-    @Test
-    public void testToListUntilChangedWithError() {
-        Exception ex = new Exception("boo");
-        Observable<Integer> o = Observable.error(ex);
+        };
+        Action2<Integer, Observer<Integer>> completionAction = new Action2<Integer, Observer<Integer>>() {
+            @Override
+            public void call(Integer collection, Observer<Integer> observer) {
+            }
+        };
+        Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
+                transition, completionAction);
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
-        o.subscribe(ts);
+        Observable.just(1, 1, 1).compose(transformer).subscribe(ts);
         ts.awaitTerminalEvent();
         ts.assertError(ex);
-        ts.assertUnsubscribed();
     }
-
 }
