@@ -125,7 +125,7 @@ public final class Transformers {
      * state and {@link Observable#flatMap} to emit the recorded emissions with
      * backpressure.
      * 
-     * @param initialState
+     * @param initialStateFactory
      *            the factory to create the initial state of the state machine.
      * @param transition
      *            defines state transitions and consequent emissions to
@@ -142,15 +142,15 @@ public final class Transformers {
      *            the input observable type
      * @param <Out>
      *            the output observable type
-     * @throws {@link NullPointerException} if {@code initialState}, {@code},or
-     *         {@code} is null
+     * @throws {@link NullPointerException} if {@code initialStateFactory},
+     *         {@code transition},or {@code completionAction} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
-    public static <State, In, Out> Transformer<In, Out> stateMachine(Func0<State> initialState,
-            Func3<State, In, Observer<Out>, State> transition,
+    public static <State, In, Out> Transformer<In, Out> stateMachine(
+            Func0<State> initialStateFactory, Func3<State, In, Observer<Out>, State> transition,
             Action2<State, Observer<Out>> completionAction) {
-        return TransformerStateMachine.<State, In, Out> create(initialState, transition,
+        return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completionAction);
     }
 
@@ -185,8 +185,8 @@ public final class Transformers {
      *            the input observable type
      * @param <Out>
      *            the output observable type
-     * @throws {@link NullPointerException} if {@code initialState}, {@code},or
-     *         {@code} is null
+     * @throws {@link NullPointerException} if {@code transition},or
+     *         {@code completionAction} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
@@ -224,8 +224,8 @@ public final class Transformers {
      *            the input observable type
      * @param <Out>
      *            the output observable type
-     * @throws {@link NullPointerException} if {@code initialState}, {@code},or
-     *         {@code} is null
+     * @throws {@link NullPointerException} if {@code initialState} or
+     *         {@code transition}
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
