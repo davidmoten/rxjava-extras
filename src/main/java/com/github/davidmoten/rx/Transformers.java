@@ -142,8 +142,8 @@ public final class Transformers {
      *            the input observable type
      * @param <Out>
      *            the output observable type
-     * @return a backpressure supporting Transformation that implements the
-     *         state machine specified by the parameters
+     * @return a backpressure supporting transformer that implements the state
+     *         machine specified by the parameters
      */
     public static <State, In, Out> Transformer<In, Out> stateMachine(Func0<State> initialState,
             Func3<State, In, Observer<Out>, State> transition,
@@ -203,8 +203,8 @@ public final class Transformers {
     }
 
     /**
-     * Returns a {@link Transformation} that returns an {@link Observable} that
-     * is a buffering of the source Observable into lists of items that are
+     * Returns a {@link Transformer} that returns an {@link Observable} that is
+     * a buffering of the source Observable into lists of items that are
      * sequentially equal.
      * 
      * <p>
@@ -214,7 +214,7 @@ public final class Transformers {
      * 
      * @param <T>
      *            the generic type of the source Observable
-     * @return transformation as above
+     * @return transformer as above
      */
     public static <T> Transformer<T, List<T>> toListUntilChanged() {
         Func2<Collection<T>, T, Boolean> together = HolderEquals.instance();
@@ -243,7 +243,7 @@ public final class Transformers {
      * @param together
      *            condition function that must return true if an item is to be
      *            part of the list being prepared for emission
-     * @return transformation as above
+     * @return transformer as above
      */
     public static <T> Transformer<T, List<T>> toListUntilChanged(
             final Func2<? super List<T>, ? super T, Boolean> together) {
@@ -278,7 +278,7 @@ public final class Transformers {
      *            generic type of source observable
      * @param <R>
      *            collection type emitted by transformed Observable
-     * @return transformation as above
+     * @return transformer as above
      */
     public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
             final Func0<R> factory, final Action2<R, ? super T> collect) {
@@ -302,7 +302,7 @@ public final class Transformers {
      *            generic type of source observable
      * @param <R>
      *            collection type emitted by transformed Observable
-     * @return transformation as above
+     * @return transformer as above
      */
     public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
             final Func0<R> factory, final Action2<R, ? super T> collect,
