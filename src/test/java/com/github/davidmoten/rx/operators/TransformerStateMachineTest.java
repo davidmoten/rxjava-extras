@@ -9,11 +9,47 @@ import java.util.List;
 import org.junit.Test;
 
 import rx.Observable;
+import rx.Observable.Transformer;
+import rx.Observer;
+import rx.functions.Action2;
+import rx.functions.Func0;
+import rx.functions.Func3;
 import rx.observers.TestSubscriber;
 
 import com.github.davidmoten.rx.Transformers;
 
 public class TransformerStateMachineTest {
+    @Test
+    public void testStateTransitionThrowsError() {
+        final RuntimeException ex = new RuntimeException("boo");
+        Func0<Integer> initialState = new Func0<Integer>() {
+
+            @Override
+            public Integer call() {
+                return 1;
+            }
+        };
+        Func3<Integer, Integer, Observer<Integer>, Integer> transition = new Func3<Integer, Integer, Observer<Integer>, Integer>() {
+
+            @Override
+            public Integer call(Integer collection, Integer t, Observer<Integer> observer) {
+                throw ex;
+            }
+
+        };
+        Action2<Integer, Observer<Integer>> completionAction = new Action2<Integer, Observer<Integer>>() {
+            @Override
+            public void call(Integer collection, Observer<Integer> observer) {
+            }
+        };
+        Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
+                transition, completionAction);
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        Observable.just(1, 1, 1).compose(transformer).subscribe(ts);
+        ts.awaitTerminalEvent();
+        ts.assertError(ex);
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     public void testToListUntilChanged() {
