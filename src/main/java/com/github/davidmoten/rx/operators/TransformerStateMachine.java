@@ -78,8 +78,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                     return new StateWithNotifications<State, Out>((State) null,
                             recorder.notifications);
                 } else {
-                    State state2 = transition.call(sn.state, in.getValue(), recorder);
-                    return new StateWithNotifications<State, Out>(state2, recorder.notifications);
+                    State nextState = transition.call(sn.state, in.getValue(), recorder);
+                    return new StateWithNotifications<State, Out>(nextState, recorder.notifications);
                 }
             }
         };

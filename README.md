@@ -13,8 +13,10 @@ Utilities for use with rxjava:
 * `TestingHelper`
 * `Transformers.toOperator`
 * `Tranformers.mapWithIndex`
-* `Transformers.stateMachine`
+* [`Transformers.stateMachine`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#stateMachine(State,%20rx.functions.Func3))
 * `Transformers.orderedMerge`
+* [`Transformers.collectUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectUntilChanged(rx.functions.Func0,%20rx.functions.Action2))
+* [`Transformers.toListUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntilChanged())
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
@@ -32,7 +34,7 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.5.8</version>
+  <version>0.5.10</version>
 </dependency>
 ```
 
