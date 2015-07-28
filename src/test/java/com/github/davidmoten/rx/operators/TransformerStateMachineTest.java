@@ -18,16 +18,17 @@ public class TransformerStateMachineTest {
     @Test
     public void testToListUntilChanged() {
         Observable<Integer> o = Observable.just(1, 1, 1, 2, 2, 3);
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListWhileEqual())
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
         // get as list
                 .toList().toBlocking().single();
         assertEquals(asList(asList(1, 1, 1), asList(2, 2), asList(3)), lists);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testToListUntilChangedMultipleAtEnd() {
         Observable<Integer> o = Observable.just(1, 1, 1, 2, 2, 3, 3);
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListWhileEqual())
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
         // get as list
                 .toList().toBlocking().single();
         assertEquals(asList(asList(1, 1, 1), asList(2, 2), asList(3, 3)), lists);
@@ -36,7 +37,7 @@ public class TransformerStateMachineTest {
     @Test
     public void testToListUntilChangedWithEmpty() {
         Observable<Integer> o = Observable.empty();
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListWhileEqual())
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
         // get as list
                 .toList().toBlocking().single();
         assertTrue(lists.isEmpty());
@@ -46,7 +47,7 @@ public class TransformerStateMachineTest {
     @Test
     public void testToListUntilChangedWithNoChange() {
         Observable<Integer> o = Observable.just(1, 1, 1);
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListWhileEqual())
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
         // get as list
                 .toList().toBlocking().single();
         assertEquals(asList(asList(1, 1, 1)), lists);
@@ -56,7 +57,7 @@ public class TransformerStateMachineTest {
     @Test
     public void testToListUntilChangedWithOnlyChange() {
         Observable<Integer> o = Observable.just(1, 2, 3);
-        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListWhileEqual())
+        List<List<Integer>> lists = o.compose(Transformers.<Integer> toListUntilChanged())
         // get as list
                 .toList().toBlocking().single();
         assertEquals(asList(asList(1), asList(2), asList(3)), lists);
@@ -67,7 +68,7 @@ public class TransformerStateMachineTest {
         Exception ex = new Exception("boo");
         Observable<Integer> o = Observable.error(ex);
         TestSubscriber<List<Integer>> ts = new TestSubscriber<List<Integer>>();
-        o.compose(Transformers.<Integer> toListWhileEqual()).subscribe(ts);
+        o.compose(Transformers.<Integer> toListUntilChanged()).subscribe(ts);
         ts.awaitTerminalEvent();
         ts.assertError(ex);
         ts.assertUnsubscribed();

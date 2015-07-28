@@ -286,14 +286,14 @@ public final class Transformers {
      * 
      * <p>
      * For example, the stream
-     * {@code Observable.just(1, 1, 2, 2, 1).compose(toListWhileEqual())} would
-     * emit {@code [1,1], [2], [1]}.
+     * {@code Observable.just(1, 1, 2, 2, 1).compose(toListUntilChanged())}
+     * would emit {@code [1,1], [2], [1]}.
      * 
      * @param <T>
      *            the generic type of the source Observable
      * @return transformer as above
      */
-    public static <T> Transformer<T, List<T>> toListWhileEqual() {
+    public static <T> Transformer<T, List<T>> toListUntilChanged() {
         Func2<Collection<T>, T, Boolean> equal = HolderEquals.instance();
         return toListWhile(equal);
     }
