@@ -12,7 +12,6 @@ import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Observer;
-import rx.Scheduler;
 import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
@@ -99,16 +98,6 @@ public final class Transformers {
 
     public static <T> Transformer<T, Indexed<T>> mapWithIndex() {
         return MapWithIndex.instance();
-    }
-
-    public static <T> Transformer<T, T> bufferEmissions(final Scheduler scheduler) {
-        return new Transformer<T, T>() {
-
-            @Override
-            public Observable<T> call(Observable<T> o) {
-                return o.lift(new OperatorBufferEmissions<T>(scheduler));
-            }
-        };
     }
 
     /**
@@ -249,7 +238,13 @@ public final class Transformers {
 
     // holder lazy singleton pattern
     private static class BufferEmissionsHolder {
-        static Transformer<Object, Object> INSTANCE = bufferEmissions(null);
+        static Transformer<Object, Object> INSTANCE = new Transformer<Object, Object>() {
+
+            @Override
+            public Observable<Object> call(Observable<Object> o) {
+                return o.lift(new OperatorBufferEmissions<Object>());
+            }
+        };
     }
 
     /**
