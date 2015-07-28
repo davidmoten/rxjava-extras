@@ -294,8 +294,8 @@ public final class Transformers {
      * @return transformer as above
      */
     public static <T> Transformer<T, List<T>> toListUntilChanged() {
-        Func2<Collection<T>, T, Boolean> together = HolderEquals.instance();
-        return toListUntilChanged(together);
+        Func2<Collection<T>, T, Boolean> equal = HolderEquals.instance();
+        return toListWhile(equal);
     }
 
     private static class HolderEquals {
@@ -315,17 +315,17 @@ public final class Transformers {
     /**
      * Returns a {@link Transformer} that returns an {@link Observable} that is
      * a buffering of the source Observable into lists of sequential items that
-     * satisfy the condition {@code together}.
+     * satisfy the condition {@code condition}.
      * 
-     * @param together
+     * @param condition
      *            condition function that must return true if an item is to be
      *            part of the list being prepared for emission
      * @param <T>
      *            the generic type of the source Observable
      * @return transformer as above
      */
-    public static <T> Transformer<T, List<T>> toListUntilChanged(
-            final Func2<? super List<T>, ? super T, Boolean> together) {
+    public static <T> Transformer<T, List<T>> toListWhile(
+            final Func2<? super List<T>, ? super T, Boolean> condition) {
 
         Func0<List<T>> initialState = new Func0<List<T>>() {
             @Override
@@ -341,7 +341,7 @@ public final class Transformers {
                 list.add(n);
             }
         };
-        return collectUntilChanged(initialState, collect, together);
+        return collectWhile(initialState, collect, condition);
     }
 
     /**
@@ -359,22 +359,22 @@ public final class Transformers {
      *            collection type emitted by transformed Observable
      * @return transformer as above
      */
-    public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
+    public static <T, R extends Collection<T>> Transformer<T, R> collectWhile(
             final Func0<R> factory, final Action2<R, ? super T> collect) {
-        return collectUntilChanged(factory, collect, HolderEquals.<T> instance());
+        return collectWhile(factory, collect, HolderEquals.<T> instance());
     }
 
     /**
      * Returns a {@link Transformer} that returns an {@link Observable} that is
      * collected into {@code Collection} instances created by {@code factory}
      * that are emitted when the collection and latest emission do not satisfy
-     * {@code together} condition or on completion.
+     * {@code condition} or on completion.
      * 
      * @param factory
      *            collection instance creator
      * @param collect
      *            collection action
-     * @param together
+     * @param condition
      *            returns true if and only if emission should be collected in
      *            current collection being prepared for emission
      * @param <T>
@@ -383,14 +383,14 @@ public final class Transformers {
      *            collection type emitted by transformed Observable
      * @return transformer as above
      */
-    public static <T, R extends Collection<T>> Transformer<T, R> collectUntilChanged(
+    public static <T, R extends Collection<T>> Transformer<T, R> collectWhile(
             final Func0<R> factory, final Action2<R, ? super T> collect,
-            final Func2<? super R, ? super T, Boolean> together) {
+            final Func2<? super R, ? super T, Boolean> condition) {
         Func3<R, T, Observer<R>, R> transition = new Func3<R, T, Observer<R>, R>() {
 
             @Override
             public R call(R collection, T t, Observer<R> observer) {
-                if (together.call(collection, t)) {
+                if (condition.call(collection, t)) {
                     collect.call(collection, t);
                     return collection;
                 } else {

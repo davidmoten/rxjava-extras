@@ -60,6 +60,7 @@ public class TransformerStateMachineTest {
         assertEquals(asList(asList(1, 1, 1), asList(2, 2), asList(3)), lists);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testToListUntilChangedMultipleAtEnd() {
         Observable<Integer> o = Observable.just(1, 1, 1, 2, 2, 3, 3);
