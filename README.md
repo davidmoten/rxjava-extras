@@ -13,10 +13,11 @@ Utilities for use with rxjava:
 * `TestingHelper`
 * `Transformers.toOperator`
 * `Tranformers.mapWithIndex`
-* [`Transformers.stateMachine`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#stateMachine(State,%20rx.functions.Func3))
+* [`Transformers.stateMachine`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#stateMachine-rx.functions.Func0-rx.functions.Func3-rx.functions.Action2-)
 * `Transformers.orderedMerge`
-* [`Transformers.collectUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectUntilChanged(rx.functions.Func0,%20rx.functions.Action2))
-* [`Transformers.toListUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntilChanged())
+* [`Transformers.collectWhile`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectWhile-rx.functions.Func0-rx.functions.Action2-rx.functions.Func2-)
+* [`Transformers.toListWhile`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListWhile-rx.functions.Func2-)
+* * [`Transformers.toListUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntilChanged--)
 * `Transformers.collectStats` 
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
