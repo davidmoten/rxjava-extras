@@ -17,6 +17,7 @@ Utilities for use with rxjava:
 * `Transformers.orderedMerge`
 * [`Transformers.collectUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectUntilChanged(rx.functions.Func0,%20rx.functions.Action2))
 * [`Transformers.toListUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntilChanged())
+* `Transformers.collectStats` 
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
@@ -76,6 +77,33 @@ To write an Observable to a file:
 ```java
 Serialized.write(observable, file).subscribe();
 ```
+
+### Kryo
+`Serialized` also has support for the very fast serialization library [kryo](https://github.com/EsotericSoftware/kryo). Unlike standard Java serialization *Kryo* can also serialize/deserialize objects that don't implement `Serializable`. 
+
+Add this to your pom.xml:
+
+```xml
+<dependency>
+    <groupId>com.esotericsoftware</groupId>
+    <artifactId>kryo</artifactId>
+    <version>3.0.3</version>
+</dependency>
+```
+
+For example,
+
+To read:
+```java
+Observable<Item> items = Serialized.kryo().read(file);
+```
+
+To write:
+```java
+Serialized.write(observable, file).subscribe();
+```
+
+You can also call `Serialized.kryo(kryo)` to use an instance of `Kryo` that you have configured specially. 
 
 TestingHelper
 -----------------
