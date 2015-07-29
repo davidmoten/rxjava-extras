@@ -106,6 +106,27 @@ Serialized.write(observable, file).subscribe();
 
 You can also call `Serialized.kryo(kryo)` to use an instance of `Kryo` that you have configured specially. 
 
+Transformers.toListWhile
+---------------------------
+You may want to group emissions from an Observable into lists of variable size. This can be achieved safely using `toListWhile`.
+
+As an example from a sequence of temperatures lets group the sub-zero and zero or above temperatures into contiguous lists:
+
+```java
+Observable.just(10, 5, 2, -1, -2, -5, -1, 2, 5, 6)
+    .compose(Transformers.toListWhile( 
+        (list, t) -> list.isEmpty() 
+            || Math.signum(list.get(0)) < 0 && Math.signum(t) < 
+            || Math.signum(list.get(0)) >= 0 && Math.signum(t) >= 0)
+    .forEach(System.out::println);
+```
+produces
+```
+[10, 5, 2]
+[-1,, -2, -5, -1]
+[2, 5, 6]
+```
+
 TestingHelper
 -----------------
 For a given named test the following variations  are tested:
