@@ -7,6 +7,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
+import com.github.davidmoten.rx.operators.OperatorFromTransformer;
+import com.github.davidmoten.rx.operators.OperatorOrderedMerge;
+import com.github.davidmoten.rx.operators.TransformerStateMachine;
+import com.github.davidmoten.rx.util.MapWithIndex;
+import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
+import com.github.davidmoten.rx.util.Pair;
+
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
@@ -17,17 +25,10 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
 
-import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
-import com.github.davidmoten.rx.operators.OperatorFromTransformer;
-import com.github.davidmoten.rx.operators.OperatorOrderedMerge;
-import com.github.davidmoten.rx.operators.TransformerStateMachine;
-import com.github.davidmoten.rx.util.MapWithIndex;
-import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
-import com.github.davidmoten.rx.util.Pair;
-
 public final class Transformers {
 
-    public static <T, R> Operator<R, T> toOperator(Func1<Observable<T>, Observable<R>> function) {
+    public static <T, R> Operator<R, T> toOperator(
+            Func1<? super Observable<T>, ? extends Observable<R>> function) {
         return OperatorFromTransformer.toOperator(function);
     }
 
@@ -42,18 +43,18 @@ public final class Transformers {
     }
 
     public static <T, R extends Number> Transformer<T, Pair<T, Statistics>> collectStats(
-            final Func1<T, R> function) {
+            final Func1<? super T, ? extends R> function) {
         return new Transformer<T, Pair<T, Statistics>>() {
 
             @Override
             public Observable<Pair<T, Statistics>> call(Observable<T> source) {
                 return source.scan(Pair.create((T) null, Statistics.create()),
                         new Func2<Pair<T, Statistics>, T, Pair<T, Statistics>>() {
-                            @Override
-                            public Pair<T, Statistics> call(Pair<T, Statistics> pair, T t) {
-                                return Pair.create(t, pair.b().add(function.call(t)));
-                            }
-                        }).skip(1);
+                    @Override
+                    public Pair<T, Statistics> call(Pair<T, Statistics> pair, T t) {
+                        return Pair.create(t, pair.b().add(function.call(t)));
+                    }
+                }).skip(1);
             }
         };
     }
@@ -73,8 +74,8 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> o) {
-                return o.toSortedList(Functions.toFunc2(comparator)).flatMapIterable(
-                        Functions.<List<T>> identity());
+                return o.toSortedList(Functions.toFunc2(comparator))
+                        .flatMapIterable(Functions.<List<T>> identity());
             }
         };
     }
@@ -361,7 +362,7 @@ public final class Transformers {
      * @return transformer as above
      */
     public static <T, R extends Collection<T>> Transformer<T, R> collectWhile(
-            final Func0<R> factory, final Action2<R, ? super T> collect) {
+            final Func0<R> factory, final Action2<? super R, ? super T> collect) {
         return collectWhile(factory, collect, HolderEquals.<T> instance());
     }
 
@@ -385,7 +386,7 @@ public final class Transformers {
      * @return transformer as above
      */
     public static <T, R extends Collection<T>> Transformer<T, R> collectWhile(
-            final Func0<R> factory, final Action2<R, ? super T> collect,
+            final Func0<R> factory, final Action2<? super R, ? super T> collect,
             final Func2<? super R, ? super T, Boolean> condition) {
         Func3<R, T, Observer<R>, R> transition = new Func3<R, T, Observer<R>, R>() {
 

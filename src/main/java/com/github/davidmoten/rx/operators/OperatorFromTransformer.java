@@ -1,13 +1,13 @@
 package com.github.davidmoten.rx.operators;
 
+import com.github.davidmoten.rx.subjects.PublishSubjectSingleSubscriber;
+
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.functions.Func1;
 import rx.observers.Subscribers;
 import rx.subjects.Subject;
-
-import com.github.davidmoten.rx.subjects.PublishSubjectSingleSubscriber;
 
 /**
  * Converts an Transformer (a function converting one Observable into another)
@@ -20,14 +20,15 @@ import com.github.davidmoten.rx.subjects.PublishSubjectSingleSubscriber;
  */
 public final class OperatorFromTransformer<R, T> implements Operator<R, T> {
 
-    public static <R, T> Operator<R, T> toOperator(Func1<Observable<T>, Observable<R>> operation) {
+    public static <R, T> Operator<R, T> toOperator(
+            Func1<? super Observable<T>, ? extends Observable<R>> operation) {
         return new OperatorFromTransformer<R, T>(operation);
     }
 
     /**
      * The operation to convert.
      */
-    private final Func1<Observable<T>, Observable<R>> operation;
+    private final Func1<? super Observable<T>, ? extends Observable<R>> operation;
 
     /**
      * Constructor.
@@ -35,7 +36,8 @@ public final class OperatorFromTransformer<R, T> implements Operator<R, T> {
      * @param operation
      *            to be converted into {@link Operator}
      */
-    public OperatorFromTransformer(Func1<Observable<T>, Observable<R>> operation) {
+    public OperatorFromTransformer(
+            Func1<? super Observable<T>, ? extends Observable<R>> operation) {
         this.operation = operation;
     }
 

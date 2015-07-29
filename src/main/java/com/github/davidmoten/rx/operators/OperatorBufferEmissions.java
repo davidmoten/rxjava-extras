@@ -2,15 +2,18 @@ package com.github.davidmoten.rx.operators;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import com.github.davidmoten.rx.util.Drainer;
+import com.github.davidmoten.rx.util.DrainerSyncBiased;
+
 import rx.Observable.Operator;
 import rx.Producer;
 import rx.Subscriber;
 
-import com.github.davidmoten.rx.util.Drainer;
-import com.github.davidmoten.rx.util.DrainerSyncBiased;
-
 public final class OperatorBufferEmissions<T> implements Operator<T, T> {
 
+    /**
+     * Internal API. Use Transformers.bufferEmissions() instead.
+     */
     public OperatorBufferEmissions() {
     }
 
