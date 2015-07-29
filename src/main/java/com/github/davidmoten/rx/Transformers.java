@@ -2,7 +2,6 @@ package com.github.davidmoten.rx;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -59,7 +58,7 @@ public final class Transformers {
         };
     }
 
-    public static <T extends Comparable<T>> Transformer<T, T> sort() {
+    public static <T extends Comparable<? super T>> Transformer<T, T> sort() {
         return new Transformer<T, T>() {
 
             @Override
@@ -69,7 +68,7 @@ public final class Transformers {
         };
     }
 
-    public static <T> Transformer<T, T> sort(final Comparator<T> comparator) {
+    public static <T> Transformer<T, T> sort(final Comparator<? super T> comparator) {
         return new Transformer<T, T>() {
 
             @Override
@@ -85,11 +84,17 @@ public final class Transformers {
 
             @Override
             public Observable<Set<T>> call(Observable<T> o) {
-                return o.toList().map(new Func1<List<T>, Set<T>>() {
+                return o.collect(new Func0<Set<T>>() {
 
                     @Override
-                    public Set<T> call(List<T> list) {
-                        return Collections.unmodifiableSet(new HashSet<T>(list));
+                    public Set<T> call() {
+                        return new HashSet<T>();
+                    }
+                }, new Action2<Set<T>, T>() {
+
+                    @Override
+                    public void call(Set<T> set, T t) {
+                        set.add(t);
                     }
                 });
             }
@@ -138,8 +143,9 @@ public final class Transformers {
      *         machine specified by the parameters
      */
     public static <State, In, Out> Transformer<In, Out> stateMachine(
-            Func0<State> initialStateFactory, Func3<State, In, Observer<Out>, State> transition,
-            Action2<State, Observer<Out>> completionAction) {
+            Func0<State> initialStateFactory,
+            Func3<? super State, ? super In, ? super Observer<Out>, ? extends State> transition,
+            Action2<? super State, ? super Observer<Out>> completionAction) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completionAction);
     }
@@ -181,8 +187,8 @@ public final class Transformers {
      *         machine specified by the parameters
      */
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
-            Func3<State, In, Observer<Out>, State> transition,
-            Action2<State, Observer<Out>> completionAction) {
+            Func3<? super State, ? super In, ? super Observer<Out>, ? extends State> transition,
+            Action2<? super State, ? super Observer<Out>> completionAction) {
         Func0<State> f = Functions.constant0(initialState);
         return TransformerStateMachine.<State, In, Out> create(f, transition, completionAction);
     }
@@ -220,7 +226,7 @@ public final class Transformers {
      *         machine specified by the parameters
      */
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
-            Func3<State, In, Observer<Out>, State> transition) {
+            Func3<? super State, ? super In, ? super Observer<Out>, ? extends State> transition) {
         Func0<State> f = Functions.constant0(initialState);
         return TransformerStateMachine.<State, In, Out> create(f, transition,
                 new Action2<State, Observer<Out>>() {

@@ -18,12 +18,12 @@ import com.github.davidmoten.util.Preconditions;
 public final class TransformerStateMachine<State, In, Out> implements Transformer<In, Out> {
 
     private final Func0<State> initialState;
-    private final Func3<State, In, Observer<Out>, State> transition;
-    private final Action2<State, Observer<Out>> completionAction;
+    private final Func3<? super State, ? super In, ? super Observer<Out>, ? extends State> transition;
+    private final Action2<? super State, ? super Observer<Out>> completionAction;
 
     private TransformerStateMachine(Func0<State> initialState,
-            Func3<State, In, Observer<Out>, State> transition,
-            Action2<State, Observer<Out>> completionAction) {
+            Func3<? super State, ? super In, ? super Observer<Out>, ? extends State> transition,
+            Action2<? super State, ? super Observer<Out>> completionAction) {
         Preconditions.checkNotNull(initialState);
         Preconditions.checkNotNull(transition);
         Preconditions.checkNotNull(completionAction);
@@ -33,8 +33,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     }
 
     public static <State, In, Out> Transformer<In, Out> create(Func0<State> initialState,
-            Func3<State, In, Observer<Out>, State> transition,
-            Action2<State, Observer<Out>> completionAction) {
+            Func3<? super State, ? super In, ? super Observer<Out>, ? extends State> transition,
+            Action2<? super State, ? super Observer<Out>> completionAction) {
         return new TransformerStateMachine<State, In, Out>(initialState, transition,
                 completionAction);
     }
