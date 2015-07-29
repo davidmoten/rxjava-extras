@@ -133,4 +133,15 @@ public class OperatorBufferEmissionsTest {
         ts.assertValues(1, 2, 3);
         ts.assertError(RuntimeException.class);
     }
+
+    @Test
+    public void testBackpressureOneByOne() {
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>(0);
+        Observable.just(1, 2, 3).compose(Transformers.<Integer> bufferEmissions()).subscribe(ts);
+        ts.assertNoValues();
+        ts.requestMore(1);
+        ts.assertValues(1);
+        ts.requestMore(1);
+        ts.assertValues(1, 2);
+    }
 }

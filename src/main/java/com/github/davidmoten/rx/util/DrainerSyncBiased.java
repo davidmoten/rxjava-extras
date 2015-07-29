@@ -155,6 +155,7 @@ public final class DrainerSyncBiased<T> implements Drainer<T> {
                 if (r > 0) {
                     Object o = queue.poll();
                     if (o != null) {
+                        surplus--;
                         child.onNext((T) on.getValue(o));
                         r--;
                         emitted++;
