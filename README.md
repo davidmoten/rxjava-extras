@@ -127,6 +127,10 @@ produces
 [2, 5, 6]
 ```
 
+Tranformers.collectWhile
+-------------------------
+Behaves as per `toListWhile` but allows control over the data structure used. 
+
 TestingHelper
 -----------------
 For a given named test the following variations  are tested:
