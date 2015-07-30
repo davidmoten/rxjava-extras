@@ -116,7 +116,7 @@ As an example from a sequence of temperatures lets group the sub-zero and zero o
 Observable.just(10, 5, 2, -1, -2, -5, -1, 2, 5, 6)
     .compose(Transformers.toListWhile( 
         (list, t) -> list.isEmpty() 
-            || Math.signum(list.get(0)) < 0 && Math.signum(t) < 
+            || Math.signum(list.get(0)) < 0 && Math.signum(t) < 0
             || Math.signum(list.get(0)) >= 0 && Math.signum(t) >= 0)
     .forEach(System.out::println);
 ```
