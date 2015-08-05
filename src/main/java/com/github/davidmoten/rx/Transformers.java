@@ -1,11 +1,14 @@
 package com.github.davidmoten.rx;
 
+import static rx.Observable.just;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.operators.OperatorFromTransformer;
@@ -19,6 +22,7 @@ import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Observer;
+import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
@@ -415,4 +419,83 @@ public final class Transformers {
         return Transformers.stateMachine(factory, transition, completionAction);
     }
 
+    public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
+            final long firstWaitMs, final Action1<ErrorAndWait> action) {
+        // create exponentially increasing waits
+        final Observable<Long> waits = Observable.range(1, numRetries)
+                // make exponential
+                .map(new Func1<Integer, Long>() {
+                    @Override
+                    public Long call(Integer n) {
+                        return (long) Math.pow(2, n - 1) * firstWaitMs;
+                    }
+                });
+        final Action1<ErrorAndWait> action2 = new Action1<ErrorAndWait>() {
+
+            @Override
+            public void call(ErrorAndWait e) {
+                if (e.waitMs() != -1)
+                    action.call(e);
+            }
+
+        };
+        return new Transformer<T, T>() {
+
+            @Override
+            public Observable<T> call(Observable<T> source) {
+                return source
+                        .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
+
+                    @Override
+                    public Observable<ErrorAndWait> call(Observable<? extends Throwable> errors) {
+
+                        return errors
+                                // zip with waits
+                                .zipWith(waits.concatWith(just(-1L)), ErrorAndWait.toErrorAndWait)
+                                // perform user action (for example log that a
+                                // wait is happening)
+                                .doOnNext(action2)
+                                // wait the time in ErrorAndWait
+                                .flatMap(ErrorAndWait.wait);
+                    }
+                });
+            }
+        };
+    }
+
+    public static class ErrorAndWait {
+        private final Throwable throwable;
+        private final long waitMs;
+
+        ErrorAndWait(Throwable throwable, long waitMs) {
+            this.throwable = throwable;
+            this.waitMs = waitMs;
+        }
+
+        public Throwable throwable() {
+            return throwable;
+        }
+
+        public long waitMs() {
+            return waitMs;
+        }
+
+        static Func2<Throwable, Long, ErrorAndWait> toErrorAndWait = new Func2<Throwable, Long, ErrorAndWait>() {
+            @Override
+            public ErrorAndWait call(Throwable throwable, Long waitMs) {
+                return new ErrorAndWait(throwable, waitMs);
+            }
+        };
+
+        static Func1<ErrorAndWait, Observable<ErrorAndWait>> wait = new Func1<ErrorAndWait, Observable<ErrorAndWait>>() {
+            @Override
+            public Observable<ErrorAndWait> call(ErrorAndWait e) {
+                if (e.waitMs == -1)
+                    return Observable.error(e.throwable);
+                else
+                    return Observable.timer(e.waitMs, TimeUnit.MILLISECONDS)
+                            .map(Functions.constant(e));
+            }
+        };
+    }
 }
