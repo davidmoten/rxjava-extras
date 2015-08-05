@@ -424,38 +424,8 @@ public final class Transformers {
      * Returns a Transformer that on the source emitting an error suppresses
      * emission of the error and resubscribes to the source (retries) a maximum
      * of {@code numRetries} times and waits the interval determined by
-     * {@code firstWait} and {@code unit} before attempting resubscribe. The
-     * retry wait for the nth retry is given by {@code firstWait * 2^(n-1)}. If
-     * max retries is reached then the error is emitted.
-     * 
-     * @param numRetries
-     *            number of resubscriptions before an upstream error is emitted
-     *            to downstream
-     * @param firstWait
-     *            the first wait time before retry is attempted.
-     * @param unit
-     *            the unit for {@code firstWait}
-     * @return a Transformer that retries with exponential backoff
-     */
-    public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWait, final TimeUnit unit) {
-        Preconditions.checkArgument(numRetries >= 0, "numRetries must be >=0");
-        Preconditions.checkArgument(firstWait >= 0, "firstWait should be >=0");
-        Preconditions.checkNotNull(unit, "unit cannot be null");
-        return retryExponentialBackoff(numRetries, firstWait, unit, new Action1<ErrorAndWait>() {
-            @Override
-            public void call(ErrorAndWait t) {
-                // ignore
-            }
-        });
-    }
-
-    /**
-     * Returns a Transformer that on the source emitting an error suppresses
-     * emission of the error and resubscribes to the source (retries) a maximum
-     * of {@code numRetries} times and waits the interval determined by
-     * {@code firstWait} and {@code unit} before attempting resubscribe. The
-     * retry wait for the nth retry is given by {@code firstWait * 2^(n-1)}. If
+     * {@code waits} and {@code unit} before attempting resubscribe. The retry
+     * wait for the nth retry is given by the nth emission of {@code waits}. If
      * max retries is reached then the error is emitted.
      * 
      * @param numRetries
@@ -476,6 +446,7 @@ public final class Transformers {
         Preconditions.checkNotNull(waits, "waits cannot be null");
         Preconditions.checkNotNull(unit, "unit cannot be null");
         Preconditions.checkNotNull(action, "action cannot be null");
+
         final Action1<ErrorAndWait> action2 = new Action1<ErrorAndWait>() {
 
             @Override
@@ -531,6 +502,51 @@ public final class Transformers {
         };
     }
 
+    /**
+     * Returns a {@link Transformer} that on the source emitting an error
+     * suppresses emission of the error and resubscribes to the source (retries)
+     * a maximum of {@code numRetries} times and waits the interval determined
+     * by {@code firstWait} and {@code unit} before attempting resubscribe. The
+     * retry wait for the nth retry is given by {@code firstWait * 2^(n-1)}. If
+     * max retries is reached then the error is emitted.
+     * 
+     * @param numRetries
+     *            number of resubscriptions before an upstream error is emitted
+     *            to downstream
+     * @param firstWait
+     *            the first wait time before retry is attempted.
+     * @param unit
+     *            the unit for {@code firstWait}
+     * @return a Transformer that retries with exponential backoff
+     */
+    public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
+            final long firstWait, final TimeUnit unit) {
+        Preconditions.checkArgument(numRetries >= 0, "numRetries must be >=0");
+        Preconditions.checkArgument(firstWait >= 0, "firstWait should be >=0");
+        Preconditions.checkNotNull(unit, "unit cannot be null");
+        return retryExponentialBackoff(numRetries, firstWait, unit, Actions.doNothing1());
+    }
+
+    /**
+     * Returns a {@link Transformer} that on the source emitting an error
+     * suppresses emission of the error and resubscribes to the source (retries)
+     * a maximum of {@code numRetries} times and waits the interval determined
+     * by {@code firstWait} and {@code unit} before attempting resubscribe. The
+     * retry wait for the nth retry is given by {@code firstWait * 2^(n-1)}. If
+     * max retries is reached then the error is emitted.
+     * 
+     * @param numRetries
+     *            number of resubscriptions before an upstream error is emitted
+     *            to downstream
+     * @param firstWait
+     *            the first wait time before retry is attempted.
+     * @param unit
+     *            the unit for {@code firstWait}
+     * @param action
+     *            when a wait occurs this action provides an opportunity to for
+     *            example log the wait occurring
+     * @return a Transformer that retries with exponential backoff
+     */
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
             final long firstWait, final TimeUnit unit, final Action1<? super ErrorAndWait> action) {
         Preconditions.checkArgument(numRetries >= 0, "numRetries must be >=0");
@@ -548,11 +564,15 @@ public final class Transformers {
         return retryCustomBackoff(waits, TimeUnit.MILLISECONDS, action);
     }
 
+    /**
+     * Holds a throwable and an associated wait time.
+     *
+     */
     public static class ErrorAndWait {
         private final Throwable throwable;
         private final long waitMs;
 
-        ErrorAndWait(Throwable throwable, long waitMs) {
+        public ErrorAndWait(Throwable throwable, long waitMs) {
             this.throwable = throwable;
             this.waitMs = waitMs;
         }
