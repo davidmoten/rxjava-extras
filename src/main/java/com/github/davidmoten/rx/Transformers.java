@@ -420,16 +420,17 @@ public final class Transformers {
     }
 
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWaitMs, final Action1<ErrorAndWait> action) {
-        // create exponentially increasing waits
-        final Observable<Long> waits = Observable.range(1, numRetries)
-                // make exponential
-                .map(new Func1<Integer, Long>() {
-                    @Override
-                    public Long call(Integer n) {
-                        return (long) Math.pow(2, n - 1) * firstWaitMs;
-                    }
-                });
+            final long firstWait, final TimeUnit unit) {
+        return retryExponentialBackoff(numRetries, firstWait, unit, new Action1<ErrorAndWait>() {
+            @Override
+            public void call(ErrorAndWait t) {
+                // ignore
+            }
+        });
+    }
+
+    public static <T> Transformer<T, T> retryCustomBackoff(final Observable<Long> waits,
+            TimeUnit unit, final Action1<ErrorAndWait> action) {
         final Action1<ErrorAndWait> action2 = new Action1<ErrorAndWait>() {
 
             @Override
@@ -461,6 +462,20 @@ public final class Transformers {
                 });
             }
         };
+    }
+
+    public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
+            final long firstWait, final TimeUnit unit, final Action1<ErrorAndWait> action) {
+        // create exponentially increasing waits
+        final Observable<Long> waits = Observable.range(1, numRetries)
+                // make exponential
+                .map(new Func1<Integer, Long>() {
+                    @Override
+                    public Long call(Integer n) {
+                        return (long) Math.pow(2, n - 1) * unit.toMillis(firstWait);
+                    }
+                });
+        return retryCustomBackoff(waits, unit, action);
     }
 
     public static class ErrorAndWait {

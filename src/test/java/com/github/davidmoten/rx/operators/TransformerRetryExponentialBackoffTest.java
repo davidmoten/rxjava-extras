@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx.operators;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Transformers;
@@ -27,14 +29,15 @@ public class TransformerRetryExponentialBackoffTest {
                 // force error after 3 emissions
                 .concatWith(Observable.<Integer> error(ex))
                 // retry with backoff
-                .compose(Transformers.<Integer> retryExponentialBackoff(2, 1000, log))
+                .compose(Transformers.<Integer> retryExponentialBackoff(5, 10,
+                        TimeUnit.MILLISECONDS, log))
                 // go
                 .subscribe(ts);
 
         // check results
         ts.awaitTerminalEvent();
         ts.assertError(ex);
-        ts.assertValues(1, 2, 3, 1, 2, 3, 1, 2, 3);
+        ts.assertValues(1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3);
     }
 
 }
