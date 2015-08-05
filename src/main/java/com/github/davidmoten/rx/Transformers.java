@@ -17,6 +17,7 @@ import com.github.davidmoten.rx.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;
+import com.github.davidmoten.util.Preconditions;
 
 import rx.Observable;
 import rx.Observable.Operator;
@@ -419,8 +420,28 @@ public final class Transformers {
         return Transformers.stateMachine(factory, transition, completionAction);
     }
 
+    /**
+     * Returns a Transformer that on the source emitting an error suppresses
+     * emission of the error and resubscribes to the source (retries) a maximum
+     * of {@code numRetries} times and waits the interval determined by
+     * {@code firstWait} and {@code unit} before attempting resubscribe. The
+     * retry wait for the nth retry is given by {@code firstWait * 2^(n-1)}. If
+     * max retries is reached then the error is emitted.
+     * 
+     * @param numRetries
+     *            number of resubscriptions before an upstream error is emitted
+     *            to downstream
+     * @param firstWait
+     *            the first wait time before retry is attempted.
+     * @param unit
+     *            the unit for {@code firstWait}
+     * @return a Transformer that retries with exponential backoff
+     */
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
             final long firstWait, final TimeUnit unit) {
+        Preconditions.checkArgument(numRetries >= 0, "numRetries must be >=0");
+        Preconditions.checkArgument(firstWait >= 0, "firstWait should be >=0");
+        Preconditions.checkNotNull(unit, "unit cannot be null");
         return retryExponentialBackoff(numRetries, firstWait, unit, new Action1<ErrorAndWait>() {
             @Override
             public void call(ErrorAndWait t) {
@@ -429,8 +450,32 @@ public final class Transformers {
         });
     }
 
+    /**
+     * Returns a Transformer that on the source emitting an error suppresses
+     * emission of the error and resubscribes to the source (retries) a maximum
+     * of {@code numRetries} times and waits the interval determined by
+     * {@code firstWait} and {@code unit} before attempting resubscribe. The
+     * retry wait for the nth retry is given by {@code firstWait * 2^(n-1)}. If
+     * max retries is reached then the error is emitted.
+     * 
+     * @param numRetries
+     *            number of resubscriptions before an upstream error is emitted
+     *            to downstream
+     * @param waits
+     *            the time to wait before each retry. Negative and null values
+     *            are treated as zeroes.
+     * @param unit
+     *            the unit for the values in {@code waits}
+     * @param action
+     *            when a wait occurs this action provides an opportunity to for
+     *            example log the wait occurring
+     * @return a Transformer that retries with exponential backoff
+     */
     public static <T> Transformer<T, T> retryCustomBackoff(final Observable<Long> waits,
-            TimeUnit unit, final Action1<ErrorAndWait> action) {
+            final TimeUnit unit, final Action1<? super ErrorAndWait> action) {
+        Preconditions.checkNotNull(waits, "waits cannot be null");
+        Preconditions.checkNotNull(unit, "unit cannot be null");
+        Preconditions.checkNotNull(action, "action cannot be null");
         final Action1<ErrorAndWait> action2 = new Action1<ErrorAndWait>() {
 
             @Override
@@ -449,10 +494,11 @@ public final class Transformers {
 
                     @Override
                     public Observable<ErrorAndWait> call(Observable<? extends Throwable> errors) {
-
+                        Observable<Long> waitsMs = waits.map(negativeAndNullToZero)
+                                .map(toMillis(unit)).concatWith(just(-1L));
                         return errors
                                 // zip with waits
-                                .zipWith(waits.concatWith(just(-1L)), ErrorAndWait.toErrorAndWait)
+                                .zipWith(waitsMs, ErrorAndWait.toErrorAndWait)
                                 // perform user action (for example log that a
                                 // wait is happening)
                                 .doOnNext(action2)
@@ -464,8 +510,32 @@ public final class Transformers {
         };
     }
 
+    private static final Func1<Long, Long> negativeAndNullToZero = new Func1<Long, Long>() {
+
+        @Override
+        public Long call(Long t) {
+            if (t == null || t < 0)
+                return 0L;
+            else
+                return t;
+        }
+    };
+
+    private static final Func1<Long, Long> toMillis(final TimeUnit unit) {
+        return new Func1<Long, Long>() {
+
+            @Override
+            public Long call(Long t) {
+                return t * unit.toMillis(1);
+            }
+        };
+    }
+
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWait, final TimeUnit unit, final Action1<ErrorAndWait> action) {
+            final long firstWait, final TimeUnit unit, final Action1<? super ErrorAndWait> action) {
+        Preconditions.checkArgument(numRetries >= 0, "numRetries must be >=0");
+        Preconditions.checkArgument(firstWait >= 0, "firstWait must be >=0");
+        Preconditions.checkNotNull(unit, "unit cannot be null");
         // create exponentially increasing waits
         final Observable<Long> waits = Observable.range(1, numRetries)
                 // make exponential
@@ -475,7 +545,7 @@ public final class Transformers {
                         return (long) Math.pow(2, n - 1) * unit.toMillis(firstWait);
                     }
                 });
-        return retryCustomBackoff(waits, unit, action);
+        return retryCustomBackoff(waits, TimeUnit.MILLISECONDS, action);
     }
 
     public static class ErrorAndWait {
