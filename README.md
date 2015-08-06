@@ -131,6 +131,8 @@ Tranformers.collectWhile
 -------------------------
 Behaves as per `toListWhile` but allows control over the data structure used. 
 
+<img src="src/docs/collectWhile.png?raw=true" />
+
 TestingHelper
 -----------------
 For a given named test the following variations  are tested:
