@@ -5,11 +5,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
-
-import com.google.common.util.concurrent.AtomicDouble;
 
 public class ActionsTest {
 
@@ -21,10 +20,10 @@ public class ActionsTest {
     }
 
     @Test
-    public void testAtomicDouble() {
-        AtomicDouble a = new AtomicDouble();
-        Actions.setAtomic(a).call(1.0);
-        assertEquals(1.0, a.get(), 0.0001);
+    public void testAtomicLong() {
+        AtomicLong a = new AtomicLong();
+        Actions.setAtomic(a).call(1L);
+        assertEquals(1, a.get());
     }
 
     @Test

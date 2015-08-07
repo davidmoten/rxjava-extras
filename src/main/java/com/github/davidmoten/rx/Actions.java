@@ -2,9 +2,8 @@ package com.github.davidmoten.rx;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-
-import com.google.common.util.concurrent.AtomicDouble;
 
 import rx.functions.Action1;
 
@@ -20,11 +19,11 @@ public final class Actions {
         };
     }
 
-    public static Action1<Double> setAtomic(final AtomicDouble a) {
-        return new Action1<Double>() {
+    public static Action1<Long> setAtomic(final AtomicLong a) {
+        return new Action1<Long>() {
 
             @Override
-            public void call(Double t) {
+            public void call(Long t) {
                 a.set(t);
             }
         };
