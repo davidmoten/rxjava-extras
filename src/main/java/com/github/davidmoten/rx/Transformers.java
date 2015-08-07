@@ -457,8 +457,7 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> source) {
-                return source
-                        .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
+                Func1<Observable<? extends Throwable>, Observable<?>> notificationHandler = new Func1<Observable<? extends Throwable>, Observable<?>>() {
 
                     @Override
                     public Observable<ErrorAndWait> call(Observable<? extends Throwable> errors) {
@@ -472,7 +471,8 @@ public final class Transformers {
                                 // wait the time in ErrorAndWait
                                 .flatMap(ErrorAndWait.wait);
                     }
-                });
+                };
+                return source.retryWhen(notificationHandler);
             }
         };
     }
