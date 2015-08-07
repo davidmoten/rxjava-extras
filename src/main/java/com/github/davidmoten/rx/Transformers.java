@@ -23,6 +23,7 @@ import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Observer;
+import rx.Scheduler;
 import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func0;
@@ -421,8 +422,9 @@ public final class Transformers {
     }
 
     public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
-            Action1<? super ErrorAndWait> action) {
-        return retryCustomBackoff(Observable.just(wait).repeat(numRetries), unit, action);
+            Action1<? super ErrorAndWait> action, final Scheduler scheduler) {
+        return retryCustomBackoff(Observable.just(wait).repeat(numRetries), unit, action,
+                scheduler);
     }
 
     private static final Action1<Object> DO_NOTHING = new Action1<Object>() {
@@ -433,17 +435,19 @@ public final class Transformers {
         }
     };
 
-    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit) {
-        return retryCustomBackoff(Observable.just(wait).repeat(numRetries), unit, DO_NOTHING);
+    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
+            final Scheduler scheduler) {
+        return retryCustomBackoff(Observable.just(wait).repeat(numRetries), unit, DO_NOTHING,
+                scheduler);
     }
 
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWait, final TimeUnit unit) {
-        return retryExponentialBackoff(numRetries, firstWait, unit, DO_NOTHING);
+            final long firstWait, final TimeUnit unit, final Scheduler scheduler) {
+        return retryExponentialBackoff(numRetries, firstWait, unit, DO_NOTHING, scheduler);
     }
 
     public static <T> Transformer<T, T> retryCustomBackoff(final Observable<Long> waits,
-            TimeUnit unit, final Action1<? super ErrorAndWait> action) {
+            TimeUnit unit, final Action1<? super ErrorAndWait> action, final Scheduler scheduler) {
         final Action1<ErrorAndWait> action2 = new Action1<ErrorAndWait>() {
 
             @Override
@@ -469,7 +473,7 @@ public final class Transformers {
                                 // wait is happening)
                                 .doOnNext(action2)
                                 // wait the time in ErrorAndWait
-                                .flatMap(ErrorAndWait.wait);
+                                .flatMap(Transformers.wait(scheduler));
                     }
                 };
                 return source.retryWhen(notificationHandler);
@@ -478,7 +482,8 @@ public final class Transformers {
     }
 
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWait, final TimeUnit unit, final Action1<? super ErrorAndWait> action) {
+            final long firstWait, final TimeUnit unit, final Action1<? super ErrorAndWait> action,
+            final Scheduler scheduler) {
         // create exponentially increasing waits
         final Observable<Long> waits = Observable.range(1, numRetries)
                 // make exponential
@@ -488,7 +493,7 @@ public final class Transformers {
                         return (long) Math.pow(2, n - 1) * unit.toMillis(firstWait);
                     }
                 });
-        return retryCustomBackoff(waits, unit, action);
+        return retryCustomBackoff(waits, unit, action, scheduler);
     }
 
     public static class ErrorAndWait {
@@ -515,13 +520,16 @@ public final class Transformers {
             }
         };
 
-        static Func1<ErrorAndWait, Observable<ErrorAndWait>> wait = new Func1<ErrorAndWait, Observable<ErrorAndWait>>() {
+    }
+
+    private static Func1<ErrorAndWait, Observable<ErrorAndWait>> wait(final Scheduler scheduler) {
+        return new Func1<ErrorAndWait, Observable<ErrorAndWait>>() {
             @Override
             public Observable<ErrorAndWait> call(ErrorAndWait e) {
                 if (e.waitMs == -1)
                     return Observable.error(e.throwable);
                 else
-                    return Observable.timer(e.waitMs, TimeUnit.MILLISECONDS)
+                    return Observable.timer(e.waitMs, TimeUnit.MILLISECONDS, scheduler)
                             .map(Functions.constant(e));
             }
         };
