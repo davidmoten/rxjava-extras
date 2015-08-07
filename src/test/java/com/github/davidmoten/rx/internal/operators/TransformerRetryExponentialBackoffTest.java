@@ -10,7 +10,6 @@ import com.github.davidmoten.rx.Transformers.ErrorAndWait;
 import rx.Observable;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
-import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
 public class TransformerRetryExponentialBackoffTest {
@@ -32,7 +31,7 @@ public class TransformerRetryExponentialBackoffTest {
                 .concatWith(Observable.<Integer> error(ex))
                 // retry with backoff
                 .compose(Transformers.<Integer> retryExponentialBackoff(5, 10,
-                        TimeUnit.MILLISECONDS, log, Schedulers.computation()))
+                        TimeUnit.MILLISECONDS, log))
                 // go
                 .subscribe(ts);
 

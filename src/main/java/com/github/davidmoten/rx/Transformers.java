@@ -30,6 +30,7 @@ import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
+import rx.schedulers.Schedulers;
 
 public final class Transformers {
 
@@ -423,31 +424,31 @@ public final class Transformers {
 
     public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
             Action1<? super ErrorAndWait> action, final Scheduler scheduler) {
-        return retryCustomBackoff(Observable.just(wait).repeat(numRetries), unit, action,
-                scheduler);
+        return retry(Observable.just(wait).repeat(numRetries), unit, action, scheduler);
     }
 
-    private static final Action1<Object> DO_NOTHING = new Action1<Object>() {
-
-        @Override
-        public void call(Object t) {
-            // do nothing
-        }
-    };
+    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
+            Action1<? super ErrorAndWait> action) {
+        return retry(numRetries, wait, unit, action, Schedulers.computation());
+    }
 
     public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
             final Scheduler scheduler) {
-        return retryCustomBackoff(Observable.just(wait).repeat(numRetries), unit, DO_NOTHING,
+        return retry(Observable.just(wait).repeat(numRetries), unit, Actions.doNothing1(),
                 scheduler);
     }
 
-    public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWait, final TimeUnit unit, final Scheduler scheduler) {
-        return retryExponentialBackoff(numRetries, firstWait, unit, DO_NOTHING, scheduler);
+    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit) {
+        return retry(numRetries, wait, unit, Schedulers.computation());
     }
 
-    public static <T> Transformer<T, T> retryCustomBackoff(final Observable<Long> waits,
-            TimeUnit unit, final Action1<? super ErrorAndWait> action, final Scheduler scheduler) {
+    public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit,
+            final Action1<? super ErrorAndWait> action) {
+        return retry(waits, unit, action, Schedulers.computation());
+    }
+
+    public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit,
+            final Action1<? super ErrorAndWait> action, final Scheduler scheduler) {
         final Action1<ErrorAndWait> action2 = new Action1<ErrorAndWait>() {
 
             @Override
@@ -482,6 +483,17 @@ public final class Transformers {
     }
 
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
+            final long firstWait, final TimeUnit unit, final Scheduler scheduler) {
+        return retryExponentialBackoff(numRetries, firstWait, unit, DO_NOTHING, scheduler);
+    }
+
+    public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
+            final long firstWait, final TimeUnit unit, final Action1<? super ErrorAndWait> action) {
+        return retryExponentialBackoff(numRetries, firstWait, unit, action,
+                Schedulers.computation());
+    }
+
+    public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
             final long firstWait, final TimeUnit unit, final Action1<? super ErrorAndWait> action,
             final Scheduler scheduler) {
         // create exponentially increasing waits
@@ -493,7 +505,7 @@ public final class Transformers {
                         return (long) Math.pow(2, n - 1) * unit.toMillis(firstWait);
                     }
                 });
-        return retryCustomBackoff(waits, unit, action, scheduler);
+        return retry(waits, unit, action, scheduler);
     }
 
     public static class ErrorAndWait {
@@ -519,7 +531,6 @@ public final class Transformers {
                 return new ErrorAndWait(throwable, waitMs);
             }
         };
-
     }
 
     private static Func1<ErrorAndWait, Observable<ErrorAndWait>> wait(final Scheduler scheduler) {
