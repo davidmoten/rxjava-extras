@@ -10,15 +10,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
-import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
-import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
-import com.github.davidmoten.rx.internal.operators.OperatorOrderedMerge;
-import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
-import com.github.davidmoten.rx.util.MapWithIndex;
-import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
-import com.github.davidmoten.rx.util.Pair;
-
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
@@ -31,6 +22,16 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
 import rx.schedulers.Schedulers;
+
+import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
+import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
+import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
+import com.github.davidmoten.rx.internal.operators.OperatorOrderedMerge;
+import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
+import com.github.davidmoten.rx.util.MapWithIndex;
+import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
+import com.github.davidmoten.rx.util.Pair;
+import com.github.davidmoten.util.ErrorAndDuration;
 
 public final class Transformers {
 
@@ -57,11 +58,11 @@ public final class Transformers {
             public Observable<Pair<T, Statistics>> call(Observable<T> source) {
                 return source.scan(Pair.create((T) null, Statistics.create()),
                         new Func2<Pair<T, Statistics>, T, Pair<T, Statistics>>() {
-                    @Override
-                    public Pair<T, Statistics> call(Pair<T, Statistics> pair, T t) {
-                        return Pair.create(t, pair.b().add(function.call(t)));
-                    }
-                }).skip(1);
+                            @Override
+                            public Pair<T, Statistics> call(Pair<T, Statistics> pair, T t) {
+                                return Pair.create(t, pair.b().add(function.call(t)));
+                            }
+                        }).skip(1);
             }
         };
     }
@@ -81,8 +82,8 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> o) {
-                return o.toSortedList(Functions.toFunc2(comparator))
-                        .flatMapIterable(Functions.<List<T>> identity());
+                return o.toSortedList(Functions.toFunc2(comparator)).flatMapIterable(
+                        Functions.<List<T>> identity());
             }
         };
     }
@@ -422,14 +423,8 @@ public final class Transformers {
         return Transformers.stateMachine(factory, transition, completionAction);
     }
 
-    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
-            Action1<? super ErrorAndWait> action, final Scheduler scheduler) {
-        return retry(Observable.just(wait).repeat(numRetries), unit, action, scheduler);
-    }
-
-    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
-            Action1<? super ErrorAndWait> action) {
-        return retry(numRetries, wait, unit, action, Schedulers.computation());
+    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit) {
+        return retry(numRetries, wait, unit, Schedulers.computation());
     }
 
     public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
@@ -438,22 +433,36 @@ public final class Transformers {
                 scheduler);
     }
 
-    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit) {
-        return retry(numRetries, wait, unit, Schedulers.computation());
+    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
+            Action1<? super ErrorAndDuration> action) {
+        return retry(numRetries, wait, unit, action, Schedulers.computation());
+    }
+
+    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
+            Action1<? super ErrorAndDuration> action, final Scheduler scheduler) {
+        return retry(Observable.just(wait).repeat(numRetries), unit, action, scheduler);
+    }
+    
+    public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit) {
+        return retry(waits, unit, Actions.doNothing1(), Schedulers.computation());
+    }
+
+    public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit, Scheduler scheduler) {
+        return retry(waits, unit, Actions.doNothing1(), scheduler);
     }
 
     public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit,
-            final Action1<? super ErrorAndWait> action) {
+            final Action1<? super ErrorAndDuration> action) {
         return retry(waits, unit, action, Schedulers.computation());
     }
 
     public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit,
-            final Action1<? super ErrorAndWait> action, final Scheduler scheduler) {
-        final Action1<ErrorAndWait> action2 = new Action1<ErrorAndWait>() {
+            final Action1<? super ErrorAndDuration> action, final Scheduler scheduler) {
+        final Action1<ErrorAndDuration> action2 = new Action1<ErrorAndDuration>() {
 
             @Override
-            public void call(ErrorAndWait e) {
-                if (e.waitMs() != -1)
+            public void call(ErrorAndDuration e) {
+                if (e.durationMs() != -1)
                     action.call(e);
             }
 
@@ -465,11 +474,11 @@ public final class Transformers {
                 Func1<Observable<? extends Throwable>, Observable<?>> notificationHandler = new Func1<Observable<? extends Throwable>, Observable<?>>() {
 
                     @Override
-                    public Observable<ErrorAndWait> call(Observable<? extends Throwable> errors) {
+                    public Observable<ErrorAndDuration> call(Observable<? extends Throwable> errors) {
 
                         return errors
-                                // zip with waits
-                                .zipWith(waits.concatWith(just(-1L)), ErrorAndWait.toErrorAndWait)
+                        // zip with waits, use -1 to signal completion
+                                .zipWith(waits.concatWith(just(NO_MORE_WAITS)), TO_ERROR_AND_WAIT)
                                 // perform user action (for example log that a
                                 // wait is happening)
                                 .doOnNext(action2)
@@ -482,24 +491,32 @@ public final class Transformers {
         };
     }
 
+    private final static long NO_MORE_WAITS = -1;
+
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWait, final TimeUnit unit, final Scheduler scheduler) {
+            final long firstWait, final TimeUnit unit) {
         return retryExponentialBackoff(numRetries, firstWait, unit, Actions.doNothing1(),
-                scheduler);
+                Schedulers.computation());
     }
 
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWait, final TimeUnit unit, final Action1<? super ErrorAndWait> action) {
+            final long firstWait, final TimeUnit unit, final Scheduler scheduler) {
+        return retryExponentialBackoff(numRetries, firstWait, unit, Actions.doNothing1(), scheduler);
+    }
+
+    public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
+            final long firstWait, final TimeUnit unit,
+            final Action1<? super ErrorAndDuration> action) {
         return retryExponentialBackoff(numRetries, firstWait, unit, action,
                 Schedulers.computation());
     }
 
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWait, final TimeUnit unit, final Action1<? super ErrorAndWait> action,
-            final Scheduler scheduler) {
+            final long firstWait, final TimeUnit unit,
+            final Action1<? super ErrorAndDuration> action, final Scheduler scheduler) {
         // create exponentially increasing waits
         final Observable<Long> waits = Observable.range(1, numRetries)
-                // make exponential
+        // make exponential
                 .map(new Func1<Integer, Long>() {
                     @Override
                     public Long call(Integer n) {
@@ -509,43 +526,26 @@ public final class Transformers {
         return retry(waits, unit, action, scheduler);
     }
 
-    public static class ErrorAndWait {
-        private final Throwable throwable;
-        private final long waitMs;
-
-        ErrorAndWait(Throwable throwable, long waitMs) {
-            this.throwable = throwable;
-            this.waitMs = waitMs;
-        }
-
-        public Throwable throwable() {
-            return throwable;
-        }
-
-        public long waitMs() {
-            return waitMs;
-        }
-
-        static Func2<Throwable, Long, ErrorAndWait> toErrorAndWait = new Func2<Throwable, Long, ErrorAndWait>() {
+    private static Func1<ErrorAndDuration, Observable<ErrorAndDuration>> wait(
+            final Scheduler scheduler) {
+        return new Func1<ErrorAndDuration, Observable<ErrorAndDuration>>() {
             @Override
-            public ErrorAndWait call(Throwable throwable, Long waitMs) {
-                return new ErrorAndWait(throwable, waitMs);
-            }
-        };
-    }
-
-    private static Func1<ErrorAndWait, Observable<ErrorAndWait>> wait(final Scheduler scheduler) {
-        return new Func1<ErrorAndWait, Observable<ErrorAndWait>>() {
-            @Override
-            public Observable<ErrorAndWait> call(ErrorAndWait e) {
-                if (e.waitMs == -1)
-                    return Observable.error(e.throwable);
+            public Observable<ErrorAndDuration> call(ErrorAndDuration e) {
+                if (e.durationMs() == NO_MORE_WAITS)
+                    return Observable.error(e.throwable());
                 else
-                    return Observable.timer(e.waitMs, TimeUnit.MILLISECONDS, scheduler)
-                            .map(Functions.constant(e));
+                    return Observable.timer(e.durationMs(), TimeUnit.MILLISECONDS, scheduler).map(
+                            Functions.constant(e));
             }
         };
     }
+
+    private final static Func2<Throwable, Long, ErrorAndDuration> TO_ERROR_AND_WAIT = new Func2<Throwable, Long, ErrorAndDuration>() {
+        @Override
+        public ErrorAndDuration call(Throwable throwable, Long waitMs) {
+            return new ErrorAndDuration(throwable, waitMs);
+        }
+    };
 
     public static <T> Transformer<T, T> doOnNext(final int n, final Action1<? super T> action) {
         return new Transformer<T, T>() {

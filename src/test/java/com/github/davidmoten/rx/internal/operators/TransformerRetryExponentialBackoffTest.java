@@ -4,13 +4,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import com.github.davidmoten.rx.Transformers;
-import com.github.davidmoten.rx.Transformers.ErrorAndWait;
-
 import rx.Observable;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 import rx.schedulers.TestScheduler;
+
+import com.github.davidmoten.rx.Transformers;
+import com.github.davidmoten.util.ErrorAndDuration;
 
 public class TransformerRetryExponentialBackoffTest {
 
@@ -18,12 +18,12 @@ public class TransformerRetryExponentialBackoffTest {
     public void test() {
         Exception ex = new IllegalArgumentException("boo");
         TestSubscriber<Integer> ts = TestSubscriber.create();
-        Action1<ErrorAndWait> log = new Action1<ErrorAndWait>() {
+        Action1<ErrorAndDuration> log = new Action1<ErrorAndDuration>() {
 
             @Override
-            public void call(ErrorAndWait e) {
+            public void call(ErrorAndDuration e) {
                 System.out.println("WARN: " + e.throwable().getMessage());
-                System.out.println("waiting for " + e.waitMs() + "ms");
+                System.out.println("waiting for " + e.durationMs() + "ms");
             }
         };
         Observable.just(1, 2, 3)
@@ -46,12 +46,12 @@ public class TransformerRetryExponentialBackoffTest {
         Exception ex = new IllegalArgumentException("boo");
         TestSubscriber<Integer> ts = TestSubscriber.create();
         TestScheduler scheduler = new TestScheduler();
-        Action1<ErrorAndWait> log = new Action1<ErrorAndWait>() {
+        Action1<ErrorAndDuration> log = new Action1<ErrorAndDuration>() {
 
             @Override
-            public void call(ErrorAndWait e) {
+            public void call(ErrorAndDuration e) {
                 System.out.println("WARN: " + e.throwable().getMessage());
-                System.out.println("waiting for " + e.waitMs() + "ms");
+                System.out.println("waiting for " + e.durationMs() + "ms");
             }
         };
         Observable.just(1, 2)
