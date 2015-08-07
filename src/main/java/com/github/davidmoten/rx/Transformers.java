@@ -420,18 +420,30 @@ public final class Transformers {
         return Transformers.stateMachine(factory, transition, completionAction);
     }
 
+    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit,
+            Action1<? super ErrorAndWait> action) {
+        return retryCustomBackoff(Observable.just(wait).repeat(numRetries), unit, action);
+    }
+
+    private static final Action1<Object> DO_NOTHING = new Action1<Object>() {
+
+        @Override
+        public void call(Object t) {
+            // do nothing
+        }
+    };
+
+    public static <T> Transformer<T, T> retry(int numRetries, long wait, TimeUnit unit) {
+        return retryCustomBackoff(Observable.just(wait).repeat(numRetries), unit, DO_NOTHING);
+    }
+
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
             final long firstWait, final TimeUnit unit) {
-        return retryExponentialBackoff(numRetries, firstWait, unit, new Action1<ErrorAndWait>() {
-            @Override
-            public void call(ErrorAndWait t) {
-                // ignore
-            }
-        });
+        return retryExponentialBackoff(numRetries, firstWait, unit, DO_NOTHING);
     }
 
     public static <T> Transformer<T, T> retryCustomBackoff(final Observable<Long> waits,
-            TimeUnit unit, final Action1<ErrorAndWait> action) {
+            TimeUnit unit, final Action1<? super ErrorAndWait> action) {
         final Action1<ErrorAndWait> action2 = new Action1<ErrorAndWait>() {
 
             @Override
@@ -466,7 +478,7 @@ public final class Transformers {
     }
 
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
-            final long firstWait, final TimeUnit unit, final Action1<ErrorAndWait> action) {
+            final long firstWait, final TimeUnit unit, final Action1<? super ErrorAndWait> action) {
         // create exponentially increasing waits
         final Observable<Long> waits = Observable.range(1, numRetries)
                 // make exponential
