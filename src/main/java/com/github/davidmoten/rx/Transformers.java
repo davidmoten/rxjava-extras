@@ -484,7 +484,8 @@ public final class Transformers {
 
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,
             final long firstWait, final TimeUnit unit, final Scheduler scheduler) {
-        return retryExponentialBackoff(numRetries, firstWait, unit, DO_NOTHING, scheduler);
+        return retryExponentialBackoff(numRetries, firstWait, unit, Actions.doNothing1(),
+                scheduler);
     }
 
     public static <T> Transformer<T, T> retryExponentialBackoff(final int numRetries,

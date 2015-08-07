@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import rx.functions.Action0;
 import rx.functions.Action1;
+import rx.functions.Action2;
+import rx.functions.Action3;
 
 public final class Actions {
 
@@ -78,5 +80,35 @@ public final class Actions {
     @SuppressWarnings("unchecked")
     public static <T> Action1<T> doNothing1() {
         return (Action1<T>) HolderDoNothing1.INSTANCE;
+    }
+
+    private static class HolderDoNothing2 {
+        static final Action2<Object, Object> INSTANCE = new Action2<Object, Object>() {
+
+            @Override
+            public void call(Object t, Object t2) {
+                // do Nothing
+            }
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T, R> Action2<T, R> doNothing2() {
+        return (Action2<T, R>) HolderDoNothing2.INSTANCE;
+    }
+
+    private static class HolderDoNothing3 {
+        static final Action3<Object, Object, Object> INSTANCE = new Action3<Object, Object, Object>() {
+
+            @Override
+            public void call(Object t, Object t2, Object t3) {
+                // do Nothing
+            }
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T, R, S> Action3<T, R, S> doNothing3() {
+        return (Action3<T, R, S>) HolderDoNothing3.INSTANCE;
     }
 }
