@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.operators;
+package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
 import static rx.Observable.from;

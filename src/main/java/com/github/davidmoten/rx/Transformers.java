@@ -10,11 +10,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
-import com.github.davidmoten.rx.operators.OperatorDoOnNth;
-import com.github.davidmoten.rx.operators.OperatorFromTransformer;
-import com.github.davidmoten.rx.operators.OperatorOrderedMerge;
-import com.github.davidmoten.rx.operators.TransformerStateMachine;
+import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
+import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
+import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
+import com.github.davidmoten.rx.internal.operators.OperatorOrderedMerge;
+import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;

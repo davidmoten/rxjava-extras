@@ -1,8 +1,8 @@
 package com.github.davidmoten.rx.observables;
 
-import rx.Observable;
+import com.github.davidmoten.rx.internal.operators.OnSubscribeCacheResetable;
 
-import com.github.davidmoten.rx.operators.OnSubscribeCacheResetable;
+import rx.Observable;
 
 public class CachedObservable<T> extends Observable<T> {
 

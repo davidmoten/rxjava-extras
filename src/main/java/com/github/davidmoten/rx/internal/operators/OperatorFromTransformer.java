@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.operators;
+package com.github.davidmoten.rx.internal.operators;
 
 import com.github.davidmoten.rx.subjects.PublishSubjectSingleSubscriber;
 

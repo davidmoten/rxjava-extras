@@ -1,27 +1,21 @@
-package com.github.davidmoten.rx.operators;
+package com.github.davidmoten.rx.internal.operators;
 
 import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.functions.Action1;
 
-public class OperatorDoOnNth<T> implements Operator<T, T> {
+public final class OperatorDoAfterOnNext<T> implements Operator<T,T> {
 
-    public static <T> OperatorDoOnNth<T> create(Action1<? super T> action, int n) {
-        return new OperatorDoOnNth<T>(action, n);
-    }
+    //micro-optimisation drop private modifier
+    final Action1<T> action;
 
-    private final Action1<? super T> action;
-    private final int n;
-
-    private OperatorDoOnNth(Action1<? super T> action, int n) {
+    public OperatorDoAfterOnNext(Action1<T> action) {
         this.action = action;
-        this.n = n;
     }
-
+    
     @Override
     public Subscriber<? super T> call(final Subscriber<? super T> child) {
         return new Subscriber<T>(child) {
-            int count;
 
             @Override
             public void onCompleted() {
@@ -35,14 +29,11 @@ public class OperatorDoOnNth<T> implements Operator<T, T> {
 
             @Override
             public void onNext(T t) {
-                count++;
-                if (count == n) {
-                    action.call(t);
-                }
                 child.onNext(t);
+                action.call(t);
             }
-
         };
     }
 
+    
 }

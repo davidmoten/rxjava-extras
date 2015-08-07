@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.operators;
+package com.github.davidmoten.rx.internal.operators;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;

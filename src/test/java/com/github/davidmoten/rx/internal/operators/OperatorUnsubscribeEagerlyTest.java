@@ -1,10 +1,11 @@
-package com.github.davidmoten.rx.operators;
+package com.github.davidmoten.rx.internal.operators;
 
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import rx.Observable;
 import rx.functions.Func1;
 
+import com.github.davidmoten.rx.internal.operators.OperatorUnsubscribeEagerly;
 import com.github.davidmoten.rx.testing.TestingHelper;
 
 public class OperatorUnsubscribeEagerlyTest extends TestCase {
