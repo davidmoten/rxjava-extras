@@ -6,12 +6,13 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import rx.Observable;
-
 import com.github.davidmoten.rx.util.Pair;
+
+import rx.Observable;
 
 public class TransformersTest {
 
@@ -97,6 +98,14 @@ public class TransformersTest {
             }
         })).toList().toBlocking().single();
         assertEquals(Arrays.asList(5, 4, 3, 2, 1), list);
+    }
+
+    @Test
+    public void testDoOnNth() {
+        AtomicInteger item = new AtomicInteger();
+        Observable.just(1, 2, 3).compose(Transformers.doOnNext(2, Actions.setAtomic(item)))
+                .subscribe();
+        assertEquals(2, item.get());
     }
 
 }

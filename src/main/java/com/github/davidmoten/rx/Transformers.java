@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.github.davidmoten.rx.operators.OperatorBufferEmissions;
+import com.github.davidmoten.rx.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.operators.OperatorFromTransformer;
 import com.github.davidmoten.rx.operators.OperatorOrderedMerge;
 import com.github.davidmoten.rx.operators.TransformerStateMachine;
@@ -513,4 +514,18 @@ public final class Transformers {
             }
         };
     }
+
+    public static <T> Transformer<T, T> doOnNext(final int n, final Action1<? super T> action) {
+        return new Transformer<T, T>() {
+            @Override
+            public Observable<T> call(Observable<T> o) {
+                return o.lift(OperatorDoOnNth.create(action, n));
+            }
+        };
+    }
+
+    public static <T> Transformer<T, T> doOnFirst(final Action1<? super T> action) {
+        return doOnNext(1, action);
+    }
+
 }
