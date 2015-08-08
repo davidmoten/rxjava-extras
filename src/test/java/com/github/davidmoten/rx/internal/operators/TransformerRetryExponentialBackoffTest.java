@@ -1,16 +1,19 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
+
+import com.github.davidmoten.rx.Transformers;
+import com.github.davidmoten.util.ErrorAndDuration;
 
 import rx.Observable;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 import rx.schedulers.TestScheduler;
-
-import com.github.davidmoten.rx.Transformers;
-import com.github.davidmoten.util.ErrorAndDuration;
 
 public class TransformerRetryExponentialBackoffTest {
 
@@ -18,12 +21,14 @@ public class TransformerRetryExponentialBackoffTest {
     public void test() {
         Exception ex = new IllegalArgumentException("boo");
         TestSubscriber<Integer> ts = TestSubscriber.create();
+        final AtomicInteger logCalls = new AtomicInteger();
         Action1<ErrorAndDuration> log = new Action1<ErrorAndDuration>() {
 
             @Override
             public void call(ErrorAndDuration e) {
                 System.out.println("WARN: " + e.throwable().getMessage());
                 System.out.println("waiting for " + e.durationMs() + "ms");
+                logCalls.incrementAndGet();
             }
         };
         Observable.just(1, 2, 3)
@@ -39,6 +44,7 @@ public class TransformerRetryExponentialBackoffTest {
         ts.awaitTerminalEvent();
         ts.assertError(ex);
         ts.assertValues(1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3);
+        assertEquals(5, logCalls.get());
     }
 
     @Test
