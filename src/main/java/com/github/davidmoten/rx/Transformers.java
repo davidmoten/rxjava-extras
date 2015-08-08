@@ -755,6 +755,17 @@ public final class Transformers {
         }
     };
 
+    /**
+     * Returns a {@link Transformer} that applied to a source {@link Observable}
+     * calls the given action on the {@code n}th onNext emission.
+     * 
+     * @param n
+     *            the 1-based count of onNext to do the action on
+     * @param action
+     *            is performed on {@code n}th onNext.
+     * @return Transformer that applied to a source Observable calls the given
+     *         action on the nth onNext emission.
+     */
     public static <T> Transformer<T, T> doOnNext(final int n, final Action1<? super T> action) {
         return new Transformer<T, T>() {
             @Override
@@ -764,6 +775,15 @@ public final class Transformers {
         };
     }
 
+    /**
+     * Returns a {@link Transformer} that applied to a source {@link Observable}
+     * calls the given action on the first onNext emission.
+     * 
+     * @param action
+     *            is performed on first onNext.
+     * @return Transformer that applied to a source Observable calls the given
+     *         action on the first onNext emission.
+     */
     public static <T> Transformer<T, T> doOnFirst(final Action1<? super T> action) {
         return doOnNext(1, action);
     }
