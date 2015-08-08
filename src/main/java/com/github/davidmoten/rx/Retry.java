@@ -2,6 +2,7 @@ package com.github.davidmoten.rx;
 
 import static rx.Observable.just;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.github.davidmoten.util.ErrorAndDuration;
@@ -18,7 +19,29 @@ public class Retry {
 
     static Func1<Observable<? extends Throwable>, Observable<?>> notificationHandler(
             final Observable<Long> waits, final Scheduler scheduler,
-            final Action1<? super ErrorAndDuration> action) {
+            final Action1<? super ErrorAndDuration> action,
+            final List<Class<? extends Throwable>> retryExceptions,
+            final List<Class<? extends Throwable>> failExceptions) {
+        final Func1<ErrorAndDuration, Observable<ErrorAndDuration>> checkExceptions = new Func1<ErrorAndDuration, Observable<ErrorAndDuration>>() {
+
+            @Override
+            public Observable<ErrorAndDuration> call(ErrorAndDuration e) {
+                for (Class<? extends Throwable> cls : failExceptions) {
+                    if (e.throwable().getClass().isAssignableFrom(cls))
+                        return Observable.<ErrorAndDuration> error(e.throwable());
+                }
+                if (retryExceptions.size() > 0) {
+                    for (Class<? extends Throwable> cls : retryExceptions) {
+                        if (e.throwable().getClass().isAssignableFrom(cls))
+                            return Observable.just(e);
+                    }
+                    return Observable.error(e.throwable());
+                } else {
+                    return Observable.just(e);
+                }
+            }
+        };
+
         Func1<Observable<? extends Throwable>, Observable<?>> notificationHandler = new Func1<Observable<? extends Throwable>, Observable<?>>() {
 
             @Override
@@ -35,6 +58,7 @@ public class Retry {
                 return errors
                         // zip with waits, use -1 to signal completion
                         .zipWith(waits.concatWith(just(NO_MORE_WAITS)), TO_ERROR_AND_WAIT)
+                        .flatMap(checkExceptions)
                         // perform user action (for example log that a
                         // wait is happening)
                         .doOnNext(action2)
@@ -66,4 +90,39 @@ public class Retry {
         };
     }
 
+    public static class Builder {
+
+        public Builder on(Class<? extends Throwable>... classes) {
+            return this;
+        }
+
+        public Builder not(Class<? extends Throwable>... classes) {
+            return this;
+        }
+
+        public Builder waits(Observable<Long> wait) {
+            return this;
+        }
+
+        public Builder unit(TimeUnit unit) {
+            return this;
+        }
+
+        public Builder scheduler(Scheduler scheduler) {
+            return this;
+        }
+
+        public Builder action(Action1<? super ErrorAndDuration> action) {
+            return this;
+        }
+
+        public Builder exponentialBackoff(long wait, double factor) {
+            return this;
+        }
+
+        public Builder exponentialBackoff(long wait) {
+            return exponentialBackoff(wait, 2);
+        }
+
+    }
 }

@@ -2,6 +2,7 @@ package com.github.davidmoten.rx;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -595,7 +596,9 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> source) {
-                return source.retryWhen(Retry.notificationHandler(waits, scheduler, action));
+                return source.retryWhen(Retry.notificationHandler(waits, scheduler, action,
+                        Collections.<Class<? extends Throwable>> emptyList(),
+                        Collections.<Class<? extends Throwable>> emptyList()));
             }
 
         };
