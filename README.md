@@ -11,6 +11,7 @@ Utilities for use with rxjava:
 * `Functions.identity, alwaysTrue, alwaysFalse, constant, not`
 * `Checked` provides lambda helpers for dealing with checked exceptions in functions and actions
 * `TestingHelper`
+* `RetryWhen` builder for use with `.retryWhen(Func1)` operator
 * `Transformers.toOperator`
 * `Tranformers.mapWithIndex`
 * [`Transformers.stateMachine`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#stateMachine-rx.functions.Func0-rx.functions.Func3-rx.functions.Action2-)
@@ -132,6 +133,13 @@ Tranformers.collectWhile
 Behaves as per `toListWhile` but allows control over the data structure used. 
 
 <img src="src/docs/collectWhile.png?raw=true" />
+
+RetryWhen
+----------------------
+A common use case for '.retry()` is some sequence of actions that are attempted and then on an error a retry is attempted after some delay.
+
+`RetryWhen` offers static methods that build a `Func1` for use with `Observable.retryWhen()`.
+
 
 TestingHelper
 -----------------
