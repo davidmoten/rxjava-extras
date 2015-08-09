@@ -596,7 +596,7 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> source) {
-                return source.retryWhen(Retry.notificationHandler(waits, scheduler, action,
+                return source.retryWhen(RetryWhen.notificationHandler(waits, scheduler, action,
                         Collections.<Class<? extends Throwable>> emptyList(),
                         Collections.<Class<? extends Throwable>> emptyList()));
             }
