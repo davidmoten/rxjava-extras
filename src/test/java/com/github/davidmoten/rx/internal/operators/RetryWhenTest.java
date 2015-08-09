@@ -142,7 +142,6 @@ public class RetryWhenTest {
         }
     };
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testRetryWhenSpecificExceptionAllowedUsePredicateReturnsTrue() {
         Exception ex = new IllegalArgumentException("boo");
@@ -167,7 +166,6 @@ public class RetryWhenTest {
         ts.assertNotCompleted();
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testRetryWhenSpecificExceptionAllowedUsePredicateReturnsFalse() {
         Exception ex = new IllegalArgumentException("boo");

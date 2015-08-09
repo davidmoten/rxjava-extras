@@ -19,12 +19,20 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
+/**
+ * Provides builder for use with {@link Observable#retryWhen(Func1)}. For
+ * example:
+ * 
+ * <pre>
+ * observable.retryWhen(RetryWhen.maxRetries(4).delay(10, TimeUnit.SECONDS).action(log));
+ * </pre>
+ */
 public final class RetryWhen {
 
-    private static final long NO_MORE_WAITS = -1;
+    private static final long NO_MORE_DELAYS = -1;
 
     private static Func1<Observable<? extends Throwable>, Observable<?>> notificationHandler(
-            final Observable<Long> waits, final Scheduler scheduler,
+            final Observable<Long> delays, final Scheduler scheduler,
             final Action1<? super ErrorAndDuration> action,
             final List<Class<? extends Throwable>> retryExceptions,
             final List<Class<? extends Throwable>> failExceptions,
@@ -59,38 +67,38 @@ public final class RetryWhen {
 
                     @Override
                     public void call(ErrorAndDuration e) {
-                        if (e.durationMs() != NO_MORE_WAITS)
+                        if (e.durationMs() != NO_MORE_DELAYS)
                             action.call(e);
                     }
 
                 };
                 return errors
-                        // zip with waits, use -1 to signal completion
-                        .zipWith(waits.concatWith(just(NO_MORE_WAITS)), TO_ERROR_AND_WAIT)
+                        // zip with delays, use -1 to signal completion
+                        .zipWith(delays.concatWith(just(NO_MORE_DELAYS)), TO_ERROR_AND_DURATION)
                         .flatMap(checkExceptions)
                         // perform user action (for example log that a
-                        // wait is happening)
+                        // delay is happening)
                         .doOnNext(action2)
-                        // wait the time in ErrorAndWait
-                        .flatMap(RetryWhen.wait(scheduler));
+                        // delay the time in ErrorAndDuration
+                        .flatMap(RetryWhen.delay(scheduler));
             }
         };
         return notificationHandler;
     }
 
-    private final static Func2<Throwable, Long, ErrorAndDuration> TO_ERROR_AND_WAIT = new Func2<Throwable, Long, ErrorAndDuration>() {
+    private final static Func2<Throwable, Long, ErrorAndDuration> TO_ERROR_AND_DURATION = new Func2<Throwable, Long, ErrorAndDuration>() {
         @Override
-        public ErrorAndDuration call(Throwable throwable, Long waitMs) {
-            return new ErrorAndDuration(throwable, waitMs);
+        public ErrorAndDuration call(Throwable throwable, Long durationMs) {
+            return new ErrorAndDuration(throwable, durationMs);
         }
     };
 
-    private static Func1<ErrorAndDuration, Observable<ErrorAndDuration>> wait(
+    private static Func1<ErrorAndDuration, Observable<ErrorAndDuration>> delay(
             final Scheduler scheduler) {
         return new Func1<ErrorAndDuration, Observable<ErrorAndDuration>>() {
             @Override
             public Observable<ErrorAndDuration> call(ErrorAndDuration e) {
-                if (e.durationMs() == NO_MORE_WAITS)
+                if (e.durationMs() == NO_MORE_DELAYS)
                     return Observable.error(e.throwable());
                 else
                     return Observable.timer(e.durationMs(), TimeUnit.MILLISECONDS, scheduler)
@@ -113,12 +121,12 @@ public final class RetryWhen {
         return new Builder().retryIf(predicate);
     }
 
-    public static Builder waits(Observable<Long> waits, TimeUnit unit) {
-        return new Builder().waits(waits, unit);
+    public static Builder delays(Observable<Long> delays, TimeUnit unit) {
+        return new Builder().delays(delays, unit);
     }
 
-    public static Builder wait(Long wait, final TimeUnit unit) {
-        return new Builder().wait(wait, unit);
+    public static Builder delay(Long delay, final TimeUnit unit) {
+        return new Builder().delay(delay, unit);
     }
 
     public static Builder maxRetries(int maxRetries) {
@@ -133,13 +141,13 @@ public final class RetryWhen {
         return new Builder().action(action);
     }
 
-    public static Builder exponentialBackoff(final long firstWait, final TimeUnit unit,
+    public static Builder exponentialBackoff(final long firstDelay, final TimeUnit unit,
             final double factor) {
-        return new Builder().exponentialBackoff(firstWait, unit, factor);
+        return new Builder().exponentialBackoff(firstDelay, unit, factor);
     }
 
-    public static Builder exponentialBackoff(long firstWait, TimeUnit unit) {
-        return new Builder().exponentialBackoff(firstWait, unit);
+    public static Builder exponentialBackoff(long firstDelay, TimeUnit unit) {
+        return new Builder().exponentialBackoff(firstDelay, unit);
     }
 
     public static final class Builder {
@@ -148,7 +156,7 @@ public final class RetryWhen {
         private final List<Class<? extends Throwable>> failExceptions = new ArrayList<Class<? extends Throwable>>();
         private Func1<? super Throwable, Boolean> exceptionPredicate = Functions.alwaysTrue();
 
-        private Optional<Observable<Long>> waits = absent();
+        private Optional<Observable<Long>> delays = absent();
         private Optional<Integer> maxRetries = absent();
         private Optional<Scheduler> scheduler = of(Schedulers.computation());
         private Action1<? super ErrorAndDuration> action = Actions.doNothing1();
@@ -168,13 +176,13 @@ public final class RetryWhen {
             return this;
         }
 
-        public Builder waits(Observable<Long> waits, TimeUnit unit) {
-            this.waits = of(waits.map(toMillis(unit)));
+        public Builder delays(Observable<Long> delays, TimeUnit unit) {
+            this.delays = of(delays.map(toMillis(unit)));
             return this;
         }
 
-        public Builder wait(Long wait, final TimeUnit unit) {
-            this.waits = of(Observable.just(wait).map(toMillis(unit)));
+        public Builder delay(Long delay, final TimeUnit unit) {
+            this.delays = of(Observable.just(delay).map(toMillis(unit)));
             return this;
         }
 
@@ -203,29 +211,29 @@ public final class RetryWhen {
             return this;
         }
 
-        public Builder exponentialBackoff(final long firstWait, final TimeUnit unit,
+        public Builder exponentialBackoff(final long firstDelay, final TimeUnit unit,
                 final double factor) {
-            waits = of(Observable.range(1, Integer.MAX_VALUE)
+            delays = of(Observable.range(1, Integer.MAX_VALUE)
                     // make exponential
                     .map(new Func1<Integer, Long>() {
                         @Override
                         public Long call(Integer n) {
-                            return Math.round(Math.pow(factor, n - 1) * unit.toMillis(firstWait));
+                            return Math.round(Math.pow(factor, n - 1) * unit.toMillis(firstDelay));
                         }
                     }));
             return this;
         }
 
-        public Builder exponentialBackoff(long firstWait, TimeUnit unit) {
-            return exponentialBackoff(firstWait, unit, 2);
+        public Builder exponentialBackoff(long firstDelay, TimeUnit unit) {
+            return exponentialBackoff(firstDelay, unit, 2);
         }
 
         public Func1<Observable<? extends Throwable>, Observable<?>> build() {
-            Preconditions.checkArgument(waits.isPresent(), "waits must be specified");
+            Preconditions.checkArgument(delays.isPresent(), "delays must be specified");
             if (maxRetries.isPresent()) {
-                waits = of(waits.get().take(maxRetries.get()));
+                delays = of(delays.get().take(maxRetries.get()));
             }
-            return notificationHandler(waits.get(), scheduler.get(), action, retryExceptions,
+            return notificationHandler(delays.get(), scheduler.get(), action, retryExceptions,
                     failExceptions, exceptionPredicate);
         }
 
