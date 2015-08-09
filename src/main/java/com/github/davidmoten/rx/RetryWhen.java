@@ -164,7 +164,7 @@ public final class RetryWhen {
         private final List<Class<? extends Throwable>> failExceptions = new ArrayList<Class<? extends Throwable>>();
         private Func1<? super Throwable, Boolean> exceptionPredicate = Functions.alwaysTrue();
 
-        private Optional<Observable<Long>> delays = absent();
+        private Observable<Long> delays = Observable.just(0L).repeat();
         private Optional<Integer> maxRetries = absent();
         private Optional<Scheduler> scheduler = of(Schedulers.computation());
         private Action1<? super ErrorAndDuration> action = Actions.doNothing1();
@@ -185,12 +185,12 @@ public final class RetryWhen {
         }
 
         public Builder delays(Observable<Long> delays, TimeUnit unit) {
-            this.delays = of(delays.map(toMillis(unit)));
+            this.delays = delays.map(toMillis(unit));
             return this;
         }
 
         public Builder delay(Long delay, final TimeUnit unit) {
-            this.delays = of(Observable.just(delay).map(toMillis(unit)));
+            this.delays = Observable.just(delay).map(toMillis(unit));
             return this;
         }
 
@@ -221,14 +221,14 @@ public final class RetryWhen {
 
         public Builder exponentialBackoff(final long firstDelay, final TimeUnit unit,
                 final double factor) {
-            delays = of(Observable.range(1, Integer.MAX_VALUE)
+            delays = Observable.range(1, Integer.MAX_VALUE)
                     // make exponential
                     .map(new Func1<Integer, Long>() {
                         @Override
                         public Long call(Integer n) {
                             return Math.round(Math.pow(factor, n - 1) * unit.toMillis(firstDelay));
                         }
-                    }));
+                    });
             return this;
         }
 
@@ -237,11 +237,11 @@ public final class RetryWhen {
         }
 
         public Func1<Observable<? extends Throwable>, Observable<?>> build() {
-            Preconditions.checkArgument(delays.isPresent(), "delays must be specified");
+            Preconditions.checkNotNull(delays);
             if (maxRetries.isPresent()) {
-                delays = of(delays.get().take(maxRetries.get()));
+                delays = delays.take(maxRetries.get());
             }
-            return notificationHandler(delays.get(), scheduler.get(), action, retryExceptions,
+            return notificationHandler(delays, scheduler.get(), action, retryExceptions,
                     failExceptions, exceptionPredicate);
         }
 

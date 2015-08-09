@@ -136,10 +136,40 @@ Behaves as per `toListWhile` but allows control over the data structure used.
 
 RetryWhen
 ----------------------
-A common use case for '.retry()` is some sequence of actions that are attempted and then on an error a retry is attempted after some delay.
+A common use case for '.retry()` is some sequence of actions that are attempted and then after a delay a retry is attempted. RxJava does not provide 
+first class support for this use case but the building blocks are there with the `.retryWhen()` method. `RetryWhen` offers static methods that build a `Func1` for use with `Observable.retryWhen()`.
 
-`RetryWhen` offers static methods that build a `Func1` for use with `Observable.retryWhen()`.
+### Retry after a constant delay
 
+```java
+observable.retryWhen(
+    RetryWhen.delay(10, TimeUnit.SECONDS).build());
+```
+
+### Retry after a constant delay with a maximumjust( number of retries
+
+```java
+observable.retryWhen(
+    RetryWhen.delay(10, TimeUnit.SECONDS)
+        .maxRetries(10).build());
+```
+
+### Retry after custom delays
+
+```java
+//the length of waits determines number of retries
+Observable<Long> delays = Observable.just(10L,20L,30L,30L,30L);
+observable.retryWhen(
+    RetryWhen.delays(delays, TimeUnit.SECONDS).build());
+```
+
+### Retry only for a particular exception
+
+```java
+observable.retryWhen(
+    RetryWhen.retryWhenInstanceOf(IOException.class)
+        .build());
+```
 
 TestingHelper
 -----------------
