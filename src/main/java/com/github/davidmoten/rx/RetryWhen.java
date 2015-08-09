@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.github.davidmoten.util.ErrorAndDuration;
 import com.github.davidmoten.util.Optional;
 import com.github.davidmoten.util.Preconditions;
 
@@ -20,11 +19,11 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
-public class RetryWhen {
+public final class RetryWhen {
 
     private static final long NO_MORE_WAITS = -1;
 
-    static Func1<Observable<? extends Throwable>, Observable<?>> notificationHandler(
+    private static Func1<Observable<? extends Throwable>, Observable<?>> notificationHandler(
             final Observable<Long> waits, final Scheduler scheduler,
             final Action1<? super ErrorAndDuration> action,
             final List<Class<? extends Throwable>> retryExceptions,
@@ -100,6 +99,8 @@ public class RetryWhen {
         };
     }
 
+    // Builder factory methods
+
     public static Builder retryWhenInstanceOf(Class<? extends Throwable>... classes) {
         return new Builder().retryWhenInstanceOf(classes);
     }
@@ -141,7 +142,7 @@ public class RetryWhen {
         return new Builder().exponentialBackoff(firstWait, unit);
     }
 
-    public static class Builder {
+    public static final class Builder {
 
         private final List<Class<? extends Throwable>> retryExceptions = new ArrayList<Class<? extends Throwable>>();
         private final List<Class<? extends Throwable>> failExceptions = new ArrayList<Class<? extends Throwable>>();
@@ -226,6 +227,26 @@ public class RetryWhen {
             }
             return notificationHandler(waits.get(), scheduler.get(), action, retryExceptions,
                     failExceptions, exceptionPredicate);
+        }
+
+    }
+
+    public static final class ErrorAndDuration {
+
+        private final Throwable throwable;
+        private final long durationMs;
+
+        public ErrorAndDuration(Throwable throwable, long durationMs) {
+            this.throwable = throwable;
+            this.durationMs = durationMs;
+        }
+
+        public Throwable throwable() {
+            return throwable;
+        }
+
+        public long durationMs() {
+            return durationMs;
         }
 
     }
