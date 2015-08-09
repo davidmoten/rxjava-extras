@@ -100,8 +100,45 @@ public class RetryWhen {
         };
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public static Builder retryWhenInstanceOf(Class<? extends Throwable>... classes) {
+        return new Builder().retryWhenInstanceOf(classes);
+    }
+
+    public static Builder failWhenInstanceOf(Class<? extends Throwable>... classes) {
+        return new Builder().failWhenInstanceOf(classes);
+    }
+
+    public static Builder retryIf(Func1<Throwable, Boolean> predicate) {
+        return new Builder().retryIf(predicate);
+    }
+
+    public static Builder waits(Observable<Long> waits, TimeUnit unit) {
+        return new Builder().waits(waits, unit);
+    }
+
+    public static Builder wait(Long wait, final TimeUnit unit) {
+        return new Builder().wait(wait, unit);
+    }
+
+    public static Builder maxRetries(int maxRetries) {
+        return new Builder().maxRetries(maxRetries);
+    }
+
+    public static Builder scheduler(Scheduler scheduler) {
+        return new Builder().scheduler(scheduler);
+    }
+
+    public Builder action(Action1<? super ErrorAndDuration> action) {
+        return new Builder().action(action);
+    }
+
+    public static Builder exponentialBackoff(final long firstWait, final TimeUnit unit,
+            final double factor) {
+        return new Builder().exponentialBackoff(firstWait, unit, factor);
+    }
+
+    public static Builder exponentialBackoff(long firstWait, TimeUnit unit) {
+        return new Builder().exponentialBackoff(firstWait, unit);
     }
 
     public static class Builder {
@@ -178,8 +215,8 @@ public class RetryWhen {
             return this;
         }
 
-        public Builder exponentialBackoff(long wait, TimeUnit unit) {
-            return exponentialBackoff(wait, unit, 2);
+        public Builder exponentialBackoff(long firstWait, TimeUnit unit) {
+            return exponentialBackoff(firstWait, unit, 2);
         }
 
         public Func1<Observable<? extends Throwable>, Observable<?>> build() {

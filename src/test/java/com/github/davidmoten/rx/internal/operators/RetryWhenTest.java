@@ -15,10 +15,10 @@ import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 import rx.schedulers.TestScheduler;
 
-public class TransformerRetryExponentialBackoffTest {
+public class RetryWhenTest {
 
     @Test
-    public void test() {
+    public void testExponentialBackoff() {
         Exception ex = new IllegalArgumentException("boo");
         TestSubscriber<Integer> ts = TestSubscriber.create();
         final AtomicInteger logCalls = new AtomicInteger();
@@ -35,7 +35,7 @@ public class TransformerRetryExponentialBackoffTest {
                 // force error after 3 emissions
                 .concatWith(Observable.<Integer> error(ex))
                 // retry with backoff
-                .retryWhen(RetryWhen.builder().maxRetries(5).action(log)
+                .retryWhen(RetryWhen.maxRetries(5).action(log)
                         .exponentialBackoff(10, TimeUnit.MILLISECONDS).build())
                 // go
                 .subscribe(ts);
@@ -64,7 +64,7 @@ public class TransformerRetryExponentialBackoffTest {
                 // force error after 3 emissions
                 .concatWith(Observable.<Integer> error(ex))
                 // retry with backoff
-                .retryWhen(RetryWhen.builder().maxRetries(2).action(log)
+                .retryWhen(RetryWhen.maxRetries(2).action(log)
                         .exponentialBackoff(1, TimeUnit.MINUTES).scheduler(scheduler).build())
                 // go
                 .subscribe(ts);
