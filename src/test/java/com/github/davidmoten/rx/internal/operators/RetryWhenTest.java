@@ -13,6 +13,7 @@ import com.github.davidmoten.rx.RetryWhen.ErrorAndDuration;
 
 import rx.Observable;
 import rx.functions.Action1;
+import rx.functions.Func1;
 import rx.observers.TestSubscriber;
 import rx.schedulers.TestScheduler;
 
@@ -141,4 +142,53 @@ public class RetryWhenTest {
         }
     };
 
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testRetryWhenSpecificExceptionAllowedUsePredicateReturnsTrue() {
+        Exception ex = new IllegalArgumentException("boo");
+        TestSubscriber<Integer> ts = TestSubscriber.create();
+        TestScheduler scheduler = new TestScheduler();
+        Func1<Throwable, Boolean> predicate = new Func1<Throwable, Boolean>() {
+            @Override
+            public Boolean call(Throwable t) {
+                return t instanceof IllegalArgumentException;
+            }
+        };
+        Observable.just(1, 2)
+                // force error after 3 emissions
+                .concatWith(Observable.<Integer> error(ex))
+                // retry with backoff
+                .retryWhen(
+                        RetryWhen.maxRetries(2).action(log).exponentialBackoff(1, TimeUnit.MINUTES)
+                                .scheduler(scheduler).retryIf(predicate).build())
+                // go
+                .subscribe(ts);
+        ts.assertValues(1, 2);
+        ts.assertNotCompleted();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testRetryWhenSpecificExceptionAllowedUsePredicateReturnsFalse() {
+        Exception ex = new IllegalArgumentException("boo");
+        TestSubscriber<Integer> ts = TestSubscriber.create();
+        TestScheduler scheduler = new TestScheduler();
+        Func1<Throwable, Boolean> predicate = new Func1<Throwable, Boolean>() {
+            @Override
+            public Boolean call(Throwable t) {
+                return false;
+            }
+        };
+        Observable.just(1, 2)
+                // force error after 3 emissions
+                .concatWith(Observable.<Integer> error(ex))
+                // retry with backoff
+                .retryWhen(
+                        RetryWhen.maxRetries(2).action(log).exponentialBackoff(1, TimeUnit.MINUTES)
+                                .scheduler(scheduler).retryIf(predicate).build())
+                // go
+                .subscribe(ts);
+        ts.assertValues(1, 2);
+        ts.assertError(ex);
+    }
 }
