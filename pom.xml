@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>rxjava-extras</artifactId>
-	<version>0.5.14-SNAPSHOT</version>
+	<version>0.5.16-SNAPSHOT</version>
 
 	<name>${project.artifactId}</name>
 	<description>RxJava utilities</description>
