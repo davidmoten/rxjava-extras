@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.github.davidmoten.util.ErrorAndDuration;
 import com.github.davidmoten.util.Optional;
-import com.google.common.base.Preconditions;
+import com.github.davidmoten.util.Preconditions;
 
 import rx.Observable;
 import rx.Scheduler;
@@ -220,7 +220,7 @@ public class RetryWhen {
         }
 
         public Func1<Observable<? extends Throwable>, Observable<?>> build() {
-            Preconditions.checkArgument(waits.isPresent());
+            Preconditions.checkArgument(waits.isPresent(), "waits must be specified");
             if (maxRetries.isPresent()) {
                 waits = of(waits.get().take(maxRetries.get()));
             }
