@@ -20,11 +20,18 @@ import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
 /**
- * Provides builder for use with {@link Observable#retryWhen(Func1)}. For
- * example:
+ * Provides builder for the {@link Func1} parameter of
+ * {@link Observable#retryWhen(Func1)}. For example:
  * 
  * <pre>
- * observable.retryWhen(RetryWhen.maxRetries(4).delay(10, TimeUnit.SECONDS).action(log));
+ * o.retryWhen(RetryWhen.maxRetries(4).delay(10, TimeUnit.SECONDS).action(log).build());
+ * </pre>
+ * 
+ * <p>
+ * or</pr>
+ * 
+ * <pre>
+ * o.retryWhen(RetryWhen.exponentialBackoff(100, TimeUnit.MILLISECONDS).maxRetries(10).build());
  * </pre>
  */
 public final class RetryWhen {
@@ -75,6 +82,7 @@ public final class RetryWhen {
                 return errors
                         // zip with delays, use -1 to signal completion
                         .zipWith(delays.concatWith(just(NO_MORE_DELAYS)), TO_ERROR_AND_DURATION)
+                        //
                         .flatMap(checkExceptions)
                         // perform user action (for example log that a
                         // delay is happening)
