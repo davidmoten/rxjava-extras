@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import com.github.davidmoten.rx.Transformers;
+import com.github.davidmoten.rx.RetryWhen;
 import com.github.davidmoten.util.ErrorAndDuration;
 
 import rx.Observable;
@@ -35,8 +35,8 @@ public class TransformerRetryExponentialBackoffTest {
                 // force error after 3 emissions
                 .concatWith(Observable.<Integer> error(ex))
                 // retry with backoff
-                .compose(Transformers.<Integer> retryExponentialBackoff(5, 10,
-                        TimeUnit.MILLISECONDS, log))
+                .retryWhen(RetryWhen.builder().maxRetries(5).action(log)
+                        .exponentialBackoff(10, TimeUnit.MILLISECONDS).build())
                 // go
                 .subscribe(ts);
 
@@ -64,8 +64,8 @@ public class TransformerRetryExponentialBackoffTest {
                 // force error after 3 emissions
                 .concatWith(Observable.<Integer> error(ex))
                 // retry with backoff
-                .compose(Transformers.<Integer> retryExponentialBackoff(2, 1, TimeUnit.MINUTES, log,
-                        scheduler))
+                .retryWhen(RetryWhen.builder().maxRetries(2).action(log)
+                        .exponentialBackoff(1, TimeUnit.MINUTES).scheduler(scheduler).build())
                 // go
                 .subscribe(ts);
         ts.assertValues(1, 2);

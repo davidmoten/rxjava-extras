@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx;
 
+import static com.github.davidmoten.util.Optional.absent;
 import static com.github.davidmoten.util.Optional.of;
 import static rx.Observable.just;
 
@@ -8,14 +9,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.github.davidmoten.util.ErrorAndDuration;
+import com.github.davidmoten.util.Optional;
+import com.google.common.base.Preconditions;
+
 import rx.Observable;
 import rx.Scheduler;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.functions.Func2;
-
-import com.github.davidmoten.util.ErrorAndDuration;
-import com.github.davidmoten.util.Optional;
+import rx.schedulers.Schedulers;
 
 public class RetryWhen {
 
@@ -25,11 +28,14 @@ public class RetryWhen {
             final Observable<Long> waits, final Scheduler scheduler,
             final Action1<? super ErrorAndDuration> action,
             final List<Class<? extends Throwable>> retryExceptions,
-            final List<Class<? extends Throwable>> failExceptions) {
+            final List<Class<? extends Throwable>> failExceptions,
+            final Func1<? super Throwable, Boolean> exceptionPredicate) {
         final Func1<ErrorAndDuration, Observable<ErrorAndDuration>> checkExceptions = new Func1<ErrorAndDuration, Observable<ErrorAndDuration>>() {
 
             @Override
             public Observable<ErrorAndDuration> call(ErrorAndDuration e) {
+                if (!exceptionPredicate.call(e.throwable()))
+                    return Observable.error(e.throwable());
                 for (Class<? extends Throwable> cls : failExceptions) {
                     if (e.throwable().getClass().isAssignableFrom(cls))
                         return Observable.<ErrorAndDuration> error(e.throwable());
@@ -88,48 +94,60 @@ public class RetryWhen {
                 if (e.durationMs() == NO_MORE_WAITS)
                     return Observable.error(e.throwable());
                 else
-                    return Observable.timer(e.durationMs(), TimeUnit.MILLISECONDS, scheduler).map(
-                            Functions.constant(e));
+                    return Observable.timer(e.durationMs(), TimeUnit.MILLISECONDS, scheduler)
+                            .map(Functions.constant(e));
             }
         };
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public static class Builder {
 
-        private final List<Class<? extends Throwable>> retryWhen = new ArrayList<Class<? extends Throwable>>();
-        private final List<Class<? extends Throwable>> failWhen = new ArrayList<Class<? extends Throwable>>();
-        private Optional<Func1<Throwable, Boolean>> exceptionPredicate = Optional.absent();
-        private Optional<Observable<Long>> waits;
-        private Optional<TimeUnit> unit;
-        private Optional<Integer> maxRetries;
-        private Optional<Scheduler> scheduler;
-        private Action1<? super ErrorAndDuration> action;
-        private double factor;
+        private final List<Class<? extends Throwable>> retryExceptions = new ArrayList<Class<? extends Throwable>>();
+        private final List<Class<? extends Throwable>> failExceptions = new ArrayList<Class<? extends Throwable>>();
+        private Func1<? super Throwable, Boolean> exceptionPredicate = Functions.alwaysTrue();
+
+        private Optional<Observable<Long>> waits = absent();
+        private Optional<Integer> maxRetries = absent();
+        private Optional<Scheduler> scheduler = of(Schedulers.computation());
+        private Action1<? super ErrorAndDuration> action = Actions.doNothing1();
 
         public Builder retryWhenInstanceOf(Class<? extends Throwable>... classes) {
-            retryWhen.addAll(Arrays.asList(classes));
+            retryExceptions.addAll(Arrays.asList(classes));
             return this;
         }
 
         public Builder failWhenInstanceOf(Class<? extends Throwable>... classes) {
-            failWhen.addAll(Arrays.asList(classes));
+            failExceptions.addAll(Arrays.asList(classes));
             return this;
         }
 
         public Builder retryIf(Func1<Throwable, Boolean> predicate) {
-            this.exceptionPredicate = Optional.of(predicate);
+            this.exceptionPredicate = predicate;
             return this;
         }
 
         public Builder waits(Observable<Long> waits, TimeUnit unit) {
-            this.waits = of(waits);
-            this.unit = of(unit);
+            this.waits = of(waits.map(toMillis(unit)));
             return this;
         }
 
-        public Builder wait(Long wait, TimeUnit unit) {
-            this.waits = of(Observable.just(wait));
+        public Builder wait(Long wait, final TimeUnit unit) {
+            this.waits = of(Observable.just(wait).map(toMillis(unit)));
             return this;
+        }
+
+        private static Func1<Long, Long> toMillis(final TimeUnit unit) {
+            return new Func1<Long, Long>() {
+
+                @Override
+                public Long call(Long t) {
+                    return unit.toMillis(t);
+                }
+            };
         }
 
         public Builder maxRetries(int maxRetries) {
@@ -147,14 +165,30 @@ public class RetryWhen {
             return this;
         }
 
-        public Builder exponentialBackoff(long wait, TimeUnit unit, double factor) {
-            wait(wait, unit);
-            this.factor = factor;
+        public Builder exponentialBackoff(final long firstWait, final TimeUnit unit,
+                final double factor) {
+            waits = of(Observable.range(1, Integer.MAX_VALUE)
+                    // make exponential
+                    .map(new Func1<Integer, Long>() {
+                        @Override
+                        public Long call(Integer n) {
+                            return Math.round(Math.pow(factor, n - 1) * unit.toMillis(firstWait));
+                        }
+                    }));
             return this;
         }
 
         public Builder exponentialBackoff(long wait, TimeUnit unit) {
             return exponentialBackoff(wait, unit, 2);
+        }
+
+        public Func1<Observable<? extends Throwable>, Observable<?>> build() {
+            Preconditions.checkArgument(waits.isPresent());
+            if (maxRetries.isPresent()) {
+                waits = of(waits.get().take(maxRetries.get()));
+            }
+            return notificationHandler(waits.get(), scheduler.get(), action, retryExceptions,
+                    failExceptions, exceptionPredicate);
         }
 
     }

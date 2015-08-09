@@ -2,12 +2,10 @@ package com.github.davidmoten.rx;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
@@ -17,20 +15,17 @@ import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;
-import com.github.davidmoten.util.ErrorAndDuration;
 
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Observer;
-import rx.Scheduler;
 import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
-import rx.schedulers.Schedulers;
 
 public final class Transformers {
 
@@ -420,296 +415,6 @@ public final class Transformers {
             }
         };
         return Transformers.stateMachine(factory, transition, completionAction);
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with a wait before retry given
-     * by {@code wait} and {@code unit}. The retries are scheduled on
-     * {@code Schedulers.computation()}.
-     * 
-     * @param maxRetries
-     *            the maximum number of retries.
-     * @param wait
-     *            the time to wait
-     * @param unit
-     *            the time unit corresponding to the wait parameter
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-
-    public static <T> Transformer<T, T> retry(int maxRetries, long wait, TimeUnit unit) {
-        return retry(maxRetries, wait, unit, Schedulers.computation());
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with a wait before retry given
-     * by {@code wait} and {@code unit}. The retries are scheduled on the given
-     * {@link Scheduler}.
-     * 
-     * @param maxRetries
-     *            the maximum number of retries.
-     * @param wait
-     *            the time to wait
-     * @param unit
-     *            the time unit corresponding to the wait parameter
-     * @param scheduler
-     *            used to schedule retries
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retry(int maxRetries, long wait, TimeUnit unit,
-            final Scheduler scheduler) {
-        return retry(Observable.just(wait).repeat(maxRetries), unit, Actions.doNothing1(),
-                scheduler);
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with a wait before retry given
-     * by {@code wait} and {@code unit}. The retries are scheduled on
-     * {@code Schedulers.computation()}.
-     * 
-     * @param maxRetries
-     *            the maximum number of retries.
-     * @param wait
-     *            the time to wait
-     * @param unit
-     *            the time unit corresponding to the wait parameter
-     * @param action
-     *            called when a retry is scheduled
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retry(int maxRetries, long wait, TimeUnit unit,
-            Action1<? super ErrorAndDuration> action) {
-        return retry(maxRetries, wait, unit, action, Schedulers.computation());
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with a wait before retry given
-     * by {@code wait} and {@code unit}. The retries are scheduled on the given
-     * {@link Scheduler}.
-     * 
-     * @param maxRetries
-     *            the maximum number of retries.
-     * @param wait
-     *            the time to wait
-     * @param unit
-     *            the time unit corresponding to the wait parameter
-     * @param action
-     *            called when a retry is scheduled
-     * @param scheduler
-     *            used to schedule retries
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retry(int maxRetries, long wait, TimeUnit unit,
-            Action1<? super ErrorAndDuration> action, final Scheduler scheduler) {
-        return retry(Observable.just(wait).repeat(maxRetries), unit, action, scheduler);
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with waits before retry given
-     * by {@code waits} and {@code unit}. The number of retries are given by the
-     * length of the {@code waits} observable. The retries are scheduled on
-     * {@code Schedulers.computation()}.
-     * 
-     * @param waits
-     *            the times to wait
-     * @param unit
-     *            the time unit corresponding to the wait parameter
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit) {
-        return retry(waits, unit, Actions.doNothing1(), Schedulers.computation());
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with waits before retry given
-     * by {@code waits} and {@code unit}. The number of retries are given by the
-     * length of the {@code waits} observable. The retries are scheduled on the
-     * given {@link Scheduler}.
-     * 
-     * @param waits
-     *            the times to wait
-     * @param unit
-     *            the time unit corresponding to the waits
-     * @param scheduler
-     *            used to schedule retries
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit,
-            Scheduler scheduler) {
-        return retry(waits, unit, Actions.doNothing1(), scheduler);
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with waits before retry given
-     * by {@code waits} and {@code unit}. The number of retries are given by the
-     * length of the {@code waits} observable. The retries are scheduled on
-     * {@code Schedulers.computation()}.
-     * 
-     * @param waits
-     *            the times to wait
-     * @param unit
-     *            the time unit corresponding to the waits
-     * @param action
-     *            called when a retry is scheduled
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit,
-            final Action1<? super ErrorAndDuration> action) {
-        return retry(waits, unit, action, Schedulers.computation());
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with waits before retry given
-     * by {@code waits} and {@code unit}. The number of retries are given by the
-     * length of the {@code waits} observable. The retries are scheduled on the
-     * given scheduler.
-     * 
-     * @param waits
-     *            the times to wait
-     * @param unit
-     *            the time unit corresponding to the waits
-     * @param action
-     *            called when a retry is scheduled
-     * @param scheduler
-     *            used to schedule retries
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retry(final Observable<Long> waits, TimeUnit unit,
-            final Action1<? super ErrorAndDuration> action, final Scheduler scheduler) {
-
-        return new Transformer<T, T>() {
-
-            @Override
-            public Observable<T> call(Observable<T> source) {
-                return source.retryWhen(RetryWhen.notificationHandler(waits, scheduler, action,
-                        Collections.<Class<? extends Throwable>> emptyList(),
-                        Collections.<Class<? extends Throwable>> emptyList()));
-            }
-
-        };
-    }
-
-    private final static long NO_MORE_WAITS = -1;
-
-    /**
-     * As per {@link Observable#retry(long)} but with a wait before retry given
-     * by {@code firstWait} and {@code unit} intitially then doubled for each
-     * retry after that. The retries are scheduled on
-     * {@code Schedulers.computation()}.
-     * 
-     * @param maxRetries
-     *            the maximum number of retries.
-     * @param wait
-     *            the time to wait
-     * @param unit
-     *            the time unit corresponding to the wait parameter
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retryExponentialBackoff(final int maxRetries,
-            final long firstWait, final TimeUnit unit) {
-        return retryExponentialBackoff(maxRetries, firstWait, unit, Actions.doNothing1(),
-                Schedulers.computation());
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with a wait before retry given
-     * by {@code firstWait} and {@code unit} intitially then doubled for each
-     * retry after that. The retries are scheduled on the given
-     * {@link Scheduler}.
-     * 
-     * @param maxRetries
-     *            the maximum number of retries.
-     * @param wait
-     *            the time to wait
-     * @param unit
-     *            the time unit corresponding to the wait parameter
-     * @param scheduler
-     *            used to schedule retries
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retryExponentialBackoff(final int maxRetries,
-            final long firstWait, final TimeUnit unit, final Scheduler scheduler) {
-        return retryExponentialBackoff(maxRetries, firstWait, unit, Actions.doNothing1(),
-                scheduler);
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with a wait before retry given
-     * by {@code firstWait} and {@code unit} intitially then doubled for each
-     * retry after that. The retries are scheduled on
-     * {@code Schedulers.computation()}.
-     * 
-     * @param maxRetries
-     *            the maximum number of retries.
-     * @param wait
-     *            the time to wait
-     * @param unit
-     *            the time unit corresponding to the wait parameter
-     * @param action
-     *            called when a retry is scheduled
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retryExponentialBackoff(final int maxRetries,
-            final long firstWait, final TimeUnit unit,
-            final Action1<? super ErrorAndDuration> action) {
-        return retryExponentialBackoff(maxRetries, firstWait, unit, action,
-                Schedulers.computation());
-    }
-
-    /**
-     * As per {@link Observable#retry(long)} but with a wait before retry given
-     * by {@code firstWait} and {@code unit} intitially then doubled for each
-     * retry after that. The retries are scheduled on the given
-     * {@link Scheduler}.
-     * 
-     * @param maxRetries
-     *            the maximum number of retries.
-     * @param wait
-     *            the time to wait
-     * @param unit
-     *            the time unit corresponding to the wait parameter
-     * @param action
-     *            called when a retry is scheduled
-     * @param scheduler
-     *            used to schedule retries
-     * @param <T>
-     *            generic type of Observable being retried
-     * @return transformer that applies retries to an Observable stream
-     */
-    public static <T> Transformer<T, T> retryExponentialBackoff(final int maxRetries,
-            final long firstWait, final TimeUnit unit,
-            final Action1<? super ErrorAndDuration> action, final Scheduler scheduler) {
-        // create exponentially increasing waits
-        final Observable<Long> waits = Observable.range(1, maxRetries)
-                // make exponential
-                .map(new Func1<Integer, Long>() {
-                    @Override
-                    public Long call(Integer n) {
-                        return (long) Math.pow(2, n - 1) * unit.toMillis(firstWait);
-                    }
-                });
-        return retry(waits, unit, action, scheduler);
     }
 
     /**
