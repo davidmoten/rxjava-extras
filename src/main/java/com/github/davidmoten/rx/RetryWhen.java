@@ -100,7 +100,11 @@ public class RetryWhen {
             return this;
         }
 
-        public Builder waits(Observable<Long> wait, TimeUnit unit) {
+        public Builder retryIf(Func1<Throwable, Boolean> predicate) {
+            return this;
+        }
+
+        public Builder waits(Observable<Long> waits, TimeUnit unit) {
             return this;
         }
 
