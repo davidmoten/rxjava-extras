@@ -44,29 +44,18 @@ public final class RetryWhen {
             final List<Class<? extends Throwable>> retryExceptions,
             final List<Class<? extends Throwable>> failExceptions,
             final Func1<? super Throwable, Boolean> exceptionPredicate) {
-        final Func1<ErrorAndDuration, Observable<ErrorAndDuration>> checkExceptions = new Func1<ErrorAndDuration, Observable<ErrorAndDuration>>() {
 
-            @Override
-            public Observable<ErrorAndDuration> call(ErrorAndDuration e) {
-                if (!exceptionPredicate.call(e.throwable()))
-                    return Observable.error(e.throwable());
-                for (Class<? extends Throwable> cls : failExceptions) {
-                    if (e.throwable().getClass().isAssignableFrom(cls))
-                        return Observable.<ErrorAndDuration> error(e.throwable());
-                }
-                if (retryExceptions.size() > 0) {
-                    for (Class<? extends Throwable> cls : retryExceptions) {
-                        if (e.throwable().getClass().isAssignableFrom(cls))
-                            return Observable.just(e);
-                    }
-                    return Observable.error(e.throwable());
-                } else {
-                    return Observable.just(e);
-                }
-            }
-        };
+        final Func1<ErrorAndDuration, Observable<ErrorAndDuration>> checkExceptions = createExceptionChecker(
+                retryExceptions, failExceptions, exceptionPredicate);
 
-        Func1<Observable<? extends Throwable>, Observable<?>> notificationHandler = new Func1<Observable<? extends Throwable>, Observable<?>>() {
+        return createNotificationHandler(delays, scheduler, action, checkExceptions);
+    }
+
+    private static Func1<Observable<? extends Throwable>, Observable<?>> createNotificationHandler(
+            final Observable<Long> delays, final Scheduler scheduler,
+            final Action1<? super ErrorAndDuration> action,
+            final Func1<ErrorAndDuration, Observable<ErrorAndDuration>> checkExceptions) {
+        return new Func1<Observable<? extends Throwable>, Observable<?>>() {
 
             @Override
             public Observable<ErrorAndDuration> call(Observable<? extends Throwable> errors) {
@@ -91,10 +80,37 @@ public final class RetryWhen {
                         .flatMap(RetryWhen.delay(scheduler));
             }
         };
-        return notificationHandler;
     }
 
-    private final static Func2<Throwable, Long, ErrorAndDuration> TO_ERROR_AND_DURATION = new Func2<Throwable, Long, ErrorAndDuration>() {
+    // TODO unit test
+    private static Func1<ErrorAndDuration, Observable<ErrorAndDuration>> createExceptionChecker(
+            final List<Class<? extends Throwable>> retryExceptions,
+            final List<Class<? extends Throwable>> failExceptions,
+            final Func1<? super Throwable, Boolean> exceptionPredicate) {
+        return new Func1<ErrorAndDuration, Observable<ErrorAndDuration>>() {
+
+            @Override
+            public Observable<ErrorAndDuration> call(ErrorAndDuration e) {
+                if (!exceptionPredicate.call(e.throwable()))
+                    return Observable.error(e.throwable());
+                for (Class<? extends Throwable> cls : failExceptions) {
+                    if (e.throwable().getClass().isAssignableFrom(cls))
+                        return Observable.<ErrorAndDuration> error(e.throwable());
+                }
+                if (retryExceptions.size() > 0) {
+                    for (Class<? extends Throwable> cls : retryExceptions) {
+                        if (e.throwable().getClass().isAssignableFrom(cls))
+                            return Observable.just(e);
+                    }
+                    return Observable.error(e.throwable());
+                } else {
+                    return Observable.just(e);
+                }
+            }
+        };
+    }
+
+    private static Func2<Throwable, Long, ErrorAndDuration> TO_ERROR_AND_DURATION = new Func2<Throwable, Long, ErrorAndDuration>() {
         @Override
         public ErrorAndDuration call(Throwable throwable, Long durationMs) {
             return new ErrorAndDuration(throwable, durationMs);
@@ -168,6 +184,10 @@ public final class RetryWhen {
         private Optional<Integer> maxRetries = absent();
         private Optional<Scheduler> scheduler = of(Schedulers.computation());
         private Action1<? super ErrorAndDuration> action = Actions.doNothing1();
+
+        private Builder() {
+            // must use static factory method to instantiate
+        }
 
         public Builder retryWhenInstanceOf(Class<? extends Throwable>... classes) {
             retryExceptions.addAll(Arrays.asList(classes));
