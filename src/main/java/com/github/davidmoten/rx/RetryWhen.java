@@ -59,26 +59,30 @@ public final class RetryWhen {
 
             @Override
             public Observable<ErrorAndDuration> call(Observable<? extends Throwable> errors) {
-                final Action1<ErrorAndDuration> action2 = new Action1<ErrorAndDuration>() {
-
-                    @Override
-                    public void call(ErrorAndDuration e) {
-                        if (e.durationMs() != NO_MORE_DELAYS)
-                            action.call(e);
-                    }
-
-                };
                 return errors
                         // zip with delays, use -1 to signal completion
                         .zipWith(delays.concatWith(just(NO_MORE_DELAYS)), TO_ERROR_AND_DURATION)
-                        //
+                        // check retry and non-retry exceptions
                         .flatMap(checkExceptions)
                         // perform user action (for example log that a
                         // delay is happening)
-                        .doOnNext(action2)
+                        .doOnNext(callActionExceptForLast(action))
                         // delay the time in ErrorAndDuration
-                        .flatMap(RetryWhen.delay(scheduler));
+                        .flatMap(delay(scheduler));
             }
+        };
+    }
+
+    private static Action1<ErrorAndDuration> callActionExceptForLast(
+            final Action1<? super ErrorAndDuration> action) {
+        return new Action1<ErrorAndDuration>() {
+
+            @Override
+            public void call(ErrorAndDuration e) {
+                if (e.durationMs() != NO_MORE_DELAYS)
+                    action.call(e);
+            }
+
         };
     }
 
