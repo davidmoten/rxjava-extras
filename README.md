@@ -146,7 +146,7 @@ observable.retryWhen(
     RetryWhen.delay(10, TimeUnit.SECONDS).build());
 ```
 
-### Retry after a constant delay with a maximumjust( number of retries
+### Retry after a constant delay with a maximum number of retries
 
 ```java
 observable.retryWhen(
