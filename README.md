@@ -37,7 +37,7 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.5.13</version>
+  <version>0.5.16</version>
 </dependency>
 ```
 
