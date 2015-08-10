@@ -136,7 +136,7 @@ Behaves as per `toListWhile` but allows control over the data structure used.
 
 RetryWhen
 ----------------------
-A common use case for '.retry()` is some sequence of actions that are attempted and then after a delay a retry is attempted. RxJava does not provide 
+A common use case for `.retry()` is some sequence of actions that are attempted and then after a delay a retry is attempted. RxJava does not provide 
 first class support for this use case but the building blocks are there with the `.retryWhen()` method. `RetryWhen` offers static methods that build a `Func1` for use with `Observable.retryWhen()`.
 
 ### Retry after a constant delay
