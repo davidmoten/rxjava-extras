@@ -450,4 +450,15 @@ public final class Transformers {
         return doOnNext(1, action);
     }
 
+    public static <R, T> Transformer<T, R> ignoreElementsThen(final Observable<R> next) {
+        return new Transformer<T, R>() {
+
+            @SuppressWarnings("unchecked")
+            @Override
+            public Observable<R> call(Observable<T> source) {
+                return ((Observable<R>) (Observable<?>) source.ignoreElements()).concatWith(next);
+            }
+        };
+    }
+
 }
