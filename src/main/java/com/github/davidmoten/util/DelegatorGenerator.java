@@ -17,25 +17,19 @@ public final class DelegatorGenerator {
             String className = cls.getCanonicalName();
             String newClassName = map.get(cls);
             for (Method method : cls.getDeclaredMethods()) {
-                System.out.println(method.toGenericString());
-                String mods = Modifier.toString(method.getModifiers());
-                String g = method.getGenericReturnType().toString();
-                for (Class<?> c : map.keySet()) {
-                    g = g.replaceAll("\\b" + c.getCanonicalName() + "\\b", map.get(c));
-                }
-
-                String typeParams = typeParameters(method);
-
-                System.out.format("%s %s %s %s(\n", mods, typeParams, g, method.getName());
+                method.toGenericString();
+                System.out.println(sharedToGenericString(method));
             }
         }
     }
 
-    String sharedToGenericString(Method m, int modifierMask, boolean isDefault) {
+    static String sharedToGenericString(Method m) {
         try {
+
             StringBuilder sb = new StringBuilder();
 
-            printModifiersIfNonzero(m, sb, modifierMask, isDefault);
+            int modifierMask = Modifier.methodModifiers();
+            printModifiersIfNonzero(m, sb, modifierMask, m.isDefault());
 
             TypeVariable<?>[] typeparms = m.getTypeParameters();
             if (typeparms.length > 0) {
@@ -63,6 +57,8 @@ public final class DelegatorGenerator {
                                                                // T...
                     param = param.replaceFirst("\\[\\]$", "...");
                 sb.append(param);
+                sb.append(' ');
+                sb.append(m.getParameters()[j].getName());
                 if (j < (params.length - 1))
                     sb.append(',');
             }
@@ -83,14 +79,15 @@ public final class DelegatorGenerator {
         }
     }
 
-    void specificToGenericStringHeader(Method m, StringBuilder sb) {
+    private static void specificToGenericStringHeader(Method m, StringBuilder sb) {
         Type genRetType = m.getGenericReturnType();
         sb.append(genRetType.getTypeName()).append(' ');
-        sb.append(m.getDeclaringClass().getTypeName()).append('.');
+        // sb.append(m.getDeclaringClass().getTypeName()).append('.');
         sb.append(m.getName());
     }
 
-    void printModifiersIfNonzero(Method m, StringBuilder sb, int mask, boolean isDefault) {
+    private static void printModifiersIfNonzero(Method m, StringBuilder sb, int mask,
+            boolean isDefault) {
         int mod = m.getModifiers() & mask;
 
         if (mod != 0 && !isDefault) {
@@ -105,27 +102,6 @@ public final class DelegatorGenerator {
             if (mod != 0)
                 sb.append(Modifier.toString(mod)).append(' ');
         }
-    }
-
-    private static String typeParameters(Method method) {
-        String typeParams;
-        StringBuilder sb = new StringBuilder();
-        TypeVariable<?>[] typeparms = method.getTypeParameters();
-        if (typeparms.length > 0) {
-            boolean first = true;
-            sb.append('<');
-            for (TypeVariable<?> typeparm : typeparms) {
-                if (!first)
-                    sb.append(',');
-                // Class objects can't occur here; no need to test
-                // and call Class.getName().
-                sb.append(typeparm.toString());
-                first = false;
-            }
-            sb.append("> ");
-        }
-        typeParams = sb.toString();
-        return typeParams;
     }
 
     public static void main(String[] args) {
