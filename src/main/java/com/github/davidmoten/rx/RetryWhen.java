@@ -99,16 +99,16 @@ public final class RetryWhen {
                     return Observable.error(e.throwable());
                 for (Class<? extends Throwable> cls : failExceptions) {
                     if (e.throwable().getClass().isAssignableFrom(cls))
-                        return Observable.<ErrorAndDuration> error(e.throwable());
+                        return Observable.error(e.throwable());
                 }
                 if (retryExceptions.size() > 0) {
                     for (Class<? extends Throwable> cls : retryExceptions) {
                         if (e.throwable().getClass().isAssignableFrom(cls))
-                            return Observable.just(e);
+                            return just(e);
                     }
                     return Observable.error(e.throwable());
                 } else {
-                    return Observable.just(e);
+                    return just(e);
                 }
             }
         };
