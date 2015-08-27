@@ -17,6 +17,7 @@ import rx.Observable;
 import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
+import rx.functions.Func2;
 
 public final class Strings {
 
@@ -64,6 +65,25 @@ public final class Strings {
     public static Observable<String> split(Observable<String> source, String pattern) {
         return source.lift(new StringSplitOperator(Pattern.compile(pattern)))
                 .compose(Transformers.<String> bufferEmissions());
+    }
+
+    public static Observable<String> concat(Observable<String> src) {
+        return strings(
+                src.reduce(new StringBuilder(), new Func2<StringBuilder, String, StringBuilder>() {
+                    @Override
+                    public StringBuilder call(StringBuilder a, String b) {
+                        return a.append(b);
+                    }
+                }));
+    }
+
+    public static Observable<String> strings(Observable<?> source) {
+        return source.map(new Func1<Object, String>() {
+            @Override
+            public String call(Object t) {
+                return String.valueOf(t);
+            }
+        });
     }
 
     public static Observable<String> from(File file) {
