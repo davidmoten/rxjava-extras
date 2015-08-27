@@ -36,6 +36,7 @@ public final class Strings {
         }
     };
 
+    @SuppressWarnings("unchecked")
     public static <T> Func1<T, String> trim() {
         return (Func1<T, String>) TRIM;
     }
