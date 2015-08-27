@@ -1,10 +1,10 @@
-package com.github.davidmoten.rx.internal.operators;
+package com.github.davidmoten.rx.util;
 
 import java.io.InputStream;
 import java.nio.file.attribute.FileTime;
 import java.util.zip.ZipEntry;
 
-public final class MyZipEntry {
+public final class ZippedEntry {
 
     final String name; // entry name
     final long time; // last modification time
@@ -19,7 +19,7 @@ public final class MyZipEntry {
     final String comment; // optional comment string for entry
     private final InputStream is;
 
-    public MyZipEntry(ZipEntry e, InputStream is) {
+    public ZippedEntry(ZipEntry e, InputStream is) {
         this.name = e.getName();
         this.time = e.getTime();
         this.mtime = e.getLastModifiedTime();

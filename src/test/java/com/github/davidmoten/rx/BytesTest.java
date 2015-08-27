@@ -11,7 +11,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import com.github.davidmoten.rx.internal.operators.MyZipEntry;
+import com.github.davidmoten.rx.util.ZippedEntry;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -21,10 +21,10 @@ public class BytesTest {
     @Test
     public void testUnzip() {
         List<String> list = Bytes.unzip(new File("src/test/resources/test.zip"))
-                .concatMap(new Func1<MyZipEntry, Observable<String>>() {
+                .concatMap(new Func1<ZippedEntry, Observable<String>>() {
 
                     @Override
-                    public Observable<String> call(MyZipEntry entry) {
+                    public Observable<String> call(ZippedEntry entry) {
                         return Observable.just(entry.getName())
                                 .concatWith(Strings.from(entry.getInputStream()));
                     }
@@ -37,10 +37,10 @@ public class BytesTest {
     public void testUnzipPartial() {
         InputStream is = BytesTest.class.getResourceAsStream("/test.zip");
         assertNotNull(is);
-        List<String> list = Bytes.unzip(is).concatMap(new Func1<MyZipEntry, Observable<String>>() {
+        List<String> list = Bytes.unzip(is).concatMap(new Func1<ZippedEntry, Observable<String>>() {
 
             @Override
-            public Observable<String> call(MyZipEntry entry) {
+            public Observable<String> call(ZippedEntry entry) {
                 try {
                     return Observable.just((char) entry.getInputStream().read() + "");
                 } catch (IOException e) {
@@ -54,16 +54,16 @@ public class BytesTest {
     @Test
     public void testUnzipExtractSpecificFile() {
         List<String> list = Bytes.unzip(new File("src/test/resources/test.zip"))
-                .filter(new Func1<MyZipEntry, Boolean>() {
+                .filter(new Func1<ZippedEntry, Boolean>() {
 
                     @Override
-                    public Boolean call(MyZipEntry entry) {
+                    public Boolean call(ZippedEntry entry) {
                         return entry.getName().equals("document2.txt");
                     }
-                }).concatMap(new Func1<MyZipEntry, Observable<String>>() {
+                }).concatMap(new Func1<ZippedEntry, Observable<String>>() {
 
                     @Override
-                    public Observable<String> call(MyZipEntry entry) {
+                    public Observable<String> call(ZippedEntry entry) {
                         return Strings.from(entry.getInputStream());
                     }
                 }).toList().toBlocking().single();

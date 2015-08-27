@@ -8,8 +8,8 @@ import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import com.github.davidmoten.rx.internal.operators.MyZipEntry;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeInputStream;
+import com.github.davidmoten.rx.util.ZippedEntry;
 
 import rx.Observable;
 import rx.functions.Action1;
@@ -27,7 +27,7 @@ public final class Bytes {
         return from(is, 8192);
     }
 
-    public static Observable<MyZipEntry> unzip(final File file) {
+    public static Observable<ZippedEntry> unzip(final File file) {
         Func0<ZipInputStream> resourceFactory = new Func0<ZipInputStream>() {
             @Override
             public ZipInputStream call() {
@@ -38,9 +38,9 @@ public final class Bytes {
                 }
             }
         };
-        Func1<ZipInputStream, Observable<MyZipEntry>> observableFactory = new Func1<ZipInputStream, Observable<MyZipEntry>>() {
+        Func1<ZipInputStream, Observable<ZippedEntry>> observableFactory = new Func1<ZipInputStream, Observable<ZippedEntry>>() {
             @Override
-            public Observable<MyZipEntry> call(ZipInputStream zis) {
+            public Observable<ZippedEntry> call(ZipInputStream zis) {
                 return unzip(zis);
             }
         };
@@ -58,19 +58,19 @@ public final class Bytes {
         return Observable.using(resourceFactory, observableFactory, disposeAction);
     }
 
-    public static Observable<MyZipEntry> unzip(final InputStream is) {
+    public static Observable<ZippedEntry> unzip(final InputStream is) {
         return unzip(new ZipInputStream(is));
     }
 
-    public static Observable<MyZipEntry> unzip(final ZipInputStream zis) {
-        return Observable.create(new AbstractOnSubscribe<MyZipEntry, ZipInputStream>() {
+    public static Observable<ZippedEntry> unzip(final ZipInputStream zis) {
+        return Observable.create(new AbstractOnSubscribe<ZippedEntry, ZipInputStream>() {
             @Override
             protected void next(
-                    AbstractOnSubscribe.SubscriptionState<MyZipEntry, ZipInputStream> state) {
+                    AbstractOnSubscribe.SubscriptionState<ZippedEntry, ZipInputStream> state) {
                 try {
                     ZipEntry zipEntry = zis.getNextEntry();
                     if (zipEntry != null) {
-                        state.onNext(new MyZipEntry(zipEntry, zis));
+                        state.onNext(new ZippedEntry(zipEntry, zis));
                     } else {
                         zis.close();
                         state.onCompleted();
