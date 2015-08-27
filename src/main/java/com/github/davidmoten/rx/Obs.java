@@ -1,8 +1,8 @@
 package com.github.davidmoten.rx;
 
-import rx.Observable;
-
 import com.github.davidmoten.rx.observables.CachedObservable;
+
+import rx.Observable;
 
 public final class Obs {
 
