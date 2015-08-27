@@ -7,11 +7,10 @@ import java.util.List;
 
 import org.junit.Test;
 
-import rx.Observable;
-
 import com.github.davidmoten.rx.Transformers;
-import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
+
+import rx.Observable;
 
 public class MapWithIndexTest {
 
