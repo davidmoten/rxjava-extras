@@ -23,6 +23,10 @@ Utilities for use with rxjava:
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
+* `Bytes.from`
+* `Bytes.unzip` unzips zip archives
+* `Strings.from`
+* `Strings.split`
 
 
 Status: *released to Maven Central*
@@ -170,6 +174,24 @@ observable.retryWhen(
     RetryWhen.retryWhenInstanceOf(IOException.class)
         .build());
 ```
+
+Unzipping
+-----------------------
+
+Suppose you have a a zip file `file.zip` and you want to stream the lines of the file `doc.txt` extracted from the archive:
+
+```java
+Observable<String> lines = 
+    Bytes.unzip(new File("file.zip"))
+       .filter(entry -> entry.getName().equals("doc.txt"))
+       .concatMap(entry -> Strings.from(entry.getInputStream))
+       .compose(o-> Strings.split(o, "\n"));
+```
+Note that above you don't need to worry about closing `entry.getInputStream()` because it is handled in the unsubscribe of the `Bytes.unzip` source.
+
+You must process the observable synchronously (don't replace the `concatMap()` with a `flatMap(...  .subscribeOn(Schedulers.computation())` for instance. This is because the `InputStream` of each `ZipEntry` must be processed fullly (which could mean ignoring it of course) before moving on to the next one.
+
+
 
 TestingHelper
 -----------------
