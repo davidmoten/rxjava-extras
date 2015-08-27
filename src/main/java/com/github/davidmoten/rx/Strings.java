@@ -67,11 +67,17 @@ public final class Strings {
                 .compose(Transformers.<String> bufferEmissions());
     }
 
-    public static Observable<String> concat(Observable<String> src) {
+    public static Observable<String> concat(Observable<String> source) {
+        return concat(source, "");
+    }
+
+    public static Observable<String> concat(Observable<String> source, final String delimiter) {
         return strings(
-                src.reduce(new StringBuilder(), new Func2<StringBuilder, String, StringBuilder>() {
+                source.reduce(new StringBuilder(), new Func2<StringBuilder, String, StringBuilder>() {
                     @Override
                     public StringBuilder call(StringBuilder a, String b) {
+                        if (a.length() > 0)
+                            a.append(delimiter);
                         return a.append(b);
                     }
                 }));
