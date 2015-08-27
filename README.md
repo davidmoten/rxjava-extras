@@ -189,7 +189,7 @@ Observable<String> lines =
 ```
 Note that above you don't need to worry about closing `entry.getInputStream()` because it is handled in the unsubscribe of the `Bytes.unzip` source.
 
-You must process the observable synchronously (don't replace the `concatMap()` with a `flatMap(...  .subscribeOn(Schedulers.computation())` for instance. This is because the `InputStream` of each `ZipEntry` must be processed fullly (which could mean ignoring it of course) before moving on to the next one.
+You must process the emissions of `MyZipEntry` synchronously (don't replace the `concatMap()` with a `flatMap(...  .subscribeOn(Schedulers.computation())` for instance. This is because the `InputStream` of each `MyZipEntry` must be processed fullly (which could mean ignoring it of course) before moving on to the next one.
 
 
 
