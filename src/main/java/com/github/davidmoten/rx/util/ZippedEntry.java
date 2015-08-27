@@ -1,16 +1,15 @@
 package com.github.davidmoten.rx.util;
 
 import java.io.InputStream;
-import java.nio.file.attribute.FileTime;
 import java.util.zip.ZipEntry;
 
 public final class ZippedEntry {
 
     final String name; // entry name
     final long time; // last modification time
-    final FileTime mtime; // last modification time, from extra field data
-    final FileTime atime; // last access time, from extra field data
-    final FileTime ctime; // creation time, from extra field data
+    // final FileTime mtime; // last modification time, from extra field data
+    // final FileTime atime; // last access time, from extra field data
+    // final FileTime ctime; // creation time, from extra field data
     final long crc; // crc-32 of entry data
     final long size; // uncompressed size of entry data
     final long csize; // compressed size of entry data
@@ -22,9 +21,9 @@ public final class ZippedEntry {
     public ZippedEntry(ZipEntry e, InputStream is) {
         this.name = e.getName();
         this.time = e.getTime();
-        this.mtime = e.getLastModifiedTime();
-        this.atime = e.getLastAccessTime();
-        this.ctime = e.getCreationTime();
+        // this.mtime = e.getLastModifiedTime();
+        // this.atime = e.getLastAccessTime();
+        // this.ctime = e.getCreationTime();
         this.crc = e.getCrc();
         this.size = e.getSize();
         this.csize = e.getCompressedSize();
@@ -46,17 +45,17 @@ public final class ZippedEntry {
         return time;
     }
 
-    public FileTime getLastModifiedTime() {
-        return mtime;
-    }
+    // public FileTime getLastModifiedTime() {
+    // return mtime;
+    // }
 
-    public FileTime getLastAccessTime() {
-        return atime;
-    }
+    // public FileTime getLastAccessTime() {
+    // return atime;
+    // }
 
-    public FileTime getCreatedtime() {
-        return ctime;
-    }
+    // public FileTime getCreatedtime() {
+    // return ctime;
+    // }
 
     public long getCrc() {
         return crc;
