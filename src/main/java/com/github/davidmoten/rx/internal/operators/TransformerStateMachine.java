@@ -3,27 +3,30 @@ package com.github.davidmoten.rx.internal.operators;
 import java.util.LinkedList;
 import java.util.Queue;
 
+import com.github.davidmoten.util.Preconditions;
+
 import rx.Notification;
 import rx.Observable;
 import rx.Observable.Transformer;
 import rx.Observer;
+import rx.Subscription;
+import rx.functions.Action0;
 import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
-
-import com.github.davidmoten.util.Preconditions;
+import rx.subscriptions.Subscriptions;
 
 public final class TransformerStateMachine<State, In, Out> implements Transformer<In, Out> {
 
     private final Func0<State> initialState;
-    private final Func3<? super State, ? super In, ? super Observer<Out>, ? extends State> transition;
-    private final Action2<? super State, ? super Observer<Out>> completionAction;
+    private final Func3<? super State, ? super In, ? super StateMachineObserver<Out>, ? extends State> transition;
+    private final Action2<? super State, ? super StateMachineObserver<Out>> completionAction;
 
     private TransformerStateMachine(Func0<State> initialState,
-            Func3<? super State, ? super In, ? super Observer<Out>, ? extends State> transition,
-            Action2<? super State, ? super Observer<Out>> completionAction) {
+            Func3<? super State, ? super In, ? super StateMachineObserver<Out>, ? extends State> transition,
+            Action2<? super State, ? super StateMachineObserver<Out>> completionAction) {
         Preconditions.checkNotNull(initialState);
         Preconditions.checkNotNull(transition);
         Preconditions.checkNotNull(completionAction);
@@ -33,42 +36,56 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     }
 
     public static <State, In, Out> Transformer<In, Out> create(Func0<State> initialState,
-            Func3<? super State, ? super In, ? super Observer<Out>, ? extends State> transition,
-            Action2<? super State, ? super Observer<Out>> completionAction) {
+            Func3<? super State, ? super In, ? super StateMachineObserver<Out>, ? extends State> transition,
+            Action2<? super State, ? super StateMachineObserver<Out>> completionAction) {
         return new TransformerStateMachine<State, In, Out>(initialState, transition,
                 completionAction);
     }
 
-    @Override
-    public Observable<Out> call(Observable<In> source) {
-        StateWithNotifications<State, Out> initial = new StateWithNotifications<State, Out>(
-                initialState.call());
-        return source.materialize()
-        // do state transitions and record notifications
-                .scan(initial, transformStateAndRecordNotifications())
-                // as an optimisation? throw away empty notification lists
-                // before hitting flatMap
-                .filter(nonEmptyNotifications())
-                // use flatMap to emit notification values
-                .flatMap(emitNotifications());
+    public interface StateMachineObserver<T> extends Observer<T> {
+        void unsubscribe();
+
+        boolean isUnsubscribed();
     }
 
-    private Func1<StateWithNotifications<State, Out>, Boolean> nonEmptyNotifications() {
-        return new Func1<StateWithNotifications<State, Out>, Boolean>() {
+    @Override
+    public Observable<Out> call(final Observable<In> source) {
+
+        return Observable.defer(new Func0<Observable<Out>>() {
 
             @Override
-            public Boolean call(StateWithNotifications<State, Out> s) {
-                return s.notifications.size() > 0;
+            public Observable<Out> call() {
+                final Subscription subscription = Subscriptions.empty();
+                final StateWithNotifications<State, Out> initial = new StateWithNotifications<State, Out>(
+                        initialState.call());
+                return source.materialize()
+                        // do state transitions and record notifications
+                        .scan(initial, transformStateAndRecordNotifications(subscription))
+                        // use flatMap to emit notification values
+                        .flatMap(emitNotifications())
+                        // unsubscribe action
+                        .doOnUnsubscribe(unsubscribe(subscription));
+            }
+
+        });
+    }
+
+    private static Action0 unsubscribe(final Subscription subscription) {
+        return new Action0() {
+            @Override
+            public void call() {
+                subscription.unsubscribe();
             }
         };
     }
 
-    private Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>> transformStateAndRecordNotifications() {
+    private Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>> transformStateAndRecordNotifications(
+            final Subscription subscription) {
         return new Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>>() {
             @Override
             public StateWithNotifications<State, Out> call(StateWithNotifications<State, Out> sn,
                     Notification<In> in) {
-                Recorder<Out> recorder = new Recorder<Out>();
+                Recorder<Out> recorder = new Recorder<Out>(subscription);
                 if (in.isOnError()) {
                     recorder.onError(in.getThrowable());
                     return new StateWithNotifications<State, Out>(sn.state, recorder.notifications);
@@ -79,7 +96,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                             recorder.notifications);
                 } else {
                     State nextState = transition.call(sn.state, in.getValue(), recorder);
-                    return new StateWithNotifications<State, Out>(nextState, recorder.notifications);
+                    return new StateWithNotifications<State, Out>(nextState,
+                            recorder.notifications);
                 }
             }
         };
@@ -111,24 +129,43 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
 
     }
 
-    private static final class Recorder<Out> implements Observer<Out> {
+    private static final class Recorder<Out> implements StateMachineObserver<Out> {
 
         final Queue<Notification<Out>> notifications = new LinkedList<Notification<Out>>();
 
+        private final Subscription subscription;
+
+        Recorder(Subscription subscription) {
+            this.subscription = subscription;
+        }
+
         @Override
         public void onCompleted() {
-            notifications.add(Notification.<Out> createOnCompleted());
+            if (!subscription.isUnsubscribed())
+                notifications.add(Notification.<Out> createOnCompleted());
         }
 
         @Override
         public void onError(Throwable e) {
-            notifications.add(Notification.<Out> createOnError(e));
+            if (!subscription.isUnsubscribed())
+                notifications.add(Notification.<Out> createOnError(e));
 
         }
 
         @Override
         public void onNext(Out t) {
-            notifications.add(Notification.<Out> createOnNext(t));
+            if (!subscription.isUnsubscribed())
+                notifications.add(Notification.<Out> createOnNext(t));
+        }
+
+        @Override
+        public void unsubscribe() {
+            subscription.unsubscribe();
+        }
+
+        @Override
+        public boolean isUnsubscribed() {
+            return subscription.isUnsubscribed();
         }
 
     }
