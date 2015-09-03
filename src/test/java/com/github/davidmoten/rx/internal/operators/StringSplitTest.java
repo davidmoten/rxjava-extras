@@ -6,17 +6,16 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.regex.Pattern;
 
 import org.junit.Test;
 
-import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
+import com.github.davidmoten.rx.Transformers;
 
 import rx.Observable;
 import rx.Subscriber;
 import rx.observers.TestSubscriber;
 
-public class StringSplitOperatorTest {
+public class StringSplitTest {
 
     @Test
     public void testNormal() {
@@ -111,9 +110,8 @@ public class StringSplitOperatorTest {
 
     @Test
     public void testBackpressureOneByOneWithBufferEmissions() {
-        Observable<String> o = Observable.just("boo:an", "d:you")
-                .lift(new StringSplitOperator(Pattern.compile(":")))
-                .lift(new OperatorBufferEmissions<String>());
+        Observable<String> o = Observable.just("boo:an", "d:you").compose(Transformers.split(":"));
+
         TestSubscriber<String> ts = TestSubscriber.create(0);
         o.subscribe(ts);
         ts.requestMore(1);
@@ -126,14 +124,12 @@ public class StringSplitOperatorTest {
 
     private static void checkWithBackpressure(Observable<String> o, List<String> expected) {
         final List<String> list = new ArrayList<String>();
-        o.lift(new StringSplitOperator(Pattern.compile(":")))
-                .subscribe(createBackpressureSubscriber(list));
+        o.compose(Transformers.split(":")).subscribe(createBackpressureSubscriber(list));
         assertEquals(expected, list);
     }
 
     private static void check(Observable<String> o, List<String> expected) {
-        List<String> list = o.lift(new StringSplitOperator(Pattern.compile(":"))).toList()
-                .toBlocking().single();
+        List<String> list = o.compose(Transformers.split(":")).toList().toBlocking().single();
         assertEquals(expected, list);
     }
 

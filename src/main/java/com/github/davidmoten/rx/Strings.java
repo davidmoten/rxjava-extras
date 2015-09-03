@@ -8,10 +8,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
-import java.util.regex.Pattern;
 
 import com.github.davidmoten.rx.internal.operators.OnSubscribeReader;
-import com.github.davidmoten.rx.internal.operators.StringSplitOperator;
 
 import rx.Observable;
 import rx.functions.Action1;
@@ -63,8 +61,7 @@ public final class Strings {
     }
 
     public static Observable<String> split(Observable<String> source, String pattern) {
-        return source.lift(new StringSplitOperator(Pattern.compile(pattern)))
-                .compose(Transformers.<String> bufferEmissions());
+        return source.compose(Transformers.split(pattern));
     }
 
     public static Observable<String> concat(Observable<String> source) {
@@ -72,8 +69,8 @@ public final class Strings {
     }
 
     public static Observable<String> concat(Observable<String> source, final String delimiter) {
-        return strings(
-                source.reduce(new StringBuilder(), new Func2<StringBuilder, String, StringBuilder>() {
+        return strings(source.reduce(new StringBuilder(),
+                new Func2<StringBuilder, String, StringBuilder>() {
                     @Override
                     public StringBuilder call(StringBuilder a, String b) {
                         if (a.length() > 0)

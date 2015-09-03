@@ -8,7 +8,7 @@ import junit.framework.TestSuite;
 import rx.Observable;
 import rx.functions.Func1;
 
-public class StringSplitOperatorMoreTest extends TestCase {
+public class StringSplitMoreTest extends TestCase {
 
     public static TestSuite suite() {
         return TestingHelper.function(SPLIT)
@@ -26,7 +26,7 @@ public class StringSplitOperatorMoreTest extends TestCase {
                 // test
                 .name("testSeparatorOnlyProducesTwoBlanks").from(":").expect("", "")
                 // get suite
-                .testSuite(StringSplitOperatorMoreTest.class);
+                .testSuite(StringSplitMoreTest.class);
     }
 
     public void testDummy() {
