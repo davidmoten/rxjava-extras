@@ -61,8 +61,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                 return source.materialize()
                         // do state transitions and record notifications
                         .scan(initial, transformStateAndRecordNotifications(subscription))
-                        // use flatMap to emit notification values
-                        .flatMap(emitNotifications())
+                        // use concatMap to emit notification values
+                        .concatMap(emitNotifications())
                         // unsubscribe action
                         .doOnUnsubscribe(unsubscribe(subscription));
             }
@@ -88,16 +88,17 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                 Recorder<Out> recorder = new Recorder<Out>(subscription);
                 if (in.isOnError()) {
                     recorder.onError(in.getThrowable());
-                    return new StateWithNotifications<State, Out>(sn.state, recorder.notifications);
+                    return new StateWithNotifications<State, Out>(sn.state, recorder.notifications,
+                            recorder.size);
                 } else if (in.isOnCompleted()) {
                     completionAction.call(sn.state, recorder);
                     recorder.onCompleted();
                     return new StateWithNotifications<State, Out>((State) null,
-                            recorder.notifications);
+                            recorder.notifications, recorder.size);
                 } else {
                     State nextState = transition.call(sn.state, in.getValue(), recorder);
-                    return new StateWithNotifications<State, Out>(nextState,
-                            recorder.notifications);
+                    return new StateWithNotifications<State, Out>(nextState, recorder.notifications,
+                            recorder.size);
                 }
             }
         };
@@ -107,8 +108,15 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         return new Func1<StateWithNotifications<State, Out>, Observable<Out>>() {
             @Override
             public Observable<Out> call(StateWithNotifications<State, Out> sn) {
-                // TODO optimisation use Observable.just(item) for single item
-                // list gives better flatMap performance downstream
+                // enable flatMap fast path with ScalarSynchronousObservable if
+                // there is only one value in notifications
+                if (sn.size == 2) {
+                    Notification<Out> first = sn.notifications.poll();
+                    Notification<Out> second = sn.notifications.poll();
+                    if (first.hasValue() && second.isOnCompleted()) {
+                        return Observable.just(first.getValue());
+                    }
+                }
                 return Observable.from(sn.notifications).dematerialize();
             }
         };
@@ -117,14 +125,16 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     private static final class StateWithNotifications<State, Out> {
         final State state;
         final Queue<Notification<Out>> notifications;
+        final int size;
 
-        StateWithNotifications(State state, Queue<Notification<Out>> notifications) {
+        StateWithNotifications(State state, Queue<Notification<Out>> notifications, int size) {
             this.state = state;
             this.notifications = notifications;
+            this.size = size;
         }
 
         StateWithNotifications(State state) {
-            this(state, new LinkedList<Notification<Out>>());
+            this(state, new LinkedList<Notification<Out>>(), 0);
         }
 
     }
@@ -132,6 +142,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     private static final class Recorder<Out> implements StateMachineObserver<Out> {
 
         final Queue<Notification<Out>> notifications = new LinkedList<Notification<Out>>();
+
+        int size = 0;
 
         private final Subscription subscription;
 
@@ -141,21 +153,17 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
 
         @Override
         public void onCompleted() {
-            if (!subscription.isUnsubscribed())
-                notifications.add(Notification.<Out> createOnCompleted());
+            add(Notification.<Out> createOnCompleted());
         }
 
         @Override
         public void onError(Throwable e) {
-            if (!subscription.isUnsubscribed())
-                notifications.add(Notification.<Out> createOnError(e));
-
+            add(Notification.<Out> createOnError(e));
         }
 
         @Override
         public void onNext(Out t) {
-            if (!subscription.isUnsubscribed())
-                notifications.add(Notification.<Out> createOnNext(t));
+            add(Notification.<Out> createOnNext(t));
         }
 
         @Override
@@ -166,6 +174,13 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         @Override
         public boolean isUnsubscribed() {
             return subscription.isUnsubscribed();
+        }
+
+        private void add(Notification<Out> notification) {
+            if (!subscription.isUnsubscribed()) {
+                notifications.add(notification);
+                size++;
+            }
         }
 
     }

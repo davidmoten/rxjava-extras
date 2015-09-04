@@ -23,7 +23,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<rxjava.version>1.0.13</rxjava.version>
-		<jmh.version>1.8</jmh.version>
+		<jmh.version>1.10.5</jmh.version>
 		<exec.version>1.4.0</exec.version>
 
 		<cobertura.version>2.6</cobertura.version>
@@ -258,11 +258,12 @@
 										<classpath />
 										<argument>org.openjdk.jmh.Main</argument>
 										<!-- -h for help -->
-										<argument>-f</argument>
+                                        <argument>-f</argument>
+                                        <argument>1</argument>
 										<argument>-i</argument>
 										<argument>10</argument>
 										<argument>-wi</argument>
-										<argument>3</argument>
+										<argument>8</argument>
 										<argument>-jvmArgs</argument>
 										<argument>-Xmx512m</argument>
 									</arguments>
