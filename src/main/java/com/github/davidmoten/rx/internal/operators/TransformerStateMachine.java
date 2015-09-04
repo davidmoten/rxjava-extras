@@ -62,7 +62,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                         // do state transitions and record notifications
                         .scan(initial, transformStateAndRecordNotifications(subscription))
                         // use concatMap to emit notification values
-                        .concatMap(emitNotifications())
+                        .flatMap(emitNotifications())
                         // unsubscribe action
                         .doOnUnsubscribe(unsubscribe(subscription));
             }
