@@ -7,8 +7,8 @@ import rx.Subscriber;
 
 public class Benchmarks {
 
-    private static final Observable<Integer> o5 = Observable.just(1, 2, 3, 4, 5);
     private static final Observable<Integer> o1 = Observable.just(1);
+    private static final Observable<Integer> o5 = Observable.just(1, 2, 3, 4, 5);
     private static final Observable<Integer> o1000 = Observable.just(1);
 
     @Benchmark
