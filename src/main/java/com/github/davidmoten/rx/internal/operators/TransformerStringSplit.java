@@ -5,7 +5,7 @@ import rx.Subscriber;
 import rx.functions.Action2;
 import rx.functions.Func3;
 
-public class TransformerStringSplit {
+public final class TransformerStringSplit {
 
     public static <T> Transformer<String, String> split(final String pattern) {
         LeftOver initialState = new LeftOver(null);
