@@ -247,13 +247,7 @@ public final class Transformers {
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition) {
         Func0<State> f = Functions.constant0(initialState);
-        return TransformerStateMachine.<State, In, Out> create(f, transition,
-                new Action2<State, Observer<Out>>() {
-                    @Override
-                    public void call(State state, Observer<Out> observer) {
-                        // do nothing
-                    }
-                });
+        return TransformerStateMachine.<State, In, Out> create(f, transition, Actions.doNothing2());
     }
 
     @SuppressWarnings("unchecked")

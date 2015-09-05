@@ -1,10 +1,10 @@
 package com.github.davidmoten.rx;
 
-import rx.functions.Action0;
-import rx.functions.Action1;
-
 import com.github.davidmoten.rx.Checked.A0;
 import com.github.davidmoten.rx.Checked.A1;
+
+import rx.functions.Action0;
+import rx.functions.Action1;
 
 public class Ignore {
 
@@ -33,4 +33,5 @@ public class Ignore {
             }
         };
     }
+
 }
