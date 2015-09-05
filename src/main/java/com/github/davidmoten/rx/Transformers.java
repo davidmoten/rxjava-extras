@@ -12,7 +12,6 @@ import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
 import com.github.davidmoten.rx.internal.operators.OperatorOrderedMerge;
 import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
-import com.github.davidmoten.rx.internal.operators.TransformerStateMachine.StateMachineObserver;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;
@@ -21,6 +20,7 @@ import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Observer;
+import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func0;
@@ -128,11 +128,10 @@ public final class Transformers {
      * @param transition
      *            defines state transitions and consequent emissions to
      *            downstream when an item arrives from upstream. The
-     *            {@link StateMachineObserver} is called with the emissions to
-     *            downstream. You can optionally call
-     *            {@link StateMachineObserver#isUnsubscribed()} to check if you
-     *            can stop emitting from the transition. If you do wish to
-     *            terminate the transition due to unsubscription then
+     *            {@link Subscriber} is called with the emissions to downstream.
+     *            You can optionally call {@link Subscriber#isUnsubscribed()} to
+     *            check if you can stop emitting from the transition. If you do
+     *            wish to terminate the transition due to unsubscription then
      *            {@code return null} from the transition.
      * @param completionAction
      *            defines activity that should happen based on the final state
@@ -154,8 +153,8 @@ public final class Transformers {
      */
     public static <State, In, Out> Transformer<In, Out> stateMachine(
             Func0<State> initialStateFactory,
-            Func3<? super State, ? super In, ? super StateMachineObserver<Out>, ? extends State> transition,
-            Action2<? super State, ? super StateMachineObserver<Out>> completionAction) {
+            Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
+            Action2<? super State, ? super Subscriber<Out>> completionAction) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completionAction);
     }
@@ -179,11 +178,10 @@ public final class Transformers {
      * @param transition
      *            defines state transitions and consequent emissions to
      *            downstream when an item arrives from upstream. The
-     *            {@link StateMachineObserver} is called with the emissions to
-     *            downstream. You can optionally call
-     *            {@link StateMachineObserver#isUnsubscribed()} to check if you
-     *            can stop emitting from the transition. If you do wish to
-     *            terminate the transition due to unsubscription then
+     *            {@link Subscriber} is called with the emissions to downstream.
+     *            You can optionally call {@link Subscriber#isUnsubscribed()} to
+     *            check if you can stop emitting from the transition. If you do
+     *            wish to terminate the transition due to unsubscription then
      *            {@code return null} from the transition.
      * @param completionAction
      *            defines activity that should happen based on the final state
@@ -203,8 +201,8 @@ public final class Transformers {
      *         machine specified by the parameters
      */
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
-            Func3<? super State, ? super In, ? super StateMachineObserver<Out>, ? extends State> transition,
-            Action2<? super State, ? super StateMachineObserver<Out>> completionAction) {
+            Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
+            Action2<? super State, ? super Subscriber<Out>> completionAction) {
         Func0<State> f = Functions.constant0(initialState);
         return TransformerStateMachine.<State, In, Out> create(f, transition, completionAction);
     }
@@ -230,11 +228,10 @@ public final class Transformers {
      * @param transition
      *            defines state transitions and consequent emissions to
      *            downstream when an item arrives from upstream. The
-     *            {@link StateMachineObserver} is called with the emissions to
-     *            downstream. You can optionally call
-     *            {@link StateMachineObserver#isUnsubscribed()} to check if you
-     *            can stop emitting from the transition. If you do wish to
-     *            terminate the transition due to unsubscription then
+     *            {@link Subscriber} is called with the emissions to downstream.
+     *            You can optionally call {@link Subscriber#isUnsubscribed()} to
+     *            check if you can stop emitting from the transition. If you do
+     *            wish to terminate the transition due to unsubscription then
      *            {@code return null} from the transition.
      * @param <State>
      *            the class representing the state of the state machine
@@ -248,7 +245,7 @@ public final class Transformers {
      *         machine specified by the parameters
      */
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
-            Func3<? super State, ? super In, ? super StateMachineObserver<Out>, ? extends State> transition) {
+            Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition) {
         Func0<State> f = Functions.constant0(initialState);
         return TransformerStateMachine.<State, In, Out> create(f, transition,
                 new Action2<State, Observer<Out>>() {
@@ -490,11 +487,10 @@ public final class Transformers {
 
     public static <T> Transformer<String, String> split(final String pattern) {
         LeftOver initialState = new LeftOver(null);
-        Func3<LeftOver, String, StateMachineObserver<String>, LeftOver> transition = new Func3<LeftOver, String, StateMachineObserver<String>, LeftOver>() {
+        Func3<LeftOver, String, Subscriber<String>, LeftOver> transition = new Func3<LeftOver, String, Subscriber<String>, LeftOver>() {
 
             @Override
-            public LeftOver call(LeftOver leftOver, String s,
-                    StateMachineObserver<String> observer) {
+            public LeftOver call(LeftOver leftOver, String s, Subscriber<String> observer) {
                 String[] parts = s.split(pattern, -1);
                 // prepend leftover to the first part
                 if (leftOver.value != null)
@@ -516,10 +512,10 @@ public final class Transformers {
             }
         };
 
-        Action2<LeftOver, StateMachineObserver<String>> completionAction = new Action2<LeftOver, StateMachineObserver<String>>() {
+        Action2<LeftOver, Subscriber<String>> completionAction = new Action2<LeftOver, Subscriber<String>>() {
 
             @Override
-            public void call(LeftOver leftOver, StateMachineObserver<String> observer) {
+            public void call(LeftOver leftOver, Subscriber<String> observer) {
                 if (leftOver.value != null && !observer.isUnsubscribed())
                     observer.onNext(leftOver.value);
                 if (!observer.isUnsubscribed())
