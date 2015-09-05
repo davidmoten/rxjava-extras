@@ -20,6 +20,7 @@ import rx.functions.Func3;
 import rx.observers.TestSubscriber;
 
 public class TransformerStateMachineTest {
+
     @Test
     public void testStateTransitionThrowsError() {
         final RuntimeException ex = new RuntimeException("boo");
@@ -41,6 +42,38 @@ public class TransformerStateMachineTest {
         Action2<Integer, Observer<Integer>> completionAction = new Action2<Integer, Observer<Integer>>() {
             @Override
             public void call(Integer collection, Observer<Integer> observer) {
+            }
+        };
+        Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
+                transition, completionAction);
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        Observable.just(1, 1, 1).compose(transformer).subscribe(ts);
+        ts.awaitTerminalEvent();
+        ts.assertError(ex);
+    }
+
+    @Test
+    public void testCompletionActionThrowsError() {
+        final RuntimeException ex = new RuntimeException("boo");
+        Func0<Integer> initialState = new Func0<Integer>() {
+
+            @Override
+            public Integer call() {
+                return 1;
+            }
+        };
+        Func3<Integer, Integer, Observer<Integer>, Integer> transition = new Func3<Integer, Integer, Observer<Integer>, Integer>() {
+
+            @Override
+            public Integer call(Integer collection, Integer t, Observer<Integer> observer) {
+                return t;
+            }
+
+        };
+        Action2<Integer, Observer<Integer>> completionAction = new Action2<Integer, Observer<Integer>>() {
+            @Override
+            public void call(Integer collection, Observer<Integer> observer) {
+                throw ex;
             }
         };
         Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,

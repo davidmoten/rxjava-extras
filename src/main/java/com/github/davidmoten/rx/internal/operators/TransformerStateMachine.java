@@ -79,14 +79,21 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
             @Override
             public StateWithNotifications<State, Out> call(
                     final StateWithNotifications<State, Out> sn, final Notification<In> in) {
-                final AtomicReference<State> stateHolder = new AtomicReference<State>();
+                final AtomicReference<State> nextStateRef = new AtomicReference<State>();
                 final Observable<State> nextState = Observable
                         .defer(new Func0<Observable<State>>() {
                     @Override
                     public Observable<State> call() {
-                        return Observable.just(stateHolder.get());
+                        return Observable.just(nextStateRef.get());
                     }
                 });
+                Observable<Notification<Out>> emissions = createEmissions(sn, in, nextStateRef);
+                return new StateWithNotifications<State, Out>(nextState, emissions);
+            }
+
+            private Observable<Notification<Out>> createEmissions(
+                    final StateWithNotifications<State, Out> sn, final Notification<In> in,
+                    final AtomicReference<State> nextStateRef) {
                 // block to get this state to decouple this transition from the
                 // last
                 State st = sn.state.toBlocking().single();
@@ -113,7 +120,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                                     try {
                                         State s = transition.call(state, in.getValue(), wrapped);
                                         wrapped.onCompleted();
-                                        stateHolder.set(s);
+                                        nextStateRef.set(s);
                                     } catch (RuntimeException e) {
                                         wrapped.onError(e);
                                     }
@@ -123,7 +130,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                         });
                     }
                 }).onBackpressureBuffer();
-                return new StateWithNotifications<State, Out>(nextState, emissions);
+                return emissions;
             }
 
         };
