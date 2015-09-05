@@ -100,7 +100,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                     }
                 })
                         // because this observable will be fed into flatMap we
-                        // need to bummer emissions if need be to support
+                        // need to buffer emissions if need be to support
                         // backpressure
                         .onBackpressureBuffer();
 
@@ -114,21 +114,31 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
             final rx.Subscriber<? super Notification<Out>> subscriber) {
         return new Subscriber<Out>(subscriber) {
 
+            boolean finished = false;
+
             @Override
             public void onCompleted() {
-                subscriber.onNext(Notification.<Out> createOnCompleted());
-                subscriber.onCompleted();
+                if (!finished) {
+                    finished = true;
+                    subscriber.onNext(Notification.<Out> createOnCompleted());
+                    subscriber.onCompleted();
+                }
             }
 
             @Override
             public void onError(Throwable e) {
-                subscriber.onNext(Notification.<Out> createOnError(e));
-                subscriber.onCompleted();
+                if (!finished) {
+                    finished = true;
+                    subscriber.onNext(Notification.<Out> createOnError(e));
+                    subscriber.onCompleted();
+                }
             }
 
             @Override
             public void onNext(Out t) {
-                subscriber.onNext(Notification.createOnNext(t));
+                if (!finished) {
+                    subscriber.onNext(Notification.createOnNext(t));
+                }
             }
         };
     }
