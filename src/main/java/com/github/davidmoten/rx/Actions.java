@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Action2;
@@ -110,5 +111,14 @@ public final class Actions {
     @SuppressWarnings("unchecked")
     public static <T, R, S> Action3<T, R, S> doNothing3() {
         return (Action3<T, R, S>) HolderDoNothing3.INSTANCE;
+    }
+
+    public static Action0 unsubscribe(final Subscription subscription) {
+        return new Action0() {
+            @Override
+            public void call() {
+                subscription.unsubscribe();
+            }
+        };
     }
 }

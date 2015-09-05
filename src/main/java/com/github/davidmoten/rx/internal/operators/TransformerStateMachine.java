@@ -2,6 +2,7 @@ package com.github.davidmoten.rx.internal.operators;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.util.Preconditions;
 
 import rx.Notification;
@@ -10,7 +11,6 @@ import rx.Observable.OnSubscribe;
 import rx.Observable.Transformer;
 import rx.Subscriber;
 import rx.Subscription;
-import rx.functions.Action0;
 import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
@@ -49,86 +49,68 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
 
             @Override
             public Observable<Out> call() {
+                // make a subscription that will be used in the transition to
+                // stop emitting if need be
                 final Subscription subscription = Subscriptions.empty();
                 final StateWithNotifications<State, Out> initial = new StateWithNotifications<State, Out>(
-                        Observable.just(initialState.call()));
+                        new AtomicReference<State>(initialState.call()));
                 return source.materialize()
                         // do state transitions and record notifications
-                        .scan(initial, transformStateAndRecordNotifications(subscription))
+                        .scan(initial, transformStateAndHandleEmissions(subscription))
                         // use concatMap to emit notification values
                         .flatMap(emitNotifications())
                         // unsubscribe action
-                        .doOnUnsubscribe(unsubscribe(subscription));
+                        .doOnUnsubscribe(Actions.unsubscribe(subscription));
             }
 
         });
     }
 
-    private static Action0 unsubscribe(final Subscription subscription) {
-        return new Action0() {
-            @Override
-            public void call() {
-                subscription.unsubscribe();
-            }
-        };
-    }
-
-    private Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>> transformStateAndRecordNotifications(
+    private Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>> transformStateAndHandleEmissions(
             final Subscription subscription) {
         return new Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>>() {
             @Override
             public StateWithNotifications<State, Out> call(
                     final StateWithNotifications<State, Out> sn, final Notification<In> in) {
-                final AtomicReference<State> nextStateRef = new AtomicReference<State>();
-                final Observable<State> nextState = Observable
-                        .defer(new Func0<Observable<State>>() {
-                    @Override
-                    public Observable<State> call() {
-                        return Observable.just(nextStateRef.get());
-                    }
-                });
-                Observable<Notification<Out>> emissions = createEmissions(sn, in, nextStateRef);
-                return new StateWithNotifications<State, Out>(nextState, emissions);
-            }
-
-            private Observable<Notification<Out>> createEmissions(
-                    final StateWithNotifications<State, Out> sn, final Notification<In> in,
-                    final AtomicReference<State> nextStateRef) {
-                // block to get this state to decouple this transition from the
-                // last
-                final State state = sn.state.toBlocking().single();
-                return Observable.create(new OnSubscribe<Notification<Out>>() {
+                final AtomicReference<State> nextState = new AtomicReference<State>();
+                Observable<Notification<Out>> emissions = Observable
+                        .create(new OnSubscribe<Notification<Out>>() {
 
                     @Override
                     public void call(rx.Subscriber<? super Notification<Out>> subscriber) {
-                        Subscriber<Out> wrapped = wrap(subscriber);
+                        State state = sn.state.get();
+                        Subscriber<Out> materialize = materialize(subscriber);
                         if (in.isOnError()) {
-                            wrapped.onError(in.getThrowable());
+                            materialize.onError(in.getThrowable());
                         } else if (in.isOnCompleted()) {
                             try {
-                                completionAction.call(state, wrapped);
-                                wrapped.onCompleted();
+                                completionAction.call(state, materialize);
+                                materialize.onCompleted();
                             } catch (RuntimeException e) {
-                                wrapped.onError(e);
+                                materialize.onError(e);
                             }
                         } else {
                             try {
-                                State s = transition.call(state, in.getValue(), wrapped);
-                                wrapped.onCompleted();
-                                nextStateRef.set(s);
+                                nextState.set(transition.call(state, in.getValue(), materialize));
+                                materialize.onCompleted();
                             } catch (RuntimeException e) {
-                                wrapped.onError(e);
+                                materialize.onError(e);
                             }
                         }
                     }
+                })
+                        // because this observable will be fed into flatMap we
+                        // need to bummer emissions if need be to support
+                        // backpressure
+                        .onBackpressureBuffer();
 
-                }).onBackpressureBuffer();
+                return new StateWithNotifications<State, Out>(nextState, emissions);
             }
 
         };
     }
 
-    private static <Out> Subscriber<Out> wrap(
+    private static <Out> Subscriber<Out> materialize(
             final rx.Subscriber<? super Notification<Out>> subscriber) {
         return new Subscriber<Out>(subscriber) {
 
@@ -161,16 +143,16 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     }
 
     private static final class StateWithNotifications<State, Out> {
-        final Observable<State> state;
+        final AtomicReference<State> state;
         final Observable<Notification<Out>> notifications;
 
-        StateWithNotifications(Observable<State> state,
+        StateWithNotifications(AtomicReference<State> state,
                 Observable<Notification<Out>> notifications) {
             this.state = state;
             this.notifications = notifications;
         }
 
-        StateWithNotifications(Observable<State> state) {
+        StateWithNotifications(AtomicReference<State> state) {
             this(state, Observable.<Notification<Out>> empty());
         }
 
