@@ -96,41 +96,33 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                     final AtomicReference<State> nextStateRef) {
                 // block to get this state to decouple this transition from the
                 // last
-                State st = sn.state.toBlocking().single();
-                Observable<Notification<Out>> emissions = Observable.just(st)
-                        .flatMap(new Func1<State, Observable<Notification<Out>>>() {
+                final State state = sn.state.toBlocking().single();
+                return Observable.create(new OnSubscribe<Notification<Out>>() {
 
                     @Override
-                    public Observable<Notification<Out>> call(final State state) {
-                        return Observable.create(new OnSubscribe<Notification<Out>>() {
-
-                            @Override
-                            public void call(rx.Subscriber<? super Notification<Out>> subscriber) {
-                                Subscriber<Out> wrapped = wrap(subscriber);
-                                if (in.isOnError()) {
-                                    wrapped.onError(in.getThrowable());
-                                } else if (in.isOnCompleted()) {
-                                    try {
-                                        completionAction.call(state, wrapped);
-                                        wrapped.onCompleted();
-                                    } catch (RuntimeException e) {
-                                        wrapped.onError(e);
-                                    }
-                                } else {
-                                    try {
-                                        State s = transition.call(state, in.getValue(), wrapped);
-                                        wrapped.onCompleted();
-                                        nextStateRef.set(s);
-                                    } catch (RuntimeException e) {
-                                        wrapped.onError(e);
-                                    }
-                                }
+                    public void call(rx.Subscriber<? super Notification<Out>> subscriber) {
+                        Subscriber<Out> wrapped = wrap(subscriber);
+                        if (in.isOnError()) {
+                            wrapped.onError(in.getThrowable());
+                        } else if (in.isOnCompleted()) {
+                            try {
+                                completionAction.call(state, wrapped);
+                                wrapped.onCompleted();
+                            } catch (RuntimeException e) {
+                                wrapped.onError(e);
                             }
-
-                        });
+                        } else {
+                            try {
+                                State s = transition.call(state, in.getValue(), wrapped);
+                                wrapped.onCompleted();
+                                nextStateRef.set(s);
+                            } catch (RuntimeException e) {
+                                wrapped.onError(e);
+                            }
+                        }
                     }
+
                 }).onBackpressureBuffer();
-                return emissions;
             }
 
         };
