@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import com.github.davidmoten.rx.subjects.PublishSubjectSingleSubscriber;
+
 import rx.Notification;
 import rx.Observable;
 import rx.Observable.Operator;
@@ -8,15 +10,14 @@ import rx.Subscriber;
 import rx.functions.Func2;
 import rx.observers.SerializedSubscriber;
 
-import com.github.davidmoten.rx.subjects.PublishSubjectSingleSubscriber;
-
 public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
     private final Observable<T> other;
     private final Func2<? super T, ? super T, Integer> comparator;
     private static final Object EMPTY_SENTINEL = new Object();
 
-    public OperatorOrderedMerge(Observable<T> other, Func2<? super T, ? super T, Integer> comparator) {
+    public OperatorOrderedMerge(Observable<T> other,
+            Func2<? super T, ? super T, Integer> comparator) {
         this.other = other;
         this.comparator = comparator;
     }
@@ -51,17 +52,6 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
         Event(int subscriberIndex, Notification<T> notification) {
             this.subscriberIndex = subscriberIndex;
             this.notification = notification;
-        }
-
-        @Override
-        public String toString() {
-            StringBuilder builder = new StringBuilder();
-            builder.append("Event [subscriber=");
-            builder.append(subscriberIndex);
-            builder.append(", notification=");
-            builder.append(notification);
-            builder.append("]");
-            return builder.toString();
         }
 
     }
@@ -100,13 +90,6 @@ public class OperatorOrderedMerge<T> implements Operator<T, T> {
             observer.onNext(new Event<T>(index, Notification.<T> createOnNext(t)));
         }
 
-        @Override
-        public String toString() {
-            if (index == 0)
-                return "main";
-            else
-                return "other";
-        }
     }
 
     private static final class EventSubscriber<T> extends Subscriber<Event<T>> {
