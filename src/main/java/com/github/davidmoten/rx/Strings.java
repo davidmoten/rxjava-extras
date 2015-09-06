@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.davidmoten.rx.internal.operators.OnSubscribeReader;
 
@@ -16,7 +17,6 @@ import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
-import rx.functions.Func2;
 
 public final class Strings {
 
@@ -66,19 +66,11 @@ public final class Strings {
     }
 
     public static Observable<String> concat(Observable<String> source) {
-        return concat(source, "");
+        return join(source, "");
     }
 
     public static Observable<String> concat(Observable<String> source, final String delimiter) {
-        return strings(source.reduce(new StringBuilder(),
-                new Func2<StringBuilder, String, StringBuilder>() {
-                    @Override
-                    public StringBuilder call(StringBuilder a, String b) {
-                        if (a.length() > 0)
-                            a.append(delimiter);
-                        return a.append(b);
-                    }
-                }));
+        return join(source, delimiter);
     }
 
     public static Observable<String> strings(Observable<?> source) {
@@ -124,29 +116,46 @@ public final class Strings {
         return Observable.using(resourceFactory, observableFactory, disposeAction, true);
     }
 
-    public Observable<String> join(Observable<String> source) {
+    public static Observable<String> join(Observable<String> source) {
         return join(source, "");
     }
 
-    public Observable<String> join(Observable<String> source, final String delimiter) {
-        return source.collect(new Func0<StringBuilder>() {
-            @Override
-            public StringBuilder call() {
-                return new StringBuilder();
-            }
-        }, new Action2<StringBuilder, String>() {
+    public static Observable<String> join(final Observable<String> source, final String delimiter) {
+
+        return Observable.defer(new Func0<Observable<String>>() {
+            final AtomicBoolean afterFirst = new AtomicBoolean(false);
+            final AtomicBoolean isEmpty = new AtomicBoolean(true);
 
             @Override
-            public void call(StringBuilder b, String s) {
-                b.append(delimiter);
-                b.append(s);
-            }
-        }).map(new Func1<StringBuilder, String>() {
+            public Observable<String> call() {
+                return source.collect(new Func0<StringBuilder>() {
+                    @Override
+                    public StringBuilder call() {
+                        return new StringBuilder();
+                    }
+                }, new Action2<StringBuilder, String>() {
 
-            @Override
-            public String call(StringBuilder b) {
-                return b.toString();
+                    @Override
+                    public void call(StringBuilder b, String s) {
+                        if (!afterFirst.compareAndSet(false, true)) {
+                            b.append(delimiter);
+                        }
+                        b.append(s);
+                        isEmpty.set(false);
+                    }
+                }).flatMap(new Func1<StringBuilder, Observable<String>>() {
+
+                    @Override
+                    public Observable<String> call(StringBuilder b) {
+                        if (isEmpty.get())
+                            return Observable.empty();
+                        else
+                            return Observable.just(b.toString());
+                    }
+                });
+
             }
         });
     }
+
 }
