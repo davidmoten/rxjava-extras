@@ -13,6 +13,7 @@ import com.github.davidmoten.rx.internal.operators.OnSubscribeReader;
 
 import rx.Observable;
 import rx.functions.Action1;
+import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -123,4 +124,29 @@ public final class Strings {
         return Observable.using(resourceFactory, observableFactory, disposeAction, true);
     }
 
+    public Observable<String> join(Observable<String> source) {
+        return join(source, "");
+    }
+
+    public Observable<String> join(Observable<String> source, final String delimiter) {
+        return source.collect(new Func0<StringBuilder>() {
+            @Override
+            public StringBuilder call() {
+                return new StringBuilder();
+            }
+        }, new Action2<StringBuilder, String>() {
+
+            @Override
+            public void call(StringBuilder b, String s) {
+                b.append(delimiter);
+                b.append(s);
+            }
+        }).map(new Func1<StringBuilder, String>() {
+
+            @Override
+            public String call(StringBuilder b) {
+                return b.toString();
+            }
+        });
+    }
 }
