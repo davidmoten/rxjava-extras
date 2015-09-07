@@ -108,4 +108,7 @@ public class TransformersTest {
         assertEquals(2, item.get());
     }
 
+    @Test
+    public void test() {
+    }
 }

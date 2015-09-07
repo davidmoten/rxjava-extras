@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import com.github.davidmoten.util.TestingUtil;
+import com.github.davidmoten.junit.Asserts;
 
 public class FunctionsTest {
 
@@ -37,7 +37,7 @@ public class FunctionsTest {
 
     @Test
     public void testConstructorIsPrivate() {
-        TestingUtil.callConstructorAndCheckIsPrivate(Functions.class);
+        Asserts.assertIsUtilityClass(Functions.class);
     }
 
 }
