@@ -6,11 +6,13 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
 import com.github.davidmoten.rx.internal.operators.OperatorOrderedMerge;
+import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
 import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.internal.operators.TransformerStringSplit;
 import com.github.davidmoten.rx.util.MapWithIndex;
@@ -490,4 +492,12 @@ public final class Transformers {
         return TransformerStringSplit.split(pattern);
     }
 
+    public static <T> Transformer<T, T> limitSubscribers(AtomicInteger subscriberCount,
+            int maxSubscribers) {
+        return new TransformerLimitSubscribers<T>(subscriberCount, maxSubscribers);
+    }
+
+    public static <T> Transformer<T, T> limitSubscribers(int maxSubscribers) {
+        return new TransformerLimitSubscribers<T>(new AtomicInteger(), maxSubscribers);
+    }
 }
