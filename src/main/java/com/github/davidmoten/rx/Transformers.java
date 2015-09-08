@@ -362,6 +362,57 @@ public final class Transformers {
     /**
      * Returns a {@link Transformer} that returns an {@link Observable} that is
      * collected into {@code Collection} instances created by {@code factory}
+     * that are emitted when the collection and latest emission do not satisfy
+     * {@code condition} or on completion. s
+     * 
+     * @param factory
+     *            collection instance creator
+     * @param collect
+     *            collection action
+     * @param condition
+     *            returns true if and only if emission should be collected in
+     *            current collection being prepared for emission
+     * @param <T>
+     *            generic type of source observable
+     * @param <R>
+     *            collection type emitted by transformed Observable
+     * @return transformer as above
+     */
+    public static <T, R> Transformer<T, R> collectWhile(final Func0<R> factory,
+            final Action2<? super R, ? super T> collect,
+            final Func2<? super R, ? super T, Boolean> condition,
+            final Func1<? super R, Boolean> isEmpty) {
+        Func3<R, T, Observer<R>, R> transition = new Func3<R, T, Observer<R>, R>() {
+
+            @Override
+            public R call(R collection, T t, Observer<R> observer) {
+
+                if (condition.call(collection, t)) {
+                    collect.call(collection, t);
+                    return collection;
+                } else {
+                    observer.onNext(collection);
+                    R r = factory.call();
+                    collect.call(r, t);
+                    return r;
+                }
+            }
+
+        };
+        Action2<R, Observer<R>> completionAction = new Action2<R, Observer<R>>() {
+            @Override
+            public void call(R collection, Observer<R> observer) {
+                if (!isEmpty.call(collection)) {
+                    observer.onNext(collection);
+                }
+            }
+        };
+        return Transformers.stateMachine(factory, transition, completionAction);
+    }
+
+    /**
+     * Returns a {@link Transformer} that returns an {@link Observable} that is
+     * collected into {@code Collection} instances created by {@code factory}
      * that are emitted when items are not equal or on completion.
      * 
      * @param factory
@@ -379,53 +430,16 @@ public final class Transformers {
         return collectWhile(factory, collect, HolderEquals.<T> instance());
     }
 
-    /**
-     * Returns a {@link Transformer} that returns an {@link Observable} that is
-     * collected into {@code Collection} instances created by {@code factory}
-     * that are emitted when the collection and latest emission do not satisfy
-     * {@code condition} or on completion.
-     * 
-     * @param factory
-     *            collection instance creator
-     * @param collect
-     *            collection action
-     * @param condition
-     *            returns true if and only if emission should be collected in
-     *            current collection being prepared for emission
-     * @param <T>
-     *            generic type of source observable
-     * @param <R>
-     *            collection type emitted by transformed Observable
-     * @return transformer as above
-     */
-    public static <T, R extends Iterable<T>> Transformer<T, R> collectWhile(final Func0<R> factory,
+    public static <T, R extends Iterable<?>> Transformer<T, R> collectWhile(final Func0<R> factory,
             final Action2<? super R, ? super T> collect,
             final Func2<? super R, ? super T, Boolean> condition) {
-        Func3<R, T, Observer<R>, R> transition = new Func3<R, T, Observer<R>, R>() {
-
+        Func1<R, Boolean> isEmpty = new Func1<R, Boolean>() {
             @Override
-            public R call(R collection, T t, Observer<R> observer) {
-                if (condition.call(collection, t)) {
-                    collect.call(collection, t);
-                    return collection;
-                } else {
-                    observer.onNext(collection);
-                    R r = factory.call();
-                    collect.call(r, t);
-                    return r;
-                }
-            }
-
-        };
-        Action2<R, Observer<R>> completionAction = new Action2<R, Observer<R>>() {
-            @Override
-            public void call(R collection, Observer<R> observer) {
-                if (collection.iterator().hasNext()) {
-                    observer.onNext(collection);
-                }
+            public Boolean call(R collection) {
+                return !collection.iterator().hasNext();
             }
         };
-        return Transformers.stateMachine(factory, transition, completionAction);
+        return collectWhile(factory, collect, condition, isEmpty);
     }
 
     /**
