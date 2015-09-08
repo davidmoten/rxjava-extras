@@ -16,7 +16,7 @@ public class OperatorBufferEmissionsHelperTest extends TestCase {
 
     public static TestSuite suite() {
         return TestingHelper
-        // sync
+                // sync
                 .function(BUFFER_SYNC)
                 //
                 .name("testHandlesOverproducingSourceWithSyncDrainer").expect(1, 2, 3, 4, 5)
@@ -42,37 +42,37 @@ public class OperatorBufferEmissionsHelperTest extends TestCase {
             return o.concatWith(Observable.just(1, 2, 3, 4, 5)).toList()
                     .lift(new Operator<Integer, List<Integer>>() {
 
+                @Override
+                public Subscriber<? super List<Integer>> call(
+                        final Subscriber<? super Integer> child) {
+                    Subscriber<List<Integer>> parent = new Subscriber<List<Integer>>() {
+
                         @Override
-                        public Subscriber<? super List<Integer>> call(
-                                final Subscriber<? super Integer> child) {
-                            Subscriber<List<Integer>> parent = new Subscriber<List<Integer>>() {
-
-                                @Override
-                                public void onStart() {
-                                    request(1);
-                                }
-
-                                @Override
-                                public void onCompleted() {
-                                    child.onCompleted();
-                                }
-
-                                @Override
-                                public void onError(Throwable e) {
-                                    child.onError(e);
-                                }
-
-                                @Override
-                                public void onNext(List<Integer> list) {
-                                    for (Integer n : list)
-                                        child.onNext(n);
-                                }
-
-                            };
-                            child.add(parent);
-                            return parent;
+                        public void onStart() {
+                            request(1);
                         }
-                    });
+
+                        @Override
+                        public void onCompleted() {
+                            child.onCompleted();
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+                            child.onError(e);
+                        }
+
+                        @Override
+                        public void onNext(List<Integer> list) {
+                            for (Integer n : list)
+                                child.onNext(n);
+                        }
+
+                    };
+                    child.add(parent);
+                    return parent;
+                }
+            });
         }
     };
 

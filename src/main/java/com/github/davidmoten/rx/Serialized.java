@@ -84,13 +84,14 @@ public final class Serialized {
      * @return the stream of deserialized objects from the {@link InputStream}
      *         as an {@link Observable}.
      */
-    public static <T extends Serializable> Observable<T> read(final File file, final int bufferSize) {
+    public static <T extends Serializable> Observable<T> read(final File file,
+            final int bufferSize) {
         Func0<ObjectInputStream> resourceFactory = new Func0<ObjectInputStream>() {
             @Override
             public ObjectInputStream call() {
                 try {
-                    return new ObjectInputStream(new BufferedInputStream(new FileInputStream(file),
-                            bufferSize));
+                    return new ObjectInputStream(
+                            new BufferedInputStream(new FileInputStream(file), bufferSize));
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e);
                 } catch (IOException e) {
@@ -186,8 +187,8 @@ public final class Serialized {
             @Override
             public ObjectOutputStream call() {
                 try {
-                    return new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(
-                            file, append), bufferSize));
+                    return new ObjectOutputStream(new BufferedOutputStream(
+                            new FileOutputStream(file, append), bufferSize));
                 } catch (FileNotFoundException e) {
                     throw new RuntimeException(e);
                 } catch (IOException e) {
@@ -275,7 +276,8 @@ public final class Serialized {
             return write(source, file, false, DEFAULT_BUFFER_SIZE);
         }
 
-        public <T> Observable<T> write(final Observable<T> source, final File file, boolean append) {
+        public <T> Observable<T> write(final Observable<T> source, final File file,
+                boolean append) {
             return write(source, file, append, DEFAULT_BUFFER_SIZE);
         }
 

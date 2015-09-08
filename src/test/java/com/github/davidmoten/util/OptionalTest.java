@@ -65,7 +65,8 @@ public class OptionalTest {
 
     @Test
     public void testPresentObservable() {
-        assertEquals(Arrays.asList(1), Optional.of(1).toObservable().toList().toBlocking().single());
+        assertEquals(Arrays.asList(1),
+                Optional.of(1).toObservable().toList().toBlocking().single());
     }
 
 }

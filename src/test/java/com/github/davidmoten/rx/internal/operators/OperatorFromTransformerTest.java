@@ -28,7 +28,7 @@ public class OperatorFromTransformerTest {
     public void testUnsubscribeFromAsynchronousSource() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         Observable
-        // every 100ms
+                // every 100ms
                 .interval(100, TimeUnit.MILLISECONDS)
                 // detect unsubscribe
                 .doOnUnsubscribe(countDown(latch))
@@ -46,9 +46,9 @@ public class OperatorFromTransformerTest {
         CountDownLatch latch = new CountDownLatch(1);
         PublishSubject<Integer> subject = PublishSubject.create();
         subject
-        // detect unsubscribe
-        .doOnUnsubscribe(countDown(latch))
-        // use toOperator
+                // detect unsubscribe
+                .doOnUnsubscribe(countDown(latch))
+                // use toOperator
                 .lift(toOperator(Functions.<Observable<Integer>> identity()))
                 // get first only
                 .take(1)
@@ -71,8 +71,8 @@ public class OperatorFromTransformerTest {
 
     @Test
     public void testMultipleNonSimultaeousSubscriptions() {
-        Observable<Integer> sequence = Observable.range(1, 3).lift(
-                toOperator(Functions.<Observable<Integer>> identity()));
+        Observable<Integer> sequence = Observable.range(1, 3)
+                .lift(toOperator(Functions.<Observable<Integer>> identity()));
         assertEquals(asList(1, 2, 3), sequence.toList().toBlocking().single());
         assertEquals(asList(1, 2, 3), sequence.toList().toBlocking().single());
     }

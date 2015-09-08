@@ -19,8 +19,8 @@ public class OnSubscribeCacheResetableTest {
     public void test() {
         final AtomicInteger completedCount = new AtomicInteger();
         final AtomicInteger emissionCount = new AtomicInteger();
-        CachedObservable<Integer> cached = Obs.cache(Observable.just(1).doOnCompleted(
-                new Action0() {
+        CachedObservable<Integer> cached = Obs
+                .cache(Observable.just(1).doOnCompleted(new Action0() {
                     @Override
                     public void call() {
                         completedCount.incrementAndGet();

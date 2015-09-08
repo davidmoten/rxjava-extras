@@ -23,7 +23,7 @@ public class OperatorCacheHelperTest extends TestCase {
 
     public static TestSuite suite() {
         return TestingHelper.function(FUNCTION)
-        // test empty
+                // test empty
                 .name("testCacheOfEmptyReturnsEmpty").fromEmpty().expectEmpty()
                 //
                 .name("testCacheOfSomeReturnsSome").from(1, 2, 3, 4, 5).expect(1, 2, 3, 4, 5)

@@ -23,7 +23,7 @@ public class OperatorBufferEmissionsTest {
     public void testSyncDrainerDeliversRequestedFromBackpressureEnabledSource() {
         final AtomicInteger count = new AtomicInteger(0);
         createSource()
-        // buffer
+                // buffer
                 .compose(Transformers.<Integer> bufferEmissions())
                 // subscribe
                 .subscribe(new Subscriber<Integer>() {
@@ -68,7 +68,7 @@ public class OperatorBufferEmissionsTest {
         final AtomicLong requests = new AtomicLong();
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>(100);
         Observable.range(1, 1000)
-        //
+                //
                 .doOnRequest(new Action1<Long>() {
 
                     @Override
@@ -86,7 +86,7 @@ public class OperatorBufferEmissionsTest {
     public void testRequestOverflow() {
         final TestSubscriber<Integer> ts = new TestSubscriber<Integer>(Long.MAX_VALUE - 2);
         Observable.range(1, 10)
-        //
+                //
                 .doOnNext(new Action1<Integer>() {
 
                     @Override

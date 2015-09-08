@@ -13,14 +13,11 @@ import rx.functions.Func1;
 public class TestingHelperCountTest extends TestCase {
 
     public static TestSuite suite() {
-        return TestingHelper
-                .function(COUNT)
+        return TestingHelper.function(COUNT)
                 // test empty
-                .name("testCountOfEmptyReturnsZero").fromEmpty()
-                .expect(0)
+                .name("testCountOfEmptyReturnsZero").fromEmpty().expect(0)
                 // test error
-                .name("testCountErrorReturnsError").fromError()
-                .expectError()
+                .name("testCountErrorReturnsError").fromError().expectError()
                 // test error after some emission
                 .name("testCountErrorAfterTwoEmissionsReturnsError").fromErrorAfter(5, 6)
                 .expectError()

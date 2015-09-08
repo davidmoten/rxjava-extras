@@ -15,26 +15,17 @@ public class TestingHelperMergeTest extends TestCase {
     private static final Observable<Integer> MERGE_WITH = Observable.from(asList(7, 8, 9));
 
     public static TestSuite suite() {
-        return TestingHelper
-                .function(merge)
-                .waitForUnsubscribe(100, TimeUnit.MILLISECONDS)
+        return TestingHelper.function(merge).waitForUnsubscribe(100, TimeUnit.MILLISECONDS)
                 .waitForTerminalEvent(10, TimeUnit.SECONDS)
                 .waitForMoreTerminalEvents(100, TimeUnit.MILLISECONDS)
                 // test empty
-                .name("testEmptyWithOtherReturnsOther")
-                .fromEmpty()
-                .expect(7, 8, 9)
+                .name("testEmptyWithOtherReturnsOther").fromEmpty().expect(7, 8, 9)
                 // test error
-                .name("testMergeErrorReturnsError")
-                .fromError()
-                .expectError()
+                .name("testMergeErrorReturnsError").fromError().expectError()
                 // test error after items
-                .name("testMergeErrorAfter2ReturnsError")
-                .fromErrorAfter(1, 2)
-                .expectError()
+                .name("testMergeErrorAfter2ReturnsError").fromErrorAfter(1, 2).expectError()
                 // test non-empty count
-                .name("testTwoWithOtherReturnsTwoAndOtherInAnyOrder")
-                .from(1, 2)
+                .name("testTwoWithOtherReturnsTwoAndOtherInAnyOrder").from(1, 2)
                 .expectAnyOrder(1, 7, 8, 9, 2)
                 // test single input
                 .name("testOneWithOtherReturnsOneAndOtherInAnyOrder").from(1)
@@ -53,8 +44,8 @@ public class TestingHelperMergeTest extends TestCase {
     private static final Func1<Observable<Integer>, Observable<Integer>> merge = new Func1<Observable<Integer>, Observable<Integer>>() {
         @Override
         public Observable<Integer> call(Observable<Integer> o) {
-            return o.mergeWith(MERGE_WITH.subscribeOn(Schedulers.computation())).subscribeOn(
-                    Schedulers.computation());
+            return o.mergeWith(MERGE_WITH.subscribeOn(Schedulers.computation()))
+                    .subscribeOn(Schedulers.computation());
         }
     };
 

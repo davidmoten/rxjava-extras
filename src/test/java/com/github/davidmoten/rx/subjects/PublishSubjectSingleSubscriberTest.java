@@ -76,8 +76,8 @@ public class PublishSubjectSingleSubscriberTest {
         });
         assertEquals(1, list.size());
         assertEquals(Kind.OnError, list.get(0).getKind());
-        assertEquals(PublishSubjectSingleSubscriber.ONLY_ONE_SUBSCRIPTION_IS_ALLOWED, list.get(0)
-                .getThrowable().getMessage());
+        assertEquals(PublishSubjectSingleSubscriber.ONLY_ONE_SUBSCRIPTION_IS_ALLOWED,
+                list.get(0).getThrowable().getMessage());
     }
 
     @Test(expected = IllegalArgumentException.class)

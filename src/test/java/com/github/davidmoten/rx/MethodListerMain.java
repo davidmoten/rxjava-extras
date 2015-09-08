@@ -19,11 +19,11 @@ public class MethodListerMain {
         System.out.println("| Method | Signature |");
         System.out.println("| ------ | --------- |");
         for (Entry<String, String> entry : map.entrySet()) {
-            System.out.println("| "
-                    + entry.getKey()
-                    + " | "
-                    + entry.getValue().replaceAll("\\w+\\.", "").replaceAll("public ", "")
-                            .replaceAll("final ", "").replaceAll("Observable", "Ob") + " |");
+            System.out
+                    .println("| " + entry.getKey() + " | "
+                            + entry.getValue().replaceAll("\\w+\\.", "").replaceAll("public ", "")
+                                    .replaceAll("final ", "").replaceAll("Observable", "Ob")
+                            + " |");
         }
     }
 }

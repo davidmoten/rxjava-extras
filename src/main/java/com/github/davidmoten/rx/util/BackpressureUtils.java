@@ -40,7 +40,8 @@ public final class BackpressureUtils {
      *            contains the field updated by the updater
      * @param n
      *            the number of requests to add to the requested count
-     * @param <T> then type of the volatile being updated
+     * @param <T>
+     *            then type of the volatile being updated
      * @return requested value just prior to successful addition
      */
     public static <T> long getAndAddRequest(AtomicLongFieldUpdater<T> requested, T object, long n) {

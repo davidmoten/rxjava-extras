@@ -12,7 +12,7 @@ public class OperatorUnsubscribeEagerlyTest extends TestCase {
 
     public static TestSuite suite() {
         return TestingHelper.function(function())
-        // test empty
+                // test empty
                 .name("testUnsubEagerOfEmptyReturnsEmpty").fromEmpty().expectEmpty()
                 // test error
                 .name("testUnsubEagerErrorReturnsError").fromError().expectError()

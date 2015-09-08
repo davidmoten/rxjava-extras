@@ -39,8 +39,9 @@ public final class TestingHelper {
      * 
      * @param function
      *            the transformation to be tested
-    * @param <T>
-     *            generic type of the from side of the transformation being tested
+     * @param <T>
+     *            generic type of the from side of the transformation being
+     *            tested
      * @param <R>
      *            generic type of the to side of the transformation being tested
      * @return builder for creating test cases
@@ -53,7 +54,8 @@ public final class TestingHelper {
      * Defines test cases and builds a JUnit test suite.
      * 
      * @param <T>
-     *            generic type of the from side of the transformation being tested
+     *            generic type of the from side of the transformation being
+     *            tested
      * @param <R>
      *            generic type of the to side of the transformation being tested
      */
@@ -339,8 +341,8 @@ public final class TestingHelper {
         try {
             CountDownLatch sourceUnsubscribeLatch = new CountDownLatch(1);
             MyTestSubscriber<R> sub = createTestSubscriber(testType, c.unsubscribeAfter);
-            c.function.call(c.from.doOnUnsubscribe(countDown(sourceUnsubscribeLatch))).subscribe(
-                    sub);
+            c.function.call(c.from.doOnUnsubscribe(countDown(sourceUnsubscribeLatch)))
+                    .subscribe(sub);
             if (c.unsubscribeAfter.isPresent()) {
                 waitForUnsubscribe(sourceUnsubscribeLatch, c.waitForUnusbscribeMs,
                         TimeUnit.MILLISECONDS);
