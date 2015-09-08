@@ -398,8 +398,8 @@ public final class Transformers {
      *            collection type emitted by transformed Observable
      * @return transformer as above
      */
-    public static <T, R extends Collection<T>> Transformer<T, R> collectWhile(
-            final Func0<R> factory, final Action2<? super R, ? super T> collect,
+    public static <T, R extends Iterable<T>> Transformer<T, R> collectWhile(final Func0<R> factory,
+            final Action2<? super R, ? super T> collect,
             final Func2<? super R, ? super T, Boolean> condition) {
         Func3<R, T, Observer<R>, R> transition = new Func3<R, T, Observer<R>, R>() {
 
@@ -420,7 +420,7 @@ public final class Transformers {
         Action2<R, Observer<R>> completionAction = new Action2<R, Observer<R>>() {
             @Override
             public void call(R collection, Observer<R> observer) {
-                if (!collection.isEmpty()) {
+                if (collection.iterator().hasNext()) {
                     observer.onNext(collection);
                 }
             }
