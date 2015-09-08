@@ -4,16 +4,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import rx.Observable;
 import rx.Observable.Transformer;
+import rx.Scheduler.Worker;
 import rx.functions.Action0;
+import rx.schedulers.Schedulers;
 
 public final class TransformerLimitSubscribers<T> implements Transformer<T, T> {
 
     private final AtomicInteger subscriberCount;
     private final int maxSubscribers;
+    private final long delayMs;
 
-    public TransformerLimitSubscribers(AtomicInteger subscriberCount, int maxSubscribers) {
+    public TransformerLimitSubscribers(AtomicInteger subscriberCount, int maxSubscribers,
+            long delayMs) {
         this.subscriberCount = subscriberCount;
         this.maxSubscribers = maxSubscribers;
+        this.delayMs = delayMs;
     }
 
     @Override
@@ -37,7 +42,14 @@ public final class TransformerLimitSubscribers<T> implements Transformer<T, T> {
 
             @Override
             public void call() {
-                subscriberCount.decrementAndGet();
+                Worker worker = Schedulers.computation().createWorker();
+                worker.schedule(new Action0() {
+
+                    @Override
+                    public void call() {
+                        subscriberCount.decrementAndGet();
+                    }
+                });
             }
         };
     }

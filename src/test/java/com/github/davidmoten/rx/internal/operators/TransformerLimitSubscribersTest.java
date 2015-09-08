@@ -51,13 +51,16 @@ public class TransformerLimitSubscribersTest {
         TestSubscriber<Long> ts2 = TestSubscriber.create();
         TestSubscriber<Long> ts3 = TestSubscriber.create();
         Observable<Long> o = Observable.interval(100, TimeUnit.MILLISECONDS).take(3)
-                .compose(Transformers.<Long> limitSubscribers(2));
+                .compose(Transformers.<Long> limitSubscribers(2))
+                .onErrorResumeNext(Observable.<Long> empty());
         o.subscribe(ts1);
         o.subscribe(ts2);
         o.subscribe(ts3);
         ts1.awaitTerminalEvent(3, TimeUnit.SECONDS);
         ts2.awaitTerminalEvent(3, TimeUnit.SECONDS);
-        ts3.assertError(TooManySubscribersException.class);
+        ts3.awaitTerminalEvent(3, TimeUnit.SECONDS);
+        ts3.assertNoValues();
+        ts3.assertCompleted();
     }
 
 }
