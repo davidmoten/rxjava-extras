@@ -157,4 +157,17 @@ public class TransformerStateMachineTest {
                 })).toList().toBlocking().single();
         assertEquals(asList(asList(10, 5, 2), asList(-1, -2, -5, -1), asList(2, 5, 6)), lists);
     }
+
+    @Test
+    public void testForMemoryLeaks() {
+        int n = 10000000;
+        int count = Observable.range(1, n)
+                .compose(Transformers.toListWhile(new Func2<List<Integer>, Integer, Boolean>() {
+                    @Override
+                    public Boolean call(List<Integer> list, Integer t) {
+                        return list.size() == 0;
+                    }
+                })).count().toBlocking().single();
+        assertEquals(n, count);
+    }
 }
