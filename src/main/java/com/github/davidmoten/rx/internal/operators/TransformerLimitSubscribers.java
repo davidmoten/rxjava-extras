@@ -43,6 +43,8 @@ public final class TransformerLimitSubscribers<T> implements Transformer<T, T> {
     }
 
     public static class TooManySubscribersException extends RuntimeException {
+
+        private static final long serialVersionUID = 7701739994705715907L;
     }
 
 }
