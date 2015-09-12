@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx;
 
+import java.nio.charset.CharsetDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -12,6 +13,7 @@ import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
 import com.github.davidmoten.rx.internal.operators.OperatorOrderedMerge;
+import com.github.davidmoten.rx.internal.operators.TransformerDecode;
 import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
 import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.internal.operators.TransformerStringSplit;
@@ -157,9 +159,9 @@ public final class Transformers {
     public static <State, In, Out> Transformer<In, Out> stateMachine(
             Func0<State> initialStateFactory,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
-            Action2<? super State, ? super Subscriber<Out>> completionAction) {
+            Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
-                completionAction);
+                completion);
     }
 
     /**
@@ -205,9 +207,9 @@ public final class Transformers {
      */
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
-            Action2<? super State, ? super Subscriber<Out>> completionAction) {
+            Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
         Func0<State> f = Functions.constant0(initialState);
-        return TransformerStateMachine.<State, In, Out> create(f, transition, completionAction);
+        return TransformerStateMachine.<State, In, Out> create(f, transition, completion);
     }
 
     /**
@@ -250,7 +252,8 @@ public final class Transformers {
     public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition) {
         Func0<State> f = Functions.constant0(initialState);
-        return TransformerStateMachine.<State, In, Out> create(f, transition, Actions.doNothing2());
+        return TransformerStateMachine.<State, In, Out> create(f, transition,
+                Functions.alwaysTrue2());
     }
 
     @SuppressWarnings("unchecked")
@@ -401,12 +404,13 @@ public final class Transformers {
             }
 
         };
-        Action2<R, Observer<R>> completionAction = new Action2<R, Observer<R>>() {
+        Func2<R, Observer<R>, Boolean> completionAction = new Func2<R, Observer<R>, Boolean>() {
             @Override
-            public void call(R collection, Observer<R> observer) {
+            public Boolean call(R collection, Observer<R> observer) {
                 if (!isEmpty.call(collection)) {
                     observer.onNext(collection);
                 }
+                return true;
             }
         };
         return Transformers.stateMachine(factory, transition, completionAction);
@@ -490,6 +494,24 @@ public final class Transformers {
 
     public static <T> Transformer<String, String> split(final String pattern) {
         return TransformerStringSplit.split(pattern);
+    }
+
+    /**
+     * Decodes a stream of multibyte chunks into a stream of strings that works
+     * on infinite streams and handles when a multibyte character spans two
+     * chunks. This method allows for more control over how malformed and
+     * unmappable characters are handled.
+     * <p>
+     * <img width="640" src=
+     * "https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/St.decode.png"
+     * alt="">
+     * 
+     * @param src
+     * @param charsetDecoder
+     * @return the Observable returning a stream of decoded strings
+     */
+    public static Transformer<byte[], String> decode(final CharsetDecoder charsetDecoder) {
+        return TransformerDecode.decode(charsetDecoder);
     }
 
     public static <T> Transformer<T, T> limitSubscribers(AtomicInteger subscriberCount,

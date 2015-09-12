@@ -13,7 +13,6 @@ import com.github.davidmoten.rx.Transformers;
 import rx.Observable;
 import rx.Observable.Transformer;
 import rx.Observer;
-import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func2;
 import rx.functions.Func3;
@@ -39,13 +38,14 @@ public class TransformerStateMachineTest {
             }
 
         };
-        Action2<Integer, Observer<Integer>> completionAction = new Action2<Integer, Observer<Integer>>() {
+        Func2<Integer, Observer<Integer>, Boolean> completion = new Func2<Integer, Observer<Integer>, Boolean>() {
             @Override
-            public void call(Integer collection, Observer<Integer> observer) {
+            public Boolean call(Integer collection, Observer<Integer> observer) {
+                return true;
             }
         };
         Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
-                transition, completionAction);
+                transition, completion);
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         Observable.just(1, 1, 1).compose(transformer).subscribe(ts);
         ts.awaitTerminalEvent();
@@ -70,14 +70,14 @@ public class TransformerStateMachineTest {
             }
 
         };
-        Action2<Integer, Observer<Integer>> completionAction = new Action2<Integer, Observer<Integer>>() {
+        Func2<Integer, Observer<Integer>, Boolean> completion = new Func2<Integer, Observer<Integer>, Boolean>() {
             @Override
-            public void call(Integer collection, Observer<Integer> observer) {
+            public Boolean call(Integer collection, Observer<Integer> observer) {
                 throw ex;
             }
         };
         Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
-                transition, completionAction);
+                transition, completion);
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         Observable.just(1, 1, 1).compose(transformer).subscribe(ts);
         ts.awaitTerminalEvent();

@@ -2,7 +2,7 @@ package com.github.davidmoten.rx.internal.operators;
 
 import rx.Observable.Transformer;
 import rx.Subscriber;
-import rx.functions.Action2;
+import rx.functions.Func2;
 import rx.functions.Func3;
 
 public final class TransformerStringSplit {
@@ -34,18 +34,20 @@ public final class TransformerStringSplit {
             }
         };
 
-        Action2<LeftOver, Subscriber<String>> completionAction = new Action2<LeftOver, Subscriber<String>>() {
+        Func2<LeftOver, Subscriber<String>, Boolean> completion = new Func2<LeftOver, Subscriber<String>, Boolean>() {
 
             @Override
-            public void call(LeftOver leftOver, Subscriber<String> observer) {
+            public Boolean call(LeftOver leftOver, Subscriber<String> observer) {
                 if (leftOver.value != null && !observer.isUnsubscribed())
                     observer.onNext(leftOver.value);
+                // TODO is this check needed?
                 if (!observer.isUnsubscribed())
                     observer.onCompleted();
+                return true;
             }
         };
         return com.github.davidmoten.rx.Transformers.stateMachine(initialState, transition,
-                completionAction);
+                completion);
     }
 
     private static class LeftOver {

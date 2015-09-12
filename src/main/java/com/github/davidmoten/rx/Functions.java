@@ -128,4 +128,24 @@ public final class Functions {
         };
     }
 
+    public static <T, R> Func2<T, R, Boolean> alwaysTrue2() {
+        return new Func2<T, R, Boolean>() {
+
+            @Override
+            public Boolean call(T t1, R t2) {
+                return true;
+            }
+        };
+    }
+
+    public static <T, R> Func2<T, R, Boolean> alwaysFalse2() {
+        return new Func2<T, R, Boolean>() {
+
+            @Override
+            public Boolean call(T t1, R t2) {
+                return false;
+            }
+        };
+    }
+
 }

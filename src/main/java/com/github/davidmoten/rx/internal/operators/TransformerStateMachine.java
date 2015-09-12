@@ -9,7 +9,6 @@ import rx.Notification;
 import rx.Observable;
 import rx.Observable.Transformer;
 import rx.Subscriber;
-import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -19,24 +18,23 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
 
     private final Func0<State> initialState;
     private final Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition;
-    private final Action2<? super State, ? super Subscriber<Out>> completionAction;
+    private final Func2<? super State, ? super Subscriber<Out>, Boolean> completion;
 
     private TransformerStateMachine(Func0<State> initialState,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
-            Action2<? super State, ? super Subscriber<Out>> completionAction) {
+            Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
         Preconditions.checkNotNull(initialState);
         Preconditions.checkNotNull(transition);
-        Preconditions.checkNotNull(completionAction);
+        Preconditions.checkNotNull(completion);
         this.initialState = initialState;
         this.transition = transition;
-        this.completionAction = completionAction;
+        this.completion = completion;
     }
 
     public static <State, In, Out> Transformer<In, Out> create(Func0<State> initialState,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
-            Action2<? super State, ? super Subscriber<Out>> completionAction) {
-        return new TransformerStateMachine<State, In, Out>(initialState, transition,
-                completionAction);
+            Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
+        return new TransformerStateMachine<State, In, Out>(initialState, transition, completion);
     }
 
     @Override
@@ -73,8 +71,9 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                     recorder.onError(in.getThrowable());
                     return new StateWithNotifications<State, Out>(sn.state, recorder.notifications);
                 } else if (in.isOnCompleted()) {
-                    completionAction.call(sn.state, recorder);
-                    recorder.onCompleted();
+                    if (completion.call(sn.state, recorder)) {
+                        recorder.onCompleted();
+                    }
                     return new StateWithNotifications<State, Out>((State) null,
                             recorder.notifications);
                 } else {
