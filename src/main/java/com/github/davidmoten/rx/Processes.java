@@ -96,8 +96,7 @@ public final class Processes {
         Action1<? super Process> disposeAction = new Action1<Process>() {
             @Override
             public void call(Process process) {
-                if (process.isAlive())
-                    process.destroy();
+                process.destroy();
             }
         };
         return Observable.using(resourceFactory, factory, disposeAction);
