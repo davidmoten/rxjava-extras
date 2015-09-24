@@ -59,8 +59,8 @@ public final class OperatorFromTransformer<R, T> implements Operator<R, T> {
                 });
             }
         });
-        operation.call(middle).unsafeSubscribe(subscriber);
         subscriber.add(parent);
+        operation.call(middle).unsafeSubscribe(subscriber);
         return parent;
     }
 
