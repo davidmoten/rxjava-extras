@@ -13,6 +13,8 @@ public final class Obs {
      * 
      * @param source
      *            the observable to be cached.
+     * @param <T>
+     *            the generic type of the source
      * @return a cached observable whose cache can be reset.
      */
     public static <T> CachedObservable<T> cache(Observable<T> source) {

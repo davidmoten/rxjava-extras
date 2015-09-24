@@ -138,7 +138,7 @@ public final class Transformers {
      *            check if you can stop emitting from the transition. If you do
      *            wish to terminate the transition due to unsubscription then
      *            {@code return null} from the transition.
-     * @param completionAction
+     * @param completion
      *            defines activity that should happen based on the final state
      *            just before downstream <code>onCompleted()</code> is called.
      *            For example any buffered emissions in state could be emitted
@@ -188,7 +188,7 @@ public final class Transformers {
      *            check if you can stop emitting from the transition. If you do
      *            wish to terminate the transition due to unsubscription then
      *            {@code return null} from the transition.
-     * @param completionAction
+     * @param completion
      *            defines activity that should happen based on the final state
      *            just before downstream <code>onCompleted()</code> is called.
      *            For example any buffered emissions in state could be emitted
@@ -377,6 +377,8 @@ public final class Transformers {
      * @param condition
      *            returns true if and only if emission should be collected in
      *            current collection being prepared for emission
+     * @param isEmpty
+     *            indicates that the collection is empty
      * @param <T>
      *            generic type of source observable
      * @param <R>
@@ -506,8 +508,8 @@ public final class Transformers {
      * "https://raw.github.com/wiki/ReactiveX/RxJava/images/rx-operators/St.decode.png"
      * alt="">
      * 
-     * @param src
      * @param charsetDecoder
+     *            decodes the bytes into strings
      * @return the Observable returning a stream of decoded strings
      */
     public static Transformer<byte[], String> decode(final CharsetDecoder charsetDecoder) {
