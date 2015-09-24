@@ -458,6 +458,8 @@ public final class Transformers {
      *            the 1-based count of onNext to do the action on
      * @param action
      *            is performed on {@code n}th onNext.
+     * @param <T>
+     *            the generic type of the Observable being transformed
      * @return Transformer that applied to a source Observable calls the given
      *         action on the nth onNext emission.
      */
@@ -475,7 +477,9 @@ public final class Transformers {
      * calls the given action on the first onNext emission.
      * 
      * @param action
-     *            is performed on first onNext.
+     *            is performed on first onNext
+     * @param <T>
+     *            the generic type of the Observable being transformed
      * @return Transformer that applied to a source Observable calls the given
      *         action on the first onNext emission.
      */
