@@ -167,6 +167,9 @@ public class OperatorFromTransformerTest {
                 .subscribe(ts);
         // make sure only one value has arrived
         ts.assertValueCount(1);
+        ts.requestMore(2);
+        ts.assertValueCount(3);
+        ts.unsubscribe();
     }
 
     @Test
@@ -186,6 +189,9 @@ public class OperatorFromTransformerTest {
                 // block and get result
                 .subscribe(ts);
         // make sure only one value has arrived
+        ts.assertValueCount(1);
+        ts.requestMore(1);
+        ts.assertCompleted();
         ts.assertValueCount(1);
     }
 }

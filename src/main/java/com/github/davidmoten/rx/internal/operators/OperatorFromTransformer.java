@@ -1,7 +1,5 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Observable.Operator;
@@ -43,34 +41,38 @@ public final class OperatorFromTransformer<R, T> implements Operator<R, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super R> subscriber) {
-        final AtomicReference<Subscriber<? super T>> ref = new AtomicReference<Subscriber<? super T>>();
-        final ParentSubscriber<T> parent = new ParentSubscriber<T>(ref);
-        Observable<T> middle = Observable.create(new OnSubscribe<T>() {
-
-            @Override
-            public void call(Subscriber<? super T> sub) {
-                ref.set(sub);
-                sub.setProducer(new Producer() {
-
-                    @Override
-                    public void request(long n) {
-                        parent.requestMore(n);
-                    }
-                });
-            }
-        });
+        final ParentSubscriber<T> parent = new ParentSubscriber<T>();
+        Observable<T> middle = Observable.create(new ForwarderOnSubscribe<T>(parent));
         subscriber.add(parent);
         operation.call(middle).unsafeSubscribe(subscriber);
         return parent;
     }
 
+    static final class ForwarderOnSubscribe<T> implements OnSubscribe<T> {
+
+        private final ParentSubscriber<T> parent;
+
+        ForwarderOnSubscribe(ParentSubscriber<T> parent) {
+            this.parent = parent;
+        }
+
+        @Override
+        public void call(Subscriber<? super T> sub) {
+            parent.subscriber = sub;
+            sub.setProducer(new Producer() {
+
+                @Override
+                public void request(long n) {
+                    parent.requestMore(n);
+                }
+            });
+        }
+    }
+
     static final class ParentSubscriber<T> extends Subscriber<T> {
 
-        private final AtomicReference<Subscriber<? super T>> ref;
-
-        public ParentSubscriber(AtomicReference<Subscriber<? super T>> ref) {
-            this.ref = ref;
-        }
+        // TODO may not need to be volatile
+        volatile Subscriber<? super T> subscriber;
 
         void requestMore(long n) {
             request(n);
@@ -78,17 +80,17 @@ public final class OperatorFromTransformer<R, T> implements Operator<R, T> {
 
         @Override
         public void onCompleted() {
-            ref.get().onCompleted();
+            subscriber.onCompleted();
         }
 
         @Override
         public void onError(Throwable e) {
-            ref.get().onError(e);
+            subscriber.onError(e);
         }
 
         @Override
         public void onNext(T t) {
-            ref.get().onNext(t);
+            subscriber.onNext(t);
         }
 
     }
