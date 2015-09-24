@@ -18,6 +18,8 @@ import com.github.davidmoten.rx.Functions;
 import rx.Observable;
 import rx.Observer;
 import rx.functions.Action0;
+import rx.functions.Func1;
+import rx.observers.TestSubscriber;
 import rx.subjects.PublishSubject;
 
 public class OperatorFromTransformerTest {
@@ -153,4 +155,37 @@ public class OperatorFromTransformerTest {
 
     }
 
+    @Test
+    public void testBackpressure() {
+        TestSubscriber<Integer> ts = TestSubscriber.create(1);
+        Observable.
+                //
+                range(1, 1000)
+                // use toOperator
+                .lift(toOperator(Functions.<Observable<Integer>> identity()))
+                // block and get result
+                .subscribe(ts);
+        // make sure only one value has arrived
+        ts.assertValueCount(1);
+    }
+
+    @Test
+    public void testBackpressureWhereOperatorRequestsDontMatchOneToOne() {
+        TestSubscriber<List<Integer>> ts = TestSubscriber.create(1);
+        Observable.
+                //
+                range(1, 1000)
+                // use toOperator
+                .lift(toOperator(new Func1<Observable<Integer>, Observable<List<Integer>>>() {
+
+                    @Override
+                    public Observable<List<Integer>> call(Observable<Integer> o) {
+                        return o.toList();
+                    }
+                }))
+                // block and get result
+                .subscribe(ts);
+        // make sure only one value has arrived
+        ts.assertValueCount(1);
+    }
 }
