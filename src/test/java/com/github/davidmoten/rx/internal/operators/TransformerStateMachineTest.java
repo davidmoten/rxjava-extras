@@ -5,10 +5,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Transformers;
+import com.github.davidmoten.rx.slf4j.Logging;
 
 import rx.Observable;
 import rx.Observable.Transformer;
@@ -162,6 +164,7 @@ public class TransformerStateMachineTest {
     public void testForMemoryLeaks() {
         int n = 10000000;
         int count = Observable.range(1, n)
+                .lift(Logging.<Integer> logger().showMemory().every(1, TimeUnit.SECONDS).log())
                 .compose(Transformers.toListWhile(new Func2<List<Integer>, Integer, Boolean>() {
                     @Override
                     public Boolean call(List<Integer> list, Integer t) {
