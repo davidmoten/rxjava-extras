@@ -28,7 +28,8 @@ import rx.schedulers.Schedulers;
  * </pre>
  * 
  * <p>
- * or</pr>
+ * or
+ * </p>
  * 
  * <pre>
  * o.retryWhen(RetryWhen.exponentialBackoff(100, TimeUnit.MILLISECONDS).maxRetries(10).build());

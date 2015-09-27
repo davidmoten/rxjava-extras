@@ -9,10 +9,8 @@
         <artifactId>sonatype-parent</artifactId>
         <version>0.1</version>
     </parent>
-
-    <artifactId>rxjava-extras</artifactId>
-    <version>0.6.4-SNAPSHOT</version>
-
+	<artifactId>rxjava-extras</artifactId>
+	<version>0.6.6-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>RxJava utilities</description>
     <packaging>jar</packaging>
