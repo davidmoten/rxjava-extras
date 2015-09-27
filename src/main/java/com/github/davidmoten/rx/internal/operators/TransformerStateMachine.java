@@ -46,7 +46,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
             public Observable<Out> call() {
                 AtomicReference<State> state = new AtomicReference<State>(initialState.call());
                 return source.materialize()
-                        // do state transitions and record notifications
+                        // do state transitions and emit notifications
                         // use flatMap to emit notification values
                         .flatMap(execute(transition, completion, state))
                         // flatten notifications to a stream which will enable
@@ -71,19 +71,18 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                     @Override
                     public void call(Subscriber<? super Notification<Out>> subscriber) {
                         Subscriber<Out> w = wrap(subscriber);
-                        if (in.isOnCompleted()) {
-                            if (completion.call(state.get(), w)) {
-                                w.onCompleted();
-                            }
-                        } else if (in.isOnError()) {
-                            w.onError(in.getThrowable());
-                        } else {
+                        if (in.hasValue()) {
                             State nextState = transition.call(state.get(), in.getValue(), w);
                             state.set(nextState);
                             subscriber.onCompleted();
+                        } else if (in.isOnCompleted()) {
+                            if (completion.call(state.get(), w)) {
+                                w.onCompleted();
+                            }
+                        } else {
+                            w.onError(in.getThrowable());
                         }
                     }
-
                 }).onBackpressureBuffer();
             }
 
@@ -100,7 +99,6 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         private final Subscriber<? super Notification<Out>> sub;
 
         NotificationSubscriber(Subscriber<? super Notification<Out>> sub) {
-            super();
             this.sub = sub;
             add(sub);
         }
@@ -108,13 +106,11 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         @Override
         public void onCompleted() {
             sub.onNext(Notification.<Out> createOnCompleted());
-            sub.onCompleted();
         }
 
         @Override
         public void onError(Throwable e) {
             sub.onNext(Notification.<Out> createOnError(e));
-            sub.onCompleted();
         }
 
         @Override

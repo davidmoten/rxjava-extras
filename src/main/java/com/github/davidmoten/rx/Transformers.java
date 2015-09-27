@@ -125,8 +125,7 @@ public final class Transformers {
      * <p>
      * Internally this transformer uses {@link Observable#scan} emitting a
      * stream of new states composed with emissions from the transition to each
-     * state and {@link Observable#flatMap} to emit the recorded emissions with
-     * backpressure.
+     * state and {@link Observable#flatMap} to emit with backpressure.
      * 
      * @param initialStateFactory
      *            the factory to create the initial state of the state machine.
@@ -175,8 +174,7 @@ public final class Transformers {
      * <p>
      * Internally this transformer uses {@link Observable#scan} emitting a
      * stream of new states composed with emissions from the transition to each
-     * state and {@link Observable#flatMap} to emit the recorded emissions with
-     * backpressure.
+     * state and {@link Observable#flatMap} to emit with backpressure.
      * 
      * @param initialState
      *            the initial state of the state machine.
@@ -225,8 +223,7 @@ public final class Transformers {
      * <p>
      * Internally this transformer uses {@link Observable#scan} emitting a
      * stream of new states composed with emissions from the transition to each
-     * state and {@link Observable#flatMap} to emit the recorded emissions with
-     * backpressure.
+     * state and {@link Observable#flatMap} to emit with backpressure.
      * 
      * @param initialState
      *            the initial state of the state machine.
