@@ -1,7 +1,5 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.github.davidmoten.util.Preconditions;
 
 import rx.Notification;
@@ -44,7 +42,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         return Observable.defer(new Func0<Observable<Out>>() {
             @Override
             public Observable<Out> call() {
-                AtomicReference<State> state = new AtomicReference<State>(initialState.call());
+                StateHolder<State> state = new StateHolder<State>(initialState.call());
                 return source.materialize()
                         // do state transitions and emit notifications
                         // use flatMap to emit notification values
@@ -56,10 +54,20 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         });
     }
 
+    static class StateHolder<State> {
+        // mutable
+        State value;
+
+        StateHolder(State value) {
+            this.value = value;
+        }
+
+    }
+
     private static <State, Out, In> Func1<Notification<In>, Observable<Notification<Out>>> execute(
             final Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             final Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
-            final AtomicReference<State> state) {
+            final StateHolder<State> state) {
 
         return new Func1<Notification<In>, Observable<Notification<Out>>>() {
 
@@ -72,11 +80,11 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                     public void call(Subscriber<? super Notification<Out>> subscriber) {
                         Subscriber<Out> w = wrap(subscriber);
                         if (in.hasValue()) {
-                            State nextState = transition.call(state.get(), in.getValue(), w);
-                            state.set(nextState);
+                            State nextState = transition.call(state.value, in.getValue(), w);
+                            state.value = nextState;
                             subscriber.onCompleted();
                         } else if (in.isOnCompleted()) {
-                            if (completion.call(state.get(), w)) {
+                            if (completion.call(state.value, w)) {
                                 w.onCompleted();
                             }
                         } else {
