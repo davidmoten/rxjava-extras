@@ -6,8 +6,6 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import com.github.davidmoten.util.Optional;
 
@@ -71,13 +69,19 @@ public final class Processes {
                     @Override
                     public void call(Subscriber<? super byte[]> sub) {
                         try {
+                            // TODO waitFor does not exist pre 1.8 with timeout!
+                            // parameters.waitForMs().get(),TimeUnit.MILLISECONDS);
+
                             if (parameters.waitForMs().isPresent()) {
-                                boolean finished = process.waitFor(parameters.waitForMs().get(),
-                                        TimeUnit.MILLISECONDS);
-                                if (!finished) {
-                                    sub.onError(new TimeoutException("process timed out"));
-                                    return;
-                                }
+                                // boolean finished = process.waitFor(
+                                // parameters.waitForMs().get(),
+                                // TimeUnit.MILLISECONDS);
+                                // if (!finished) {
+                                // sub.onError(new TimeoutException("process
+                                // timed out"));
+                                // return;
+                                // }
+                                sub.onError(new IllegalArgumentException("not implemented yet"));
                             } else {
                                 int exitCode = process.waitFor();
                                 if (exitCode != 0)
@@ -103,6 +107,8 @@ public final class Processes {
     }
 
     public static class ProcessException extends RuntimeException {
+        private static final long serialVersionUID = 722422557667123473L;
+
         private final int exitCode;
 
         public ProcessException(int exitCode) {

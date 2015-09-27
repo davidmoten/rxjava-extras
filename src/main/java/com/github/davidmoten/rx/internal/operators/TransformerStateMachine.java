@@ -1,12 +1,12 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.util.Preconditions;
 
 import rx.Notification;
 import rx.Observable;
+import rx.Observable.OnSubscribe;
 import rx.Observable.Transformer;
 import rx.Subscriber;
 import rx.functions.Func0;
@@ -38,97 +38,88 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     }
 
     @Override
-    public Observable<Out> call(Observable<In> source) {
-        StateWithNotifications<State, Out> initial = new StateWithNotifications<State, Out>(
-                initialState.call());
-        return source.materialize()
-                // do state transitions and record notifications
-                .scan(initial, transformStateAndRecordNotifications())
-                // as an optimisation? throw away empty notification lists
-                // before hitting flatMap
-                .filter(nonEmptyNotifications())
-                // use flatMap to emit notification values
-                .flatMap(emitNotifications());
-    }
-
-    private Func1<StateWithNotifications<State, Out>, Boolean> nonEmptyNotifications() {
-        return new Func1<StateWithNotifications<State, Out>, Boolean>() {
-
+    public Observable<Out> call(final Observable<In> source) {
+        // use defer so we can have a single state reference for each
+        // subscription
+        return Observable.defer(new Func0<Observable<Out>>() {
             @Override
-            public Boolean call(StateWithNotifications<State, Out> s) {
-                return s.notifications.size() > 0;
+            public Observable<Out> call() {
+                AtomicReference<State> state = new AtomicReference<State>(initialState.call());
+                return source.materialize()
+                        // do state transitions and record notifications
+                        // use flatMap to emit notification values
+                        .flatMap(execute(transition, completion, state))
+                        // flatten notifications to a stream which will enable
+                        // early termination from the state machine if desired
+                        .dematerialize();
             }
-        };
+        });
     }
 
-    private Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>> transformStateAndRecordNotifications() {
-        return new Func2<StateWithNotifications<State, Out>, Notification<In>, StateWithNotifications<State, Out>>() {
+    private static <State, Out, In> Func1<Notification<In>, Observable<Notification<Out>>> execute(
+            final Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
+            final Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
+            final AtomicReference<State> state) {
+
+        return new Func1<Notification<In>, Observable<Notification<Out>>>() {
+
             @Override
-            public StateWithNotifications<State, Out> call(StateWithNotifications<State, Out> sn,
-                    Notification<In> in) {
-                Recorder<Out> recorder = new Recorder<Out>();
-                if (in.isOnError()) {
-                    recorder.onError(in.getThrowable());
-                    return new StateWithNotifications<State, Out>(sn.state, recorder.notifications);
-                } else if (in.isOnCompleted()) {
-                    if (completion.call(sn.state, recorder)) {
-                        recorder.onCompleted();
+            public Observable<Notification<Out>> call(final Notification<In> in) {
+
+                return Observable.create(new OnSubscribe<Notification<Out>>() {
+
+                    @Override
+                    public void call(Subscriber<? super Notification<Out>> subscriber) {
+                        Subscriber<Out> w = wrap(subscriber);
+                        if (in.isOnCompleted()) {
+                            if (completion.call(state.get(), w)) {
+                                w.onCompleted();
+                            }
+                        } else if (in.isOnError()) {
+                            w.onError(in.getThrowable());
+                        } else {
+                            State nextState = transition.call(state.get(), in.getValue(), w);
+                            state.set(nextState);
+                            subscriber.onCompleted();
+                        }
                     }
-                    return new StateWithNotifications<State, Out>((State) null,
-                            recorder.notifications);
-                } else {
-                    State nextState = transition.call(sn.state, in.getValue(), recorder);
-                    return new StateWithNotifications<State, Out>(nextState,
-                            recorder.notifications);
-                }
+
+                }).onBackpressureBuffer();
             }
+
         };
     }
 
-    private Func1<StateWithNotifications<State, Out>, Observable<Out>> emitNotifications() {
-        return new Func1<StateWithNotifications<State, Out>, Observable<Out>>() {
-            @Override
-            public Observable<Out> call(StateWithNotifications<State, Out> sn) {
-                // TODO optimisation use Observable.just(item) for single item
-                // list gives better flatMap performance downstream
-                return Observable.from(sn.notifications).dematerialize();
-            }
-        };
+    private static <Out> NotificationSubscriber<Out> wrap(
+            Subscriber<? super Notification<Out>> sub) {
+        return new NotificationSubscriber<Out>(sub);
     }
 
-    private static final class StateWithNotifications<State, Out> {
-        final State state;
-        final Queue<Notification<Out>> notifications;
+    private static final class NotificationSubscriber<Out> extends Subscriber<Out> {
 
-        StateWithNotifications(State state, Queue<Notification<Out>> notifications) {
-            this.state = state;
-            this.notifications = notifications;
+        private final Subscriber<? super Notification<Out>> sub;
+
+        NotificationSubscriber(Subscriber<? super Notification<Out>> sub) {
+            super();
+            this.sub = sub;
+            add(sub);
         }
-
-        StateWithNotifications(State state) {
-            this(state, new LinkedList<Notification<Out>>());
-        }
-
-    }
-
-    private static final class Recorder<Out> extends Subscriber<Out> {
-
-        final Queue<Notification<Out>> notifications = new LinkedList<Notification<Out>>();
 
         @Override
         public void onCompleted() {
-            notifications.add(Notification.<Out> createOnCompleted());
+            sub.onNext(Notification.<Out> createOnCompleted());
+            sub.onCompleted();
         }
 
         @Override
         public void onError(Throwable e) {
-            notifications.add(Notification.<Out> createOnError(e));
-
+            sub.onNext(Notification.<Out> createOnError(e));
+            sub.onCompleted();
         }
 
         @Override
         public void onNext(Out t) {
-            notifications.add(Notification.<Out> createOnNext(t));
+            sub.onNext(Notification.createOnNext(t));
         }
 
     }
