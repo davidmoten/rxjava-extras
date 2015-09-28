@@ -196,6 +196,39 @@ public class TransformerStateMachineTest {
     }
 
     @Test
+    public void testCompletionReturnsFalse() {
+        Func0<Integer> initialState = new Func0<Integer>() {
+
+            @Override
+            public Integer call() {
+                return 1;
+            }
+        };
+        Func3<Integer, Integer, Subscriber<Integer>, Integer> transition = new Func3<Integer, Integer, Subscriber<Integer>, Integer>() {
+
+            @Override
+            public Integer call(Integer collection, Integer t, Subscriber<Integer> subscriber) {
+                subscriber.onNext(123);
+                return 1;
+            }
+
+        };
+        Func2<Integer, Subscriber<Integer>, Boolean> completion = new Func2<Integer, Subscriber<Integer>, Boolean>() {
+            @Override
+            public Boolean call(Integer collection, Subscriber<Integer> subscriber) {
+                subscriber.onNext(456);
+                return false;
+            }
+        };
+        Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
+                transition, completion);
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        Observable.just(1).compose(transformer).subscribe(ts);
+        ts.assertValues(123, 456);
+        ts.assertNotCompleted();
+    }
+
+    @Test
     public void testForMemoryLeaks() {
         int n = 1000000;
         int count = Observable.range(1, n)

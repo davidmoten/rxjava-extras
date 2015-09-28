@@ -42,7 +42,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         return Observable.defer(new Func0<Observable<Out>>() {
             @Override
             public Observable<Out> call() {
-                StateHolder<State> state = new StateHolder<State>(initialState.call());
+                Mutable<State> state = new Mutable<State>(initialState.call());
                 return source.materialize()
                         // do state transitions and emit notifications
                         // use flatMap to emit notification values
@@ -52,7 +52,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                         .materialize()
                         // don't pass through an unsubscribed exception (its
                         // just flow control not a real exception)
-                        .takeWhile(TransformerStateMachine.<Out> notUnsubscribedException())
+                        .takeWhile(NOT_UNSUBSCRIBED)
                         // flatten notifications of notifications to
                         // notifications
                         .dematerialize()
@@ -64,29 +64,27 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         });
     }
 
-    private static <Out> Func1<Notification<?>, Boolean> notUnsubscribedException() {
-        return new Func1<Notification<?>, Boolean>() {
+    private static final Func1<Notification<?>, Boolean> NOT_UNSUBSCRIBED = new Func1<Notification<?>, Boolean>() {
 
-            @Override
-            public Boolean call(Notification<?> t) {
-                return !t.isOnError() || t.getThrowable() != UnsubscribedExceptionHolder.INSTANCE;
-            }
+        @Override
+        public Boolean call(Notification<?> t) {
+            return !t.isOnError() || t.getThrowable() != UnsubscribedExceptionHolder.INSTANCE;
+        }
 
-        };
-    }
+    };
 
-    static class StateHolder<State> {
+    private static final class Mutable<State> {
         // mutable
         State value;
 
-        StateHolder(State value) {
+        Mutable(State value) {
             this.value = value;
         }
 
     }
 
-    private static class UnsubscribedExceptionHolder {
-        final static UnsubscribedException INSTANCE = new UnsubscribedException();
+    private static final class UnsubscribedExceptionHolder {
+        static final UnsubscribedException INSTANCE = new UnsubscribedException();
     }
 
     private static class UnsubscribedException extends RuntimeException {
@@ -96,7 +94,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     private static <State, Out, In> Func1<Notification<In>, Observable<Notification<Out>>> execute(
             final Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             final Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
-            final StateHolder<State> state) {
+            final Mutable<State> state) {
 
         return new Func1<Notification<In>, Observable<Notification<Out>>>() {
 
