@@ -119,9 +119,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                                 if (!subscriber.isUnsubscribed())
                                     w.onCompleted();
                             }
-                        } else {
-                            if (!subscriber.isUnsubscribed())
-                                w.onError(in.getThrowable());
+                        } else if (!subscriber.isUnsubscribed()) {
+                            w.onError(in.getThrowable());
                         }
                     }
                 }).onBackpressureBuffer();
