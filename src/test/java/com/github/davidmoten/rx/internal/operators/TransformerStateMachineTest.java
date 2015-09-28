@@ -15,6 +15,7 @@ import com.github.davidmoten.rx.slf4j.Logging;
 import rx.Observable;
 import rx.Observable.Transformer;
 import rx.Observer;
+import rx.Subscriber;
 import rx.functions.Func0;
 import rx.functions.Func2;
 import rx.functions.Func3;
@@ -161,10 +162,45 @@ public class TransformerStateMachineTest {
     }
 
     @Test
+    public void testUnsubscriptionFromTransition() {
+        Func0<Integer> initialState = new Func0<Integer>() {
+
+            @Override
+            public Integer call() {
+                return 1;
+            }
+        };
+        Func3<Integer, Integer, Subscriber<Integer>, Integer> transition = new Func3<Integer, Integer, Subscriber<Integer>, Integer>() {
+
+            @Override
+            public Integer call(Integer collection, Integer t, Subscriber<Integer> subscriber) {
+                subscriber.onNext(123);
+                subscriber.unsubscribe();
+                return 1;
+            }
+
+        };
+        Func2<Integer, Observer<Integer>, Boolean> completion = new Func2<Integer, Observer<Integer>, Boolean>() {
+            @Override
+            public Boolean call(Integer collection, Observer<Integer> observer) {
+                return true;
+            }
+        };
+        Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
+                transition, completion);
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        Observable.just(1, 1, 1).repeat().compose(transformer).subscribe(ts);
+        ts.assertValue(123);
+        ts.assertCompleted();
+        ts.assertUnsubscribed();
+    }
+
+    @Test
     public void testForMemoryLeaks() {
-        int n = 10000000;
+        int n = 1000000;
         int count = Observable.range(1, n)
-                .lift(Logging.<Integer> logger().showMemory().every(1, TimeUnit.SECONDS).log())
+                .lift(Logging.<Integer> logger().showCount().showMemory().every(1, TimeUnit.SECONDS)
+                        .log())
                 .compose(Transformers.toListWhile(new Func2<List<Integer>, Integer, Boolean>() {
                     @Override
                     public Boolean call(List<Integer> list, Integer t) {

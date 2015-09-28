@@ -148,4 +148,24 @@ public final class Functions {
         };
     }
 
+    public static <T> Func1<T, Boolean> isNull() {
+        return new Func1<T, Boolean>() {
+
+            @Override
+            public Boolean call(T t) {
+                return t == null;
+            }
+        };
+    }
+
+    public static <T> Func1<T, Boolean> isNotNull() {
+        return new Func1<T, Boolean>() {
+
+            @Override
+            public Boolean call(T t) {
+                return t != null;
+            }
+        };
+    }
+
 }
