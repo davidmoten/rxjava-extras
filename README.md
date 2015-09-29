@@ -139,6 +139,53 @@ Behaves as per `toListWhile` but allows control over the data structure used.
 
 <img src="src/docs/collectWhile.png?raw=true" />
 
+Transformers.stateMachine
+--------------------------
+Custom operators are difficult things to get right in RxJava mainly because of the complexity of supporting backpressure efficiently. `Transformers.stateMachine` enables a custom operator implementation when:
+
+* each source emission is mapped to 0 to many emissions (of a different type perhaps) to downstream but those emissions are calculated based on accumulated state
+
+Examples of such a transformation might be from a list of temperatures you only want to emit sequential values that are less than zero but are part of a sub-zero sequence at least 1 hour in duration. You could use `toListWhile` above but `Transformers.stateMachine` offers the additional efficiency that it will immediately emit temperatures as soon as the duration criterion is met. 
+
+To implement this example, suppose the source is half-hourly temperature measurements:
+
+```java
+static class State {
+     final List<Double> list;
+     final boolean reachedThreshold;
+     State(List<Double> list, boolean reachedThreshold) {
+         this.list = list; 
+         this.reachedThreshold = reachedThreshold;
+     }
+}
+
+int MIN_SEQUENCE_LENGTH = 2;
+Observable.just(10, 5, 2, -1, -2, -5, -1, 2, 5, 6)
+    .compose(Transformers.stateMachine( 
+        (state,t,subscriber) -> {
+                if (t < 0) {
+                    if (state.reachedThreshold && !subscriber.isUnsubscribed()) {
+                        subscriber.onNext(t);
+                        return s;
+                     } else if (state.list.size() == MIN_SEQUENCE_LENGTH - 1) {
+                        for (Double temperature: list) {
+                        	if (!subscriber.isUnsubscribed()){
+                        	    subscriber.onNext(temperature;
+                        	}
+                        }
+                        return new State(null, true);
+                     } else {
+                        List<Double> list = new ArrayList<>(state.list);
+                        list.add(t);
+                        return new State(list, false);
+                     }
+                } else {
+                    return new State(new ArrayList<>(), false);
+                }
+            }) 
+    .forEach(System.out::println);
+```
+
 RetryWhen
 ----------------------
 A common use case for `.retry()` is some sequence of actions that are attempted and then after a delay a retry is attempted. RxJava does not provide 
