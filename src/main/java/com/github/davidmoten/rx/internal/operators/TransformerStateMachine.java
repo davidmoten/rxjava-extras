@@ -69,32 +69,6 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         });
     }
 
-    private static final Func1<Notification<?>, Boolean> NOT_UNSUBSCRIBED = new Func1<Notification<?>, Boolean>() {
-
-        @Override
-        public Boolean call(Notification<?> t) {
-            return !t.isOnError() || t.getThrowable() != UnsubscribedExceptionHolder.INSTANCE;
-        }
-
-    };
-
-    private static final class Mutable<T> {
-        // mutable
-        T value;
-
-        Mutable(T value) {
-            this.value = value;
-        }
-    }
-
-    private static final class UnsubscribedExceptionHolder {
-        static final UnsubscribedException INSTANCE = new UnsubscribedException();
-    }
-
-    private static class UnsubscribedException extends RuntimeException {
-        private static final long serialVersionUID = 7177818068143224232L;
-    }
-
     private static <State, Out, In> Func1<Notification<In>, Observable<Notification<Out>>> execute(
             final Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             final Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
@@ -119,18 +93,47 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                                 subscriber.onError(UnsubscribedExceptionHolder.INSTANCE);
                             }
                         } else if (in.isOnCompleted()) {
-                            if (completion.call(state.value, w)) {
-                                if (!subscriber.isUnsubscribed())
-                                    w.onCompleted();
+                            if (completion.call(state.value, w) && !subscriber.isUnsubscribed()) {
+                                w.onCompleted();
                             }
                         } else if (!subscriber.isUnsubscribed()) {
                             w.onError(in.getThrowable());
                         }
                     }
-                }).compose(backpressureStrategy);
+                })
+                        // because the observable we just created does not
+                        // support backpressure we need to apply a backpressure
+                        // handling operator. This operator is supplied by the
+                        // user.
+                        .compose(backpressureStrategy);
             }
 
         };
+    }
+
+    private static final Func1<Notification<?>, Boolean> NOT_UNSUBSCRIBED = new Func1<Notification<?>, Boolean>() {
+
+        @Override
+        public Boolean call(Notification<?> t) {
+            return !t.isOnError() || t.getThrowable() != UnsubscribedExceptionHolder.INSTANCE;
+        }
+
+    };
+
+    private static final class Mutable<T> {
+        T value;
+
+        Mutable(T value) {
+            this.value = value;
+        }
+    }
+
+    private static final class UnsubscribedExceptionHolder {
+        static final UnsubscribedException INSTANCE = new UnsubscribedException();
+    }
+
+    private static class UnsubscribedException extends RuntimeException {
+        private static final long serialVersionUID = 7177818068143224232L;
     }
 
     private static <Out> NotificationSubscriber<Out> wrap(
