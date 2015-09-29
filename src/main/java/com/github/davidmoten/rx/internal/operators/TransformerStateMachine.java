@@ -60,7 +60,6 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                         // early termination from the state machine if desired
                         .dematerialize();
             }
-
         });
     }
 
@@ -73,14 +72,13 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
 
     };
 
-    private static final class Mutable<State> {
+    private static final class Mutable<T> {
         // mutable
-        State value;
+        T value;
 
-        Mutable(State value) {
+        Mutable(T value) {
             this.value = value;
         }
-
     }
 
     private static final class UnsubscribedExceptionHolder {
@@ -107,8 +105,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                     public void call(Subscriber<? super Notification<Out>> subscriber) {
                         Subscriber<Out> w = wrap(subscriber);
                         if (in.hasValue()) {
-                            State nextState = transition.call(state.value, in.getValue(), w);
-                            state.value = nextState;
+                            state.value = transition.call(state.value, in.getValue(), w);
                             if (!subscriber.isUnsubscribed())
                                 subscriber.onCompleted();
                             else {
