@@ -161,7 +161,8 @@ static class State {
 
 int MIN_SEQUENCE_LENGTH = 2;
 Observable.just(10, 5, 2, -1, -2, -5, -1, 2, 5, 6)
-    .compose(Transformers.stateMachine( 
+    .compose(Transformers.stateMachine(
+        () -> new State(new ArrayList<>(), false),
         (state,t,subscriber) -> {
                 if (t < 0) {
                     if (state.reachedThreshold && !subscriber.isUnsubscribed()) {
