@@ -1,14 +1,17 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import com.github.davidmoten.rx.Functions;
+
 import rx.Observable.Transformer;
 import rx.Subscriber;
+import rx.functions.Func0;
 import rx.functions.Func2;
 import rx.functions.Func3;
 
 public final class TransformerStringSplit {
 
     public static <T> Transformer<String, String> split(final String pattern) {
-        LeftOver initialState = new LeftOver(null);
+        Func0<LeftOver> initialState = Functions.constant0(new LeftOver(null));
         Func3<LeftOver, String, Subscriber<String>, LeftOver> transition = new Func3<LeftOver, String, Subscriber<String>, LeftOver>() {
 
             @Override

@@ -21,6 +21,7 @@ import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;
 
+import rx.Notification;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
@@ -140,6 +141,10 @@ public final class Transformers {
      *            For example any buffered emissions in state could be emitted
      *            at this point. Don't call <code>observer.onCompleted()</code>
      *            as it is called for you after the action completes.
+     * @param backpressureStrategy
+     *            is applied to the emissions from one call of transition and
+     *            should enforce backpressure. Typical implementations of this
+     *            parameters would be {@code o -> o.onBackpressureXXX()}
      * @param <State>
      *            the class representing the state of the state machine
      * @param <In>
@@ -155,9 +160,10 @@ public final class Transformers {
     public static <State, In, Out> Transformer<In, Out> stateMachine(
             Func0<State> initialStateFactory,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
-            Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
+            Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
+            Transformer<Notification<Out>, Notification<Out>> backpressureStrategy) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
-                completion);
+                completion, backpressureStrategy);
     }
 
     /**
@@ -168,8 +174,8 @@ public final class Transformers {
      * chain so the source may experience requests for more items than are
      * strictly required by the endpoint subscriber.
      * 
-     * @param initialState
-     *            the initial state of the state machine.
+     * @param initialStateFactory
+     *            the factory to create the initial state of the state machine.
      * @param transition
      *            defines state transitions and consequent emissions to
      *            downstream when an item arrives from upstream. The
@@ -193,55 +199,27 @@ public final class Transformers {
      * @param <Out>
      *            the output observable type
      * @throws NullPointerException
-     *             if {@code transition} or {@code completion} is null
+     *             if {@code initialStateFactory} or {@code transition},or
+     *             {@code completionAction} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
-    public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
+    public static <State, In, Out> Transformer<In, Out> stateMachine(
+            Func0<? extends State> initialStateFactory,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
-        Func0<State> f = Functions.constant0(initialState);
-        return TransformerStateMachine.<State, In, Out> create(f, transition, completion);
+        return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
+                completion, Transformers.<Out> onBackpressureBuffer());
     }
 
-    /**
-     * Returns a {@link Transformer} that allows processing of the source stream
-     * to be defined in a state machine where transitions of the state machine
-     * may also emit items to downstream that are buffered if necessary when
-     * backpressure is requested. <code>flatMap</code> is part of the processing
-     * chain so the source may experience requests for more items than are
-     * strictly required by the endpoint subscriber. This overload uses a do
-     * nothing {@code completion} which returns true and may leave some
-     * emissions associated with the final State as unemitted.
-     * 
-     * @param initialState
-     *            the initial state of the state machine.
-     * @param transition
-     *            defines state transitions and consequent emissions to
-     *            downstream when an item arrives from upstream. The
-     *            {@link Subscriber} is called with the emissions to downstream.
-     *            You can optionally call {@link Subscriber#isUnsubscribed()} to
-     *            check if you can stop emitting from the transition. If you do
-     *            wish to terminate the Observable then call
-     *            {@link Subscriber#unsubscribe()} and return anything (say
-     *            {@code null} from the transition (as the next state which will
-     *            not be used).
-     * @param <State>
-     *            the class representing the state of the state machine
-     * @param <In>
-     *            the input observable type
-     * @param <Out>
-     *            the output observable type
-     * @throws NullPointerException
-     *             if {@code initialState} or {@code transition} is null
-     * @return a backpressure supporting transformer that implements the state
-     *         machine specified by the parameters
-     */
-    public static <State, In, Out> Transformer<In, Out> stateMachine(State initialState,
-            Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition) {
-        Func0<State> f = Functions.constant0(initialState);
-        return TransformerStateMachine.<State, In, Out> create(f, transition,
-                Functions.alwaysTrue2());
+    public static <T> Transformer<Notification<T>, Notification<T>> onBackpressureBuffer() {
+        return new Transformer<Notification<T>, Notification<T>>() {
+
+            @Override
+            public Observable<Notification<T>> call(Observable<Notification<T>> t) {
+                return t.onBackpressureBuffer();
+            }
+        };
     }
 
     @SuppressWarnings("unchecked")
