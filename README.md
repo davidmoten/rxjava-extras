@@ -145,7 +145,7 @@ Custom operators are difficult things to get right in RxJava mainly because of t
 
 * each source emission is mapped to 0 to many emissions (of a different type perhaps) to downstream but those emissions are calculated based on accumulated state
 
-Examples of such a transformation might be from a list of temperatures you only want to emit sequential values that are less than zero but are part of a sub-zero sequence at least 1 hour in duration. You could use `toListWhile` above but `Transformers.stateMachine` offers the additional efficiency that it will immediately emit temperatures as soon as the duration criterion is met. 
+An example of such a transformation might be from a list of temperatures you only want to emit sequential values that are less than zero but are part of a sub-zero sequence at least 1 hour in duration. You could use `toListWhile` above but `Transformers.stateMachine` offers the additional efficiency that it will immediately emit temperatures as soon as the duration criterion is met. 
 
 To implement this example, suppose the source is half-hourly temperature measurements:
 
@@ -165,14 +165,18 @@ Observable.just(10, 5, 2, -1, -2, -5, -1, 2, 5, 6)
         () -> new State(new ArrayList<>(), false),
         (state,t,subscriber) -> {
                 if (t < 0) {
-                    if (state.reachedThreshold && !subscriber.isUnsubscribed()) {
+                    if (state.reachedThreshold) {
+                        if (subscriber.isUnsubscribed()){
+                            return null;
+                        }
                         subscriber.onNext(t);
                         return s;
                      } else if (state.list.size() == MIN_SEQUENCE_LENGTH - 1) {
                         for (Double temperature: list) {
-                        	if (!subscriber.isUnsubscribed()){
-                        	    subscriber.onNext(temperature;
+                        	if (subscriber.isUnsubscribed()){
+                                return null;
                         	}
+                    	    subscriber.onNext(temperature;
                         }
                         return new State(null, true);
                      } else {
