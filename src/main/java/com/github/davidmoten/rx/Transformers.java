@@ -122,11 +122,6 @@ public final class Transformers {
      * chain so the source may experience requests for more items than are
      * strictly required by the endpoint subscriber.
      * 
-     * <p>
-     * Internally this transformer uses {@link Observable#scan} emitting a
-     * stream of new states composed with emissions from the transition to each
-     * state and {@link Observable#flatMap} to emit with backpressure.
-     * 
      * @param initialStateFactory
      *            the factory to create the initial state of the state machine.
      * @param transition
@@ -135,8 +130,10 @@ public final class Transformers {
      *            {@link Subscriber} is called with the emissions to downstream.
      *            You can optionally call {@link Subscriber#isUnsubscribed()} to
      *            check if you can stop emitting from the transition. If you do
-     *            wish to terminate the transition due to unsubscription then
-     *            {@code return null} from the transition.
+     *            wish to terminate the Observable then call
+     *            {@link Subscriber#unsubscribe()} and return anything (say
+     *            {@code null} from the transition (as the next state which will
+     *            not be used).
      * @param completion
      *            defines activity that should happen based on the final state
      *            just before downstream <code>onCompleted()</code> is called.
@@ -171,11 +168,6 @@ public final class Transformers {
      * chain so the source may experience requests for more items than are
      * strictly required by the endpoint subscriber.
      * 
-     * <p>
-     * Internally this transformer uses {@link Observable#scan} emitting a
-     * stream of new states composed with emissions from the transition to each
-     * state and {@link Observable#flatMap} to emit with backpressure.
-     * 
      * @param initialState
      *            the initial state of the state machine.
      * @param transition
@@ -184,8 +176,10 @@ public final class Transformers {
      *            {@link Subscriber} is called with the emissions to downstream.
      *            You can optionally call {@link Subscriber#isUnsubscribed()} to
      *            check if you can stop emitting from the transition. If you do
-     *            wish to terminate the transition due to unsubscription then
-     *            {@code return null} from the transition.
+     *            wish to terminate the Observable then call
+     *            {@link Subscriber#unsubscribe()} and return anything (say
+     *            {@code null} from the transition (as the next state which will
+     *            not be used).
      * @param completion
      *            defines activity that should happen based on the final state
      *            just before downstream <code>onCompleted()</code> is called.
@@ -199,7 +193,7 @@ public final class Transformers {
      * @param <Out>
      *            the output observable type
      * @throws NullPointerException
-     *             if {@code transition} or {@code completionAction} is null
+     *             if {@code transition} or {@code completion} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
@@ -217,13 +211,8 @@ public final class Transformers {
      * backpressure is requested. <code>flatMap</code> is part of the processing
      * chain so the source may experience requests for more items than are
      * strictly required by the endpoint subscriber. This overload uses a do
-     * nothing {@code completionAction} which may leave some emissions recorded
-     * in State as unemitted.
-     * 
-     * <p>
-     * Internally this transformer uses {@link Observable#scan} emitting a
-     * stream of new states composed with emissions from the transition to each
-     * state and {@link Observable#flatMap} to emit with backpressure.
+     * nothing {@code completion} which returns true and may leave some
+     * emissions associated with the final State as unemitted.
      * 
      * @param initialState
      *            the initial state of the state machine.
@@ -233,8 +222,10 @@ public final class Transformers {
      *            {@link Subscriber} is called with the emissions to downstream.
      *            You can optionally call {@link Subscriber#isUnsubscribed()} to
      *            check if you can stop emitting from the transition. If you do
-     *            wish to terminate the transition due to unsubscription then
-     *            {@code return null} from the transition.
+     *            wish to terminate the Observable then call
+     *            {@link Subscriber#unsubscribe()} and return anything (say
+     *            {@code null} from the transition (as the next state which will
+     *            not be used).
      * @param <State>
      *            the class representing the state of the state machine
      * @param <In>
