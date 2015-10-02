@@ -166,7 +166,7 @@ Observable.just(10, 5, 2, -1, -2, -5, -1, 2, 5, 6)
         (state,t,subscriber) -> {
                 if (t < 0) {
                     if (state.reachedThreshold) {
-                        if (subscriber.isUnsubscribed()){
+                        if (subscriber.isUnsubscribed()) {
                             return null;
                         }
                         subscriber.onNext(t);
@@ -176,7 +176,7 @@ Observable.just(10, 5, 2, -1, -2, -5, -1, 2, 5, 6)
                         	if (subscriber.isUnsubscribed()){
                                 return null;
                         	}
-                    	    subscriber.onNext(temperature;
+                    	    subscriber.onNext(temperature);
                         }
                         return new State(null, true);
                      } else {
