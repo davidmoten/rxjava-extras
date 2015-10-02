@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import com.github.davidmoten.rx.util.BackpressureStrategy;
 import com.github.davidmoten.util.Preconditions;
 
 import rx.Notification;
@@ -17,12 +18,12 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     private final Func0<? extends State> initialState;
     private final Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition;
     private final Func2<? super State, ? super Subscriber<Out>, Boolean> completion;
-    private final Transformer<Notification<Out>, Notification<Out>> backpressureStrategy;
+    private final BackpressureStrategy backpressureStrategy;
 
     private TransformerStateMachine(Func0<? extends State> initialState,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
-            Transformer<Notification<Out>, Notification<Out>> backpressureStrategy) {
+            BackpressureStrategy backpressureStrategy) {
         Preconditions.checkNotNull(initialState);
         Preconditions.checkNotNull(transition);
         Preconditions.checkNotNull(completion);
@@ -36,7 +37,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     public static <State, In, Out> Transformer<In, Out> create(Func0<? extends State> initialState,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
-            Transformer<Notification<Out>, Notification<Out>> backpressureStrategy) {
+            BackpressureStrategy backpressureStrategy) {
         return new TransformerStateMachine<State, In, Out>(initialState, transition, completion,
                 backpressureStrategy);
     }
@@ -72,15 +73,15 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     private static <State, Out, In> Func1<Notification<In>, Observable<Notification<Out>>> execute(
             final Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             final Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
-            final Mutable<State> state,
-            final Transformer<Notification<Out>, Notification<Out>> backpressureStrategy) {
+            final Mutable<State> state, final BackpressureStrategy backpressureStrategy) {
 
         return new Func1<Notification<In>, Observable<Notification<Out>>>() {
 
             @Override
             public Observable<Notification<Out>> call(final Notification<In> in) {
 
-                return Observable.create(new OnSubscribe<Notification<Out>>() {
+                Observable<Notification<Out>> o = Observable
+                        .create(new OnSubscribe<Notification<Out>>() {
 
                     @Override
                     public void call(Subscriber<? super Notification<Out>> subscriber) {
@@ -100,15 +101,28 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                             w.onError(in.getThrowable());
                         }
                     }
-                })
-                        // because the observable we just created does not
-                        // support backpressure we need to apply a backpressure
-                        // handling operator. This operator is supplied by the
-                        // user.
-                        .compose(backpressureStrategy);
+                });
+                // because the observable we just created does not
+                // support backpressure we need to apply a backpressure
+                // handling operator. This operator is supplied by the
+                // user.
+                return applyBackpressure(o, backpressureStrategy);
             }
 
         };
+    }
+
+    private static <Out> Observable<Notification<Out>> applyBackpressure(
+            Observable<Notification<Out>> o, final BackpressureStrategy backpressureStrategy) {
+        if (backpressureStrategy == BackpressureStrategy.BUFFER)
+            return o.onBackpressureBuffer();
+        else if (backpressureStrategy == BackpressureStrategy.DROP)
+            return o.onBackpressureDrop();
+        else if (backpressureStrategy == BackpressureStrategy.LATEST)
+            return o.onBackpressureLatest();
+        else
+            throw new IllegalArgumentException(
+                    "backpressure strategy not supported: " + backpressureStrategy);
     }
 
     private static final Func1<Notification<?>, Boolean> NOT_UNSUBSCRIBED = new Func1<Notification<?>, Boolean>() {

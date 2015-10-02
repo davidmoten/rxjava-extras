@@ -17,6 +17,7 @@ import com.github.davidmoten.rx.internal.operators.TransformerDecode;
 import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
 import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.internal.operators.TransformerStringSplit;
+import com.github.davidmoten.rx.util.BackpressureStrategy;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;
@@ -161,7 +162,7 @@ public final class Transformers {
             Func0<State> initialStateFactory,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
-            Transformer<Notification<Out>, Notification<Out>> backpressureStrategy) {
+            BackpressureStrategy backpressureStrategy) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completion, backpressureStrategy);
     }
@@ -209,7 +210,7 @@ public final class Transformers {
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
-                completion, Transformers.<Out> onBackpressureBuffer());
+                completion, BackpressureStrategy.BUFFER);
     }
 
     public static <T> Transformer<Notification<T>, Notification<T>> onBackpressureBuffer() {
@@ -334,7 +335,7 @@ public final class Transformers {
      * Returns a {@link Transformer} that returns an {@link Observable} that is
      * collected into {@code Collection} instances created by {@code factory}
      * that are emitted when the collection and latest emission do not satisfy
-     * {@code condition} or on completion. s
+     * {@code condition} or on completion.
      * 
      * @param factory
      *            collection instance creator
