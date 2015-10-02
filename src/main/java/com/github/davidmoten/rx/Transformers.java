@@ -144,8 +144,7 @@ public final class Transformers {
      *            as it is called for you after the action completes.
      * @param backpressureStrategy
      *            is applied to the emissions from one call of transition and
-     *            should enforce backpressure. Typical implementations of this
-     *            parameters would be {@code o -> o.onBackpressureXXX()}
+     *            should enforce backpressure.
      * @param <State>
      *            the class representing the state of the state machine
      * @param <In>
