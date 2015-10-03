@@ -22,7 +22,6 @@ import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;
 
-import rx.Notification;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
@@ -172,7 +171,10 @@ public final class Transformers {
      * may also emit items to downstream that are buffered if necessary when
      * backpressure is requested. <code>flatMap</code> is part of the processing
      * chain so the source may experience requests for more items than are
-     * strictly required by the endpoint subscriber.
+     * strictly required by the endpoint subscriber. The backpressure strategy
+     * used for emissions from the transition into the flatMap is
+     * {@link BackpressureStrategy#BUFFER} which corresponds to
+     * {@link Observable#onBackpressureBuffer}.
      * 
      * @param initialStateFactory
      *            the factory to create the initial state of the state machine.
@@ -210,16 +212,6 @@ public final class Transformers {
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completion, BackpressureStrategy.BUFFER);
-    }
-
-    public static <T> Transformer<Notification<T>, Notification<T>> onBackpressureBuffer() {
-        return new Transformer<Notification<T>, Notification<T>>() {
-
-            @Override
-            public Observable<Notification<T>> call(Observable<Notification<T>> t) {
-                return t.onBackpressureBuffer();
-            }
-        };
     }
 
     @SuppressWarnings("unchecked")
