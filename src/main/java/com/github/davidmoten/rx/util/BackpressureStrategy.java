@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx.util;
 
+import rx.Observable;
+
 public enum BackpressureStrategy {
     /**
      * Corresponds to {@link Observable#onBackpressureBuffer}.
