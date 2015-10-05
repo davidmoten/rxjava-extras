@@ -12,7 +12,4 @@ env:
   - secure: jWOdssMm/KD7EWkRYZj/IxUSgqO736tARwbvvSYtFk5MWEhou9DIntCEeRoUgwQ9qgsZuOHkp2oay7QzRGejw1ec6Etw1ti9incbQqmmStgB4hLefD9PdRFqoBN/Wx6/hG77FSwd7YtJk2/uUiJFiVhDbDINru1Hh0GY1GXo8mQ=
 
 after_success:
-  - python src/deploy/addServer.py
-  - env
-  - echo "MAVEN_OPTS='-Xmx512m'" > ~/.mavenrc
-  - mvn clean deploy --settings ~/.m2/mySettings.xml -Darguments="-Dmaven.test.skip=true"
+  - src/deploy/deploy.sh
