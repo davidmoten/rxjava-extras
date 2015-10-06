@@ -8,6 +8,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.davidmoten.rx.internal.operators.OnSubscribeReader;
@@ -118,6 +120,19 @@ public final class Strings {
 
     public static Observable<String> join(Observable<String> source) {
         return join(source, "");
+    }
+
+    public static Observable<String> decode(Observable<byte[]> source, CharsetDecoder decoder) {
+        return source.compose(Transformers.decode(decoder));
+    }
+
+    public static Observable<String> decode(Observable<byte[]> source, Charset charset) {
+        return decode(source, charset.newDecoder().onMalformedInput(CodingErrorAction.REPLACE)
+                .onUnmappableCharacter(CodingErrorAction.REPLACE));
+    }
+
+    public static Observable<String> decode(Observable<byte[]> source, String charset) {
+        return decode(source, Charset.forName(charset));
     }
 
     public static Observable<String> join(final Observable<String> source, final String delimiter) {
