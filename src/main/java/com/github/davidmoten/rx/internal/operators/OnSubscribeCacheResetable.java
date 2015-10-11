@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
+import rx.observers.Subscribers;
 
 public final class OnSubscribeCacheResetable<T> implements OnSubscribe<T> {
 

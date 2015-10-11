@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
@@ -13,6 +14,8 @@ import org.junit.Test;
 import com.github.davidmoten.rx.util.Pair;
 
 import rx.Observable;
+import rx.functions.Func0;
+import rx.schedulers.TestScheduler;
 
 public class TransformersTest {
 
@@ -109,6 +112,19 @@ public class TransformersTest {
     }
 
     @Test
-    public void test() {
+    public void testCachedScheduledReset() {
+        TestScheduler scheduler = new TestScheduler();
+        final AtomicInteger count = new AtomicInteger(0);
+        Observable<Integer> source = Observable.defer(new Func0<Observable<Integer>>() {
+            @Override
+            public Observable<Integer> call() {
+                return Observable.just(count.incrementAndGet());
+            }
+        })
+                // cache
+                .compose(Transformers.<Integer> cache(1, TimeUnit.SECONDS, scheduler));
+        assertEquals(1, (int) source.toBlocking().single());
+        assertEquals(1, (int) source.toBlocking().single());
+
     }
 }
