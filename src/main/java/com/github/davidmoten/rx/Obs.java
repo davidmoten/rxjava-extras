@@ -70,10 +70,8 @@ public final class Obs {
 
     /**
      * Returns a cached {@link Observable} like {@link Observable#cache()}
-     * except that the cache will be automatically reset after the given
-     * interval using the given scheduler according to the criteria given by
-     * {@code rescheduleOnSubscribe}, {@code rescheduleOnNext},
-     * {@code rescheduleOnError}. .
+     * except that the cache may be reset by the user calling
+     * {@link CloseableObservableWithReset#reset}.
      * 
      * @param source
      *            the source observable
@@ -83,54 +81,34 @@ public final class Obs {
      *            units corresponding to the duration
      * @param scheduler
      *            scheduler to use for scheduling reset.
-     * @param rescheduleOnSubscribe
-     *            set to true if a new subscription should restart the scheduled
-     *            cache reset
-     * @param rescheduleOnNext
-     *            set to true if an onNext emission should restart the scheduled
-     *            cache reset
-     * @param rescheduleOnError
-     *            set to true if an error should restart the scheduled cache
-     *            reset
      * @param <T>
      *            generic type of source observable
-     * @return {@link CloseableObservable} that should be closed once finished
-     *         to prevent worker memory leak
+     * @return {@link CloseableObservableWithReset} that should be closed once
+     *         finished to prevent worker memory leak.
      */
-    public static <T> CloseableObservable<T> cache(final Observable<T> source, final long duration,
-            final TimeUnit unit, final Scheduler scheduler, final boolean rescheduleOnSubscribe,
-            final boolean rescheduleOnNext, boolean rescheduleOnError) {
+    public static <T> CloseableObservableWithReset<T> cache(final Observable<T> source,
+            final long duration, final TimeUnit unit, final Scheduler scheduler) {
         final AtomicReference<CachedObservable<T>> cacheRef = new AtomicReference<CachedObservable<T>>();
         final AtomicReference<Worker> workerRef = new AtomicReference<Worker>();
         CachedObservable<T> cache = new CachedObservable<T>(source);
         cacheRef.set(cache);
-        Observable<T> o = cache.doOnSubscribe(new Action0() {
-            @Override
-            public void call() {
-                if (rescheduleOnSubscribe)
-                    startScheduledResetAgain(duration, unit, scheduler, cacheRef, workerRef);
-            }
-        }).doOnNext(new Action1<T>() {
-            @Override
-            public void call(T t) {
-                if (rescheduleOnNext)
-                    startScheduledResetAgain(duration, unit, scheduler, cacheRef, workerRef);
-            }
-        }).doOnError(new Action1<Throwable>() {
-            @Override
-            public void call(Throwable t) {
-                if (rescheduleOnNext)
-                    startScheduledResetAgain(duration, unit, scheduler, cacheRef, workerRef);
-            }
-        });
         Action0 closeAction = new Action0() {
             @Override
             public void call() {
-                if (workerRef.get() != null)
+                if (workerRef.get() != null) {
                     workerRef.get().unsubscribe();
+                    workerRef.set(null);
+                }
             }
         };
-        return new CloseableObservable<T>(o, closeAction);
+        Action0 resetAction = new Action0() {
+
+            @Override
+            public void call() {
+                startScheduledResetAgain(duration, unit, scheduler, cacheRef, workerRef);
+            }
+        };
+        return new CloseableObservableWithReset<T>(cache, closeAction, resetAction);
     }
 
     private static <T> void startScheduledResetAgain(final long duration, final TimeUnit unit,
