@@ -14,6 +14,7 @@ import org.junit.Test;
 import com.github.davidmoten.rx.util.Pair;
 
 import rx.Observable;
+import rx.Scheduler.Worker;
 import rx.functions.Func0;
 import rx.schedulers.TestScheduler;
 
@@ -114,17 +115,27 @@ public class TransformersTest {
     @Test
     public void testCachedScheduledReset() {
         TestScheduler scheduler = new TestScheduler();
-        final AtomicInteger count = new AtomicInteger(0);
-        Observable<Integer> source = Observable.defer(new Func0<Observable<Integer>>() {
-            @Override
-            public Observable<Integer> call() {
-                return Observable.just(count.incrementAndGet());
-            }
-        })
-                // cache
-                .compose(Transformers.<Integer> cache(1, TimeUnit.SECONDS, scheduler));
-        assertEquals(1, (int) source.toBlocking().single());
-        assertEquals(1, (int) source.toBlocking().single());
-
+        Worker worker = scheduler.createWorker();
+        try {
+            final AtomicInteger count = new AtomicInteger(0);
+            Observable<Integer> source = Observable.defer(new Func0<Observable<Integer>>() {
+                @Override
+                public Observable<Integer> call() {
+                    return Observable.just(count.incrementAndGet());
+                }
+            })
+                    // cache
+                    .compose(Transformers.<Integer> cache(5, TimeUnit.MINUTES, worker));
+            assertEquals(1, (int) source.toBlocking().single());
+            scheduler.advanceTimeBy(1, TimeUnit.MINUTES);
+            assertEquals(1, (int) source.toBlocking().single());
+            scheduler.advanceTimeBy(1, TimeUnit.MINUTES);
+            assertEquals(1, (int) source.toBlocking().single());
+            scheduler.advanceTimeBy(3, TimeUnit.MINUTES);
+            assertEquals(2, (int) source.toBlocking().single());
+            assertEquals(2, (int) source.toBlocking().single());
+        } finally {
+            worker.unsubscribe();
+        }
     }
 }
