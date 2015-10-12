@@ -9,7 +9,6 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.functions.Action0;
-import rx.functions.Action1;
 
 public final class Obs {
 
@@ -33,8 +32,7 @@ public final class Obs {
      * except that the cache can be reset by calling
      * {@link CachedObservable#reset()} and the cache will be automatically
      * reset an interval after first subscription (or first subscription after
-     * reset). The interval is defined by {@link code duration} and {@code unit}
-     * .
+     * reset). The interval is defined by {@code duration} and {@code unit} .
      * 
      * @param source
      *            the source observable
@@ -45,12 +43,13 @@ public final class Obs {
      * @param worker
      *            worker to use for scheduling reset. Don't forget to
      *            unsubscribe the worker when no longer required.
+     * @param <T>
+     *            the generic type of the source
      * @return cached observable that resets regularly on a time interval
      */
     public static <T> Observable<T> cache(final Observable<T> source, final long duration,
             final TimeUnit unit, final Worker worker) {
         final AtomicReference<CachedObservable<T>> cacheRef = new AtomicReference<CachedObservable<T>>();
-
         CachedObservable<T> cache = new CachedObservable<T>(source);
         cacheRef.set(cache);
         return cache.doOnSubscribe(new Action0() {
