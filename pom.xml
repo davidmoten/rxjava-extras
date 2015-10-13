@@ -9,7 +9,7 @@
         <version>0.1</version>
     </parent>
 	<artifactId>rxjava-extras</artifactId>
-	<version>0.6.8-RC2-SNAPSHOT</version>
+	<version>0.6.8-RC3-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>RxJava utilities</description>
     <packaging>jar</packaging>
