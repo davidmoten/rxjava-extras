@@ -121,4 +121,24 @@ public final class Actions {
             }
         };
     }
+
+    public static <T> Action1<T> increment(final AtomicInteger count) {
+        return new Action1<T>() {
+
+            @Override
+            public void call(T t) {
+                count.incrementAndGet();
+            }
+        };
+    }
+
+    public static <T> Action1<T> setToTrue(final AtomicBoolean ref) {
+        return new Action1<T>() {
+
+            @Override
+            public void call(T t) {
+                ref.set(true);
+            }
+        };
+    }
 }

@@ -6,9 +6,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
+import com.github.davidmoten.rx.Actions;
+import com.github.davidmoten.rx.Functions;
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.slf4j.Logging;
 
@@ -180,12 +183,7 @@ public class TransformerStateMachineTest {
             }
 
         };
-        Func2<Integer, Observer<Integer>, Boolean> completion = new Func2<Integer, Observer<Integer>, Boolean>() {
-            @Override
-            public Boolean call(Integer collection, Observer<Integer> observer) {
-                return true;
-            }
-        };
+        Func2<Integer, Observer<Integer>, Boolean> completion = Functions.alwaysTrue2();
         Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
                 transition, completion);
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
@@ -275,5 +273,38 @@ public class TransformerStateMachineTest {
                     }
                 })).count().toBlocking().single();
         assertEquals(n, count);
+    }
+
+    @Test
+    public void testForCompletionWithinStateMachine() {
+        Func0<Integer> initialState = new Func0<Integer>() {
+
+            @Override
+            public Integer call() {
+                return 1;
+            }
+        };
+        Func3<Integer, Integer, Subscriber<Integer>, Integer> transition = new Func3<Integer, Integer, Subscriber<Integer>, Integer>() {
+
+            @Override
+            public Integer call(Integer collection, Integer t, Subscriber<Integer> subscriber) {
+                subscriber.onNext(123);
+                // complete from within transition
+                subscriber.onCompleted();
+                return 1;
+            }
+
+        };
+        Func2<? super Integer, ? super Subscriber<Integer>, Boolean> completion = Functions
+                .alwaysTrue2();
+        Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
+                transition, completion);
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
+        final AtomicInteger count = new AtomicInteger(0);
+        Observable.just(1, 2, 3).doOnNext(Actions.increment(count)).compose(transformer)
+                .subscribe(ts);
+        ts.assertValues(123);
+        ts.assertCompleted();
+        assertEquals(1, count.get());
     }
 }
