@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
@@ -26,6 +27,7 @@ import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Observer;
+import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Action2;
@@ -485,5 +487,14 @@ public final class Transformers {
 
     public static <T> Transformer<T, T> limitSubscribers(int maxSubscribers) {
         return new TransformerLimitSubscribers<T>(new AtomicInteger(), maxSubscribers);
+    }
+
+    public static <T> Transformer<T, T> cache(final long duration, final TimeUnit unit, final Worker worker) {
+        return new Transformer<T, T>() {
+            @Override
+            public Observable<T> call(Observable<T> o) {
+                return Obs.cache(o, duration, unit, worker);
+            }
+        };
     }
 }

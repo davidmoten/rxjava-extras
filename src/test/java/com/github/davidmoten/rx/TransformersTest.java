@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
@@ -13,6 +14,9 @@ import org.junit.Test;
 import com.github.davidmoten.rx.util.Pair;
 
 import rx.Observable;
+import rx.Scheduler.Worker;
+import rx.functions.Func0;
+import rx.schedulers.TestScheduler;
 
 public class TransformersTest {
 
@@ -108,7 +112,4 @@ public class TransformersTest {
         assertEquals(2, item.get());
     }
 
-    @Test
-    public void test() {
-    }
 }
