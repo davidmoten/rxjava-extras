@@ -136,13 +136,20 @@ public final class Transformers {
      *            wish to terminate the Observable then call
      *            {@link Subscriber#unsubscribe()} and return anything (say
      *            {@code null} from the transition (as the next state which will
-     *            not be used).
+     *            not be used). You can also complete the Observable by calling
+     *            {@link Subscriber#onCompleted} or {@link Subscriber#onError}
+     *            from within the transition and return anything from the
+     *            transition (will not be used). The transition should run
+     *            synchronously so that completion of a call to the transition
+     *            should also signify all emissions from that transition have
+     *            been made.
      * @param completion
      *            defines activity that should happen based on the final state
      *            just before downstream <code>onCompleted()</code> is called.
      *            For example any buffered emissions in state could be emitted
      *            at this point. Don't call <code>observer.onCompleted()</code>
-     *            as it is called for you after the action completes.
+     *            as it is called for you after the action completes if and only
+     *            if you return true from this function.
      * @param backpressureStrategy
      *            is applied to the emissions from one call of transition and
      *            should enforce backpressure.
@@ -189,13 +196,20 @@ public final class Transformers {
      *            wish to terminate the Observable then call
      *            {@link Subscriber#unsubscribe()} and return anything (say
      *            {@code null} from the transition (as the next state which will
-     *            not be used).
+     *            not be used). You can also complete the Observable by calling
+     *            {@link Subscriber#onCompleted} or {@link Subscriber#onError}
+     *            from within the transition and return anything from the
+     *            transition (will not be used). The transition should run
+     *            synchronously so that completion of a call to the transition
+     *            should also signify all emissions from that transition have
+     *            been made.
      * @param completion
      *            defines activity that should happen based on the final state
      *            just before downstream <code>onCompleted()</code> is called.
      *            For example any buffered emissions in state could be emitted
      *            at this point. Don't call <code>observer.onCompleted()</code>
-     *            as it is called for you after the action completes.
+     *            as it is called for you after the action completes if and only
+     *            if you return true from this function.
      * @param <State>
      *            the class representing the state of the state machine
      * @param <In>
@@ -204,7 +218,7 @@ public final class Transformers {
      *            the output observable type
      * @throws NullPointerException
      *             if {@code initialStateFactory} or {@code transition},or
-     *             {@code completionAction} is null
+     *             {@code completion} is null
      * @return a backpressure supporting transformer that implements the state
      *         machine specified by the parameters
      */
@@ -489,7 +503,8 @@ public final class Transformers {
         return new TransformerLimitSubscribers<T>(new AtomicInteger(), maxSubscribers);
     }
 
-    public static <T> Transformer<T, T> cache(final long duration, final TimeUnit unit, final Worker worker) {
+    public static <T> Transformer<T, T> cache(final long duration, final TimeUnit unit,
+            final Worker worker) {
         return new Transformer<T, T>() {
             @Override
             public Observable<T> call(Observable<T> o) {
