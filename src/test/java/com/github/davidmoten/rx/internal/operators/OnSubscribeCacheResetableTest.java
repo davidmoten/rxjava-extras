@@ -6,12 +6,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.functions.Action0;
-import rx.functions.Action1;
-
+import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Obs;
 import com.github.davidmoten.rx.observables.CachedObservable;
+
+import rx.Observable;
 
 public class OnSubscribeCacheResetableTest {
 
@@ -20,19 +19,8 @@ public class OnSubscribeCacheResetableTest {
         final AtomicInteger completedCount = new AtomicInteger();
         final AtomicInteger emissionCount = new AtomicInteger();
         CachedObservable<Integer> cached = Obs
-                .cache(Observable.just(1).doOnCompleted(new Action0() {
-                    @Override
-                    public void call() {
-                        completedCount.incrementAndGet();
-                    }
-                }));
-        Observable<Integer> o = cached.doOnNext(new Action1<Integer>() {
-
-            @Override
-            public void call(Integer n) {
-                emissionCount.incrementAndGet();
-            }
-        });
+                .cache(Observable.just(1).doOnCompleted(Actions.increment0(completedCount)));
+        Observable<Integer> o = cached.doOnNext(Actions.increment1(emissionCount));
         o.subscribe();
         assertEquals(1, completedCount.get());
         assertEquals(1, emissionCount.get());

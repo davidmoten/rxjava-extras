@@ -29,13 +29,7 @@ public class TransformerStateMachineTest {
     @Test
     public void testStateTransitionThrowsError() {
         final RuntimeException ex = new RuntimeException("boo");
-        Func0<Integer> initialState = new Func0<Integer>() {
-
-            @Override
-            public Integer call() {
-                return 1;
-            }
-        };
+        Func0<Integer> initialState = Functions.constant0(1);
         Func3<Integer, Integer, Observer<Integer>, Integer> transition = new Func3<Integer, Integer, Observer<Integer>, Integer>() {
 
             @Override
@@ -44,12 +38,7 @@ public class TransformerStateMachineTest {
             }
 
         };
-        Func2<Integer, Observer<Integer>, Boolean> completion = new Func2<Integer, Observer<Integer>, Boolean>() {
-            @Override
-            public Boolean call(Integer collection, Observer<Integer> observer) {
-                return true;
-            }
-        };
+        Func2<Integer, Observer<Integer>, Boolean> completion = Functions.alwaysTrue2();
         Transformer<Integer, Integer> transformer = Transformers.stateMachine(initialState,
                 transition, completion);
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
@@ -61,13 +50,7 @@ public class TransformerStateMachineTest {
     @Test
     public void testCompletionActionThrowsError() {
         final RuntimeException ex = new RuntimeException("boo");
-        Func0<Integer> initialState = new Func0<Integer>() {
-
-            @Override
-            public Integer call() {
-                return 1;
-            }
-        };
+        Func0<Integer> initialState = Functions.constant0(1);
         Func3<Integer, Integer, Observer<Integer>, Integer> transition = new Func3<Integer, Integer, Observer<Integer>, Integer>() {
 
             @Override
@@ -166,13 +149,7 @@ public class TransformerStateMachineTest {
 
     @Test
     public void testUnsubscriptionFromTransition() {
-        Func0<Integer> initialState = new Func0<Integer>() {
-
-            @Override
-            public Integer call() {
-                return 1;
-            }
-        };
+        Func0<Integer> initialState = Functions.constant0(1);
         Func3<Integer, Integer, Subscriber<Integer>, Integer> transition = new Func3<Integer, Integer, Subscriber<Integer>, Integer>() {
 
             @Override
@@ -195,13 +172,7 @@ public class TransformerStateMachineTest {
 
     @Test
     public void testCompletionReturnsFalse() {
-        Func0<Integer> initialState = new Func0<Integer>() {
-
-            @Override
-            public Integer call() {
-                return 1;
-            }
-        };
+        Func0<Integer> initialState = Functions.constant0(1);
         Func3<Integer, Integer, Subscriber<Integer>, Integer> transition = new Func3<Integer, Integer, Subscriber<Integer>, Integer>() {
 
             @Override
@@ -228,13 +199,7 @@ public class TransformerStateMachineTest {
 
     @Test
     public void testUnsubscribeJustBeforeCompletion() {
-        Func0<Integer> initialState = new Func0<Integer>() {
-
-            @Override
-            public Integer call() {
-                return 1;
-            }
-        };
+        Func0<Integer> initialState = Functions.constant0(1);
         Func3<Integer, Integer, Subscriber<Integer>, Integer> transition = new Func3<Integer, Integer, Subscriber<Integer>, Integer>() {
 
             @Override
@@ -277,13 +242,7 @@ public class TransformerStateMachineTest {
 
     @Test
     public void testForCompletionWithinStateMachine() {
-        Func0<Integer> initialState = new Func0<Integer>() {
-
-            @Override
-            public Integer call() {
-                return 1;
-            }
-        };
+        Func0<Integer> initialState = Functions.constant0(1);
         Func3<Integer, Integer, Subscriber<Integer>, Integer> transition = new Func3<Integer, Integer, Subscriber<Integer>, Integer>() {
 
             @Override
@@ -301,7 +260,7 @@ public class TransformerStateMachineTest {
                 transition, completion);
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>();
         final AtomicInteger count = new AtomicInteger(0);
-        Observable.just(1, 2, 3).doOnNext(Actions.increment(count)).compose(transformer)
+        Observable.just(1, 2, 3).doOnNext(Actions.increment1(count)).compose(transformer)
                 .subscribe(ts);
         ts.assertValues(123);
         ts.assertCompleted();

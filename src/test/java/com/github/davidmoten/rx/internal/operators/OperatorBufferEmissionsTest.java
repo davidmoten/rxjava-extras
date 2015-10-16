@@ -10,13 +10,14 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.Test;
 
+import com.github.davidmoten.rx.Actions;
+import com.github.davidmoten.rx.Transformers;
+
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
-
-import com.github.davidmoten.rx.Transformers;
 
 public class OperatorBufferEmissionsTest {
     @Test
@@ -69,13 +70,8 @@ public class OperatorBufferEmissionsTest {
         TestSubscriber<Integer> ts = new TestSubscriber<Integer>(100);
         Observable.range(1, 1000)
                 //
-                .doOnRequest(new Action1<Long>() {
-
-                    @Override
-                    public void call(Long n) {
-                        requests.addAndGet(n);
-                    }
-                }) // buffer
+                .doOnRequest(Actions.addTo(requests))
+                //
                 .compose(Transformers.<Integer> bufferEmissions())
                 //
                 .subscribe(ts);

@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
+import com.github.davidmoten.rx.Functions;
 import com.github.davidmoten.rx.RetryWhen;
 import com.github.davidmoten.rx.RetryWhen.ErrorAndDuration;
 
@@ -171,12 +172,7 @@ public class RetryWhenTest {
         Exception ex = new IllegalArgumentException("boo");
         TestSubscriber<Integer> ts = TestSubscriber.create();
         TestScheduler scheduler = new TestScheduler();
-        Func1<Throwable, Boolean> predicate = new Func1<Throwable, Boolean>() {
-            @Override
-            public Boolean call(Throwable t) {
-                return false;
-            }
-        };
+        Func1<Throwable, Boolean> predicate = Functions.alwaysFalse();
         Observable.just(1, 2)
                 // force error after 3 emissions
                 .concatWith(Observable.<Integer> error(ex))

@@ -122,7 +122,7 @@ public final class Actions {
         };
     }
 
-    public static <T> Action1<T> increment(final AtomicInteger count) {
+    public static <T> Action1<T> increment1(final AtomicInteger count) {
         return new Action1<T>() {
             @Override
             public void call(T t) {
@@ -131,11 +131,39 @@ public final class Actions {
         };
     }
 
-    public static <T> Action1<T> decrement(final AtomicInteger count) {
+    public static Action0 increment0(final AtomicInteger count) {
+        return new Action0() {
+            @Override
+            public void call() {
+                count.incrementAndGet();
+            }
+        };
+    }
+
+    public static <T> Action1<T> decrement1(final AtomicInteger count) {
         return new Action1<T>() {
             @Override
             public void call(T t) {
                 count.incrementAndGet();
+            }
+        };
+    }
+
+    public static Action0 decrement0(final AtomicInteger count) {
+        return new Action0() {
+            @Override
+            public void call() {
+                count.incrementAndGet();
+            }
+        };
+    }
+
+    public static Action1<Long> addTo(final AtomicLong value) {
+        return new Action1<Long>() {
+
+            @Override
+            public void call(Long t) {
+                value.addAndGet(t);
             }
         };
     }
@@ -149,11 +177,21 @@ public final class Actions {
         };
     }
 
-    public static <T> Action1<T> setToTrue(final AtomicBoolean ref) {
+    public static <T> Action1<T> setToTrue1(final AtomicBoolean ref) {
         return new Action1<T>() {
 
             @Override
             public void call(T t) {
+                ref.set(true);
+            }
+        };
+    }
+
+    public static Action0 setToTrue0(final AtomicBoolean ref) {
+        return new Action0() {
+
+            @Override
+            public void call() {
                 ref.set(true);
             }
         };
