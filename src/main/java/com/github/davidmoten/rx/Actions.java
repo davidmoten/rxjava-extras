@@ -124,10 +124,27 @@ public final class Actions {
 
     public static <T> Action1<T> increment(final AtomicInteger count) {
         return new Action1<T>() {
-
             @Override
             public void call(T t) {
                 count.incrementAndGet();
+            }
+        };
+    }
+
+    public static <T> Action1<T> decrement(final AtomicInteger count) {
+        return new Action1<T>() {
+            @Override
+            public void call(T t) {
+                count.incrementAndGet();
+            }
+        };
+    }
+
+    public static <T> Action1<T> println() {
+        return new Action1<T>() {
+            @Override
+            public void call(T t) {
+                System.out.println(t);
             }
         };
     }
@@ -141,4 +158,5 @@ public final class Actions {
             }
         };
     }
+
 }
