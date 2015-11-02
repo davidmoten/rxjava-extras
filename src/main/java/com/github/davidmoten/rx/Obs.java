@@ -101,19 +101,19 @@ public final class Obs {
                 while (true) {
                     Optional<Worker> w = workerRef.get();
                     if (w == null) {
-                        //we are finished
+                        // we are finished
                         break;
                     } else {
                         if (workerRef.compareAndSet(w, null)) {
                             if (w.isPresent()) {
                                 w.get().unsubscribe();
                             }
-                            //we are finished
+                            // we are finished
                             workerRef.set(null);
                             break;
                         }
                     }
-                    //if not finished then try again
+                    // if not finished then try again
                 }
             }
         };
@@ -126,22 +126,22 @@ public final class Obs {
         };
         return new CloseableObservableWithReset<T>(cache, closeAction, resetAction);
     }
-    
+
     private static <T> void startScheduledResetAgain(final long duration, final TimeUnit unit,
             final Scheduler scheduler, final AtomicReference<CachedObservable<T>> cacheRef,
             final AtomicReference<Optional<Worker>> workerRef) {
-        
+
         Action0 action = new Action0() {
             @Override
             public void call() {
                 cacheRef.get().reset();
             }
         };
-        //CAS loop to cancel the current worker and create a new one
+        // CAS loop to cancel the current worker and create a new one
         while (true) {
             Optional<Worker> wOld = workerRef.get();
-            if (wOld == null){
-                //we are finished
+            if (wOld == null) {
+                // we are finished
                 return;
             }
             Optional<Worker> w = Optional.of(scheduler.createWorker());
@@ -153,7 +153,14 @@ public final class Obs {
             }
         }
     }
-    
+
+    /**
+     * Returns an Observable that epeats emitting {@code t} without completing.
+     * Supports backpressure.
+     * 
+     * @param t
+     * @return an observable that repeats t forever (or until unsubscribed)
+     */
     public static <T> Observable<T> repeating(final T t) {
         return Observable.create(new OnSubscribe<T>() {
             @Override
@@ -164,8 +171,10 @@ public final class Obs {
                         while (n-- > 0 && !subscriber.isUnsubscribed()) {
                             subscriber.onNext(t);
                         }
-                    }});
-            }});
+                    }
+                });
+            }
+        });
     }
 
 }
