@@ -12,9 +12,8 @@ public final class Maths {
 
     public static Observable<Double> solveWithNewtonsMethod(final Func1<Double, Double> f,
             final Func1<Double, Double> dfdx, double x0) {
-        return Observable.range(0, Integer.MAX_VALUE).scan(x0,
+        return Obs.repeating(1).scan(x0,
                 new Func2<Double, Integer, Double>() {
-
                     @Override
                     public Double call(Double xn, Integer n) {
                         return xn - f.call(xn) / dfdx.call(xn);
@@ -24,14 +23,12 @@ public final class Maths {
 
     public static Observable<Double> solveWithNewtonsMethod(final Func1<Double, Double> f,
             final double x0, final double h) {
-        return Observable.range(0, Integer.MAX_VALUE).scan(x0,
-                new Func2<Double, Integer, Double>() {
-
-                    @Override
-                    public Double call(Double xn, Integer n) {
-                        return xn - f.call(xn) * 2 * h / (f.call(xn + h) - f.call(xn - h));
-                    }
-                });
+        Func1<Double, Double> dfdx = new Func1<Double, Double>() {
+            @Override
+            public Double call(Double x) {
+                return (f.call(x + h )- f.call(x-h))/2.0/h;
+            }};
+        return solveWithNewtonsMethod(f, dfdx, x0);
     }
 
 }
