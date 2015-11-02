@@ -71,6 +71,11 @@ public class ObsTest {
         cached.close();
     }
 
+    @Test
+    public void testRepeating() {
+        assertEquals(1000,(int) Obs.repeating(1000).take(2000).toBlocking().last());
+    }
+
     public static void main(String[] args) throws InterruptedException {
         Observable<Date> source = Observable.defer(new Func0<Observable<Date>>() {
             @Override
@@ -98,8 +103,9 @@ public class ObsTest {
                     System.out.println(t);
                 }
             }).subscribe();
-            Thread.sleep((i % 5 + 1)*1000);
+            Thread.sleep((i % 5 + 1) * 1000);
         }
         cached.close();
     }
+
 }

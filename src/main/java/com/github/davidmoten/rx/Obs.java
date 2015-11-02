@@ -7,8 +7,11 @@ import com.github.davidmoten.rx.observables.CachedObservable;
 import com.github.davidmoten.util.Optional;
 
 import rx.Observable;
+import rx.Observable.OnSubscribe;
+import rx.Producer;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
+import rx.Subscriber;
 import rx.functions.Action0;
 
 public final class Obs {
@@ -149,6 +152,20 @@ public final class Obs {
                 break;
             }
         }
+    }
+    
+    public static <T> Observable<T> repeating(final T t) {
+        return Observable.create(new OnSubscribe<T>() {
+            @Override
+            public void call(final Subscriber<? super T> subscriber) {
+                subscriber.setProducer(new Producer() {
+                    @Override
+                    public void request(long n) {
+                        while (n-- > 0 && !subscriber.isUnsubscribed()) {
+                            subscriber.onNext(t);
+                        }
+                    }});
+            }});
     }
 
 }
