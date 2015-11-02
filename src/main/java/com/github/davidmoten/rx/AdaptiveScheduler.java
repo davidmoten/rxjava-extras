@@ -2,6 +2,7 @@ package com.github.davidmoten.rx;
 
 import java.util.concurrent.TimeUnit;
 
+import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
 import rx.functions.Action0;
@@ -13,7 +14,7 @@ public class AdaptiveScheduler extends Scheduler {
     private AdaptiveScheduler(Scheduler scheduler) {
         this.scheduler = scheduler;
     }
-    
+
     public static AdaptiveScheduler createAdaptiveScheduler(Scheduler scheduler) {
         return new AdaptiveScheduler(scheduler);
     }
@@ -44,5 +45,6 @@ public class AdaptiveScheduler extends Scheduler {
             }
         };
     }
-    
+
 }
+

@@ -13,6 +13,9 @@ import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action0;
+import rx.functions.Func0;
+import rx.functions.Func1;
+import rx.functions.Func2;
 
 public final class Obs {
 
@@ -175,6 +178,42 @@ public final class Obs {
                 });
             }
         });
+    }
+
+    public static <T, R> Observable<R> collectWhile(final Observable<T> source,
+            final Func0<R> factory, final Func2<R, T, R> aggregator,
+            final Func2<R, T, Boolean> condition) {
+        return Observable.defer(new Func0<Observable<R>>() {
+            @Override
+            public Observable<R> call() {
+                final Mutable<R> r = new Mutable<R>();
+                return source.flatMap(new Func1<T, Observable<R>>() {
+                    @Override
+                    public Observable<R> call(T t) {
+                        if (r.value == null)
+                            r.value = factory.call();
+                        if (condition.call(r.value, t)) {
+                            r.value = aggregator.call(r.value, t);
+                            return Observable.empty();
+                        } else {
+                            R v = r.value;
+                            r.value = null;
+                            return Observable.just(v);
+                        }
+                    }
+                }).concatWith(Observable.just(r).map(new Func1<Mutable<R>, R>() {
+
+                    @Override
+                    public R call(Mutable<R> mutable) {
+                        return mutable.value;
+                    }
+                }).filter(Functions.isNotNull()));
+            }
+        });
+    }
+
+    private static class Mutable<T> {
+        T value;
     }
 
 }
