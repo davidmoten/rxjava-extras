@@ -12,7 +12,7 @@ public final class Maths {
 
     public static Observable<Double> solveWithNewtonsMethod(final Func1<Double, Double> f,
             final Func1<Double, Double> dfdx, double x0) {
-        return Obs.repeating(1).scan(x0,
+        return Observable.just(1).repeat().scan(x0,
                 new Func2<Double, Integer, Double>() {
                     @Override
                     public Double call(Double xn, Integer n) {

@@ -3,6 +3,7 @@ package com.github.davidmoten.rx;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.davidmoten.rx.internal.operators.OperatorCollectWhile;
 import com.github.davidmoten.rx.observables.CachedObservable;
 import com.github.davidmoten.util.Optional;
 
@@ -201,15 +202,24 @@ public final class Obs {
                             return Observable.just(v);
                         }
                     }
-                }).concatWith(Observable.just(r).map(new Func1<Mutable<R>, R>() {
+                }).concatWith(Observable.defer(new Func0<Observable<R>>() {
 
                     @Override
-                    public R call(Mutable<R> mutable) {
-                        return mutable.value;
+                    public Observable<R> call() {
+                        if (r.value == null)
+                            return Observable.empty();
+                        else
+                            return Observable.just(r.value);
                     }
-                }).filter(Functions.isNotNull()));
+                }));
             }
         });
+    }
+    
+    public static <T, R> Observable<R> collectWhile2(final Observable<T> source,
+            final Func0<R> factory, final Func2<R, T, R> aggregator,
+            final Func2<R, T, Boolean> condition) {
+        return source.lift(new OperatorCollectWhile<R,T>(factory, aggregator,condition ));
     }
 
     private static class Mutable<T> {
