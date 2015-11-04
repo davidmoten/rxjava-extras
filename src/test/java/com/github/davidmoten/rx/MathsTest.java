@@ -2,6 +2,9 @@ package com.github.davidmoten.rx;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.junit.Test;
 
 import rx.Observable;
@@ -24,7 +27,7 @@ public class MathsTest {
         assertEquals(Math.pow(9,  0.33333333333333), x, 0.000001);
     }
     
-    @Test(timeout=1000000)
+    @Test(timeout=1000)
     public void testScan() {
         Observable.range(1, Integer.MAX_VALUE)
         //
@@ -37,6 +40,12 @@ public class MathsTest {
                 })
         //
         .elementAt(0).toBlocking().single();
+    }
+    
+    @Test
+    public void testPrimes() {
+        List<Long> list = Maths.primes().take(10).toList().toBlocking().single();
+        assertEquals(Arrays.asList(1L,2L,3L,5L,7L,11L,13L,17L,19L,23L), list);
     }
 
 }
