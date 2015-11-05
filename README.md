@@ -245,6 +245,13 @@ Note that above you don't need to worry about closing `entry.getInputStream()` b
 You must process the emissions of `ZippedEntry` synchronously (don't replace the `concatMap()` with a `flatMap(...  .subscribeOn(Schedulers.computation())` for instance. This is because the `InputStream` of each `ZippedEntry` must be processed fullly (which could mean ignoring it of course) before moving on to the next one.
 
 
+Transformers.orderedMerge
+--------------------------
+To merge two streams in order (according to a `Comparator`):
+
+```java
+source1.compose(Transformers.orderedMergeWith(source2, comparator));
+```
 
 TestingHelper
 -----------------
