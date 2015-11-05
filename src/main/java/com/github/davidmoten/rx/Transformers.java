@@ -3,6 +3,7 @@ package com.github.davidmoten.rx;
 import java.nio.charset.CharsetDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
-import com.github.davidmoten.rx.internal.operators.OperatorOrderedMerge;
+import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.internal.operators.TransformerDecode;
 import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
 import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
@@ -262,13 +263,24 @@ public final class Transformers {
      *            the generic type of the objects being compared
      * @return merged and ordered observable
      */
-    public static final <T> Transformer<T, T> orderedMergeWith(final Observable<T> other,
+    public static final <T> Transformer<T, T> orderedMergeWith(final Observable<? extends T> other,
             final Func2<? super T, ? super T, Integer> comparator) {
         return new Transformer<T, T>() {
 
             @Override
             public Observable<T> call(Observable<T> source) {
-                return source.lift(new OperatorOrderedMerge<T>(other, comparator));
+                // return source.lift(OperatorOrderedMerge.create(other,
+                // comparator));
+                Comparator<T> comp = new Comparator<T>() {
+                    @Override
+                    public int compare(T a, T b) {
+                        return comparator.call(a, b);
+                    }
+                };
+                @SuppressWarnings("unchecked")
+                Collection<Observable<? extends T>> collection = (Collection) Collections
+                        .singletonList(source);
+                return OrderedMerge.<T> create(collection, comp, false);
             }
         };
     }

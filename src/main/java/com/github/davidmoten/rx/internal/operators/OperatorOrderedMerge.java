@@ -12,14 +12,19 @@ import rx.observers.SerializedSubscriber;
 
 public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
-    private final Observable<T> other;
+    private final Observable<? extends T> other;
     private final Func2<? super T, ? super T, Integer> comparator;
     private static final Object EMPTY_SENTINEL = new Object();
 
-    public OperatorOrderedMerge(Observable<T> other,
+    private OperatorOrderedMerge(Observable<? extends T> other,
             Func2<? super T, ? super T, Integer> comparator) {
         this.other = other;
         this.comparator = comparator;
+    }
+
+    public static <T> OperatorOrderedMerge<T> create(Observable<? extends T> other,
+            Func2<? super T, ? super T, Integer> comparator) {
+        return new OperatorOrderedMerge(other, comparator);
     }
 
     @Override
