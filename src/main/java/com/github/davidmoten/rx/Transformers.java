@@ -2,8 +2,8 @@ package com.github.davidmoten.rx;
 
 import java.nio.charset.CharsetDecoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -278,8 +278,7 @@ public final class Transformers {
                     }
                 };
                 @SuppressWarnings("unchecked")
-                Collection<Observable<? extends T>> collection = (Collection) Collections
-                        .singletonList(source);
+                Collection<Observable<? extends T>> collection = Arrays.asList(source, other);
                 return OrderedMerge.<T> create(collection, comp, false);
             }
         };
