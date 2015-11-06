@@ -18,6 +18,12 @@ import rx.internal.operators.NotificationLite;
 import rx.internal.util.RxRingBuffer;
 import rx.internal.util.unsafe.MpscLinkedQueue;
 
+/**
+ * @author David Karnokd
+ *
+ * @param <T>
+ *            type of observable
+ */
 public final class OrderedMerge<T> implements OnSubscribe<T> {
     final List<Observable<? extends T>> sources;
     final Comparator<? super T> comparator;
@@ -48,7 +54,7 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
         return Observable.create(new OrderedMerge<U>(sources, comparator, delayErrors));
     }
 
-    protected OrderedMerge(Collection<Observable<? extends T>> sources,
+    private OrderedMerge(Collection<Observable<? extends T>> sources,
             Comparator<? super T> comparator, boolean delayErrors) {
         this.sources = sources instanceof List ? (List<Observable<? extends T>>) sources
                 : new ArrayList<Observable<? extends T>>(sources);
@@ -273,7 +279,7 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
             }
         }
 
-        protected void reportErrorOrComplete(Subscriber<? super T> child) {
+        void reportErrorOrComplete(Subscriber<? super T> child) {
             if (delayErrors && !errors.isEmpty()) {
                 if (errors.size() == 1) {
                     child.onError(errors.poll());

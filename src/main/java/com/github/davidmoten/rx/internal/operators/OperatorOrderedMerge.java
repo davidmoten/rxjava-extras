@@ -10,6 +10,7 @@ import rx.Subscriber;
 import rx.functions.Func2;
 import rx.observers.SerializedSubscriber;
 
+@Deprecated
 public class OperatorOrderedMerge<T> implements Operator<T, T> {
 
     private final Observable<? extends T> other;
