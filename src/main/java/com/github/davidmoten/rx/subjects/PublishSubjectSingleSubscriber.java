@@ -1,6 +1,6 @@
 package com.github.davidmoten.rx.subjects;
 
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import java.util.concurrent.atomic.AtomicReference;
 
 import rx.Subscriber;
 import rx.subjects.Subject;
@@ -42,36 +42,30 @@ public final class PublishSubjectSingleSubscriber<T> extends Subject<T, T> {
 
     @Override
     public void onCompleted() {
-        if (subscriberHolder.subscriber != null) {
-            subscriberHolder.subscriber.onCompleted();
+        if (subscriberHolder.subscriber.get() != null) {
+            subscriberHolder.subscriber.get().onCompleted();
         }
     }
 
     @Override
     public void onError(Throwable e) {
-        if (subscriberHolder.subscriber != null)
-            subscriberHolder.subscriber.onError(e);
+        if (subscriberHolder.subscriber.get() != null)
+            subscriberHolder.subscriber.get().onError(e);
     }
 
     @Override
     public void onNext(T t) {
-        if (subscriberHolder.subscriber != null)
-            subscriberHolder.subscriber.onNext(t);
+        if (subscriberHolder.subscriber.get() != null)
+            subscriberHolder.subscriber.get().onNext(t);
     }
 
     private static class SingleSubscribeOnSubscribe<T> implements OnSubscribe<T> {
 
-        volatile Subscriber<? super T> subscriber;
-
-        @SuppressWarnings("rawtypes")
-        private final AtomicReferenceFieldUpdater<SingleSubscribeOnSubscribe, Subscriber> SUBSCRIBER = AtomicReferenceFieldUpdater
-                .newUpdater(SingleSubscribeOnSubscribe.class, Subscriber.class, "subscriber");
+        final AtomicReference<Subscriber<? super T>> subscriber = new AtomicReference<Subscriber<? super T>>();
 
         @Override
-        public void call(Subscriber<? super T> subscriber) {
-            if (SUBSCRIBER.compareAndSet(this, null, subscriber))
-                this.subscriber = subscriber;
-            else
+        public void call(Subscriber<? super T> sub) {
+            if (!subscriber.compareAndSet(null, sub))
                 throw new RuntimeException(ONLY_ONE_SUBSCRIPTION_IS_ALLOWED);
         }
 
@@ -79,7 +73,7 @@ public final class PublishSubjectSingleSubscriber<T> extends Subject<T, T> {
 
     @Override
     public boolean hasObservers() {
-        return subscriberHolder.subscriber != null;
+        return subscriberHolder.subscriber.get() != null;
     }
 
 }
