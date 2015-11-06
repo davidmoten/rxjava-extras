@@ -1,9 +1,12 @@
 package com.github.davidmoten.rx;
 
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.rx.internal.operators.OperatorCollectWhile;
+import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.observables.CachedObservable;
 import com.github.davidmoten.util.Optional;
 
@@ -184,6 +187,26 @@ public final class Obs {
             final Func0<R> factory, final Func2<R, T, R> aggregator,
             final Func2<R, T, Boolean> condition) {
         return source.lift(new OperatorCollectWhile<R, T>(factory, aggregator, condition));
+    }
+
+    public static <T extends Comparable<? super T>> Observable<T> create(
+            Collection<Observable<? extends T>> sources) {
+        return create(sources, false);
+    }
+
+    public static <T> Observable<T> create(Collection<Observable<? extends T>> sources,
+            Comparator<? super T> comparator) {
+        return create(sources, comparator, false);
+    }
+
+    public static <T extends Comparable<? super T>> Observable<T> create(
+            Collection<Observable<? extends T>> sources, boolean delayErrors) {
+        return OrderedMerge.create(sources, delayErrors);
+    }
+
+    public static <T> Observable<T> create(Collection<Observable<? extends T>> sources,
+            Comparator<? super T> comparator, boolean delayErrors) {
+        return OrderedMerge.create(sources, comparator, delayErrors);
     }
 
 }
