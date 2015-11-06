@@ -250,10 +250,8 @@ public final class Transformers {
     /**
      * Returns the source {@link Observable} merged with the <code>other</code>
      * observable using the given {@link Comparator} for order. A precondition
-     * is that the source and other are already ordered. This transformer does
-     * not support backpressure but its inputs must support backpressure. If you
-     * need backpressure support then compose with
-     * <code>.onBackpressureXXX</code>.
+     * is that the source and other are already ordered. This transformer
+     * supports backpressure and its inputs must also support backpressure.
      * 
      * @param other
      *            the other already ordered observable
@@ -264,22 +262,38 @@ public final class Transformers {
      * @return merged and ordered observable
      */
     public static final <T> Transformer<T, T> orderedMergeWith(final Observable<? extends T> other,
-            final Func2<? super T, ? super T, Integer> comparator) {
+            final Comparator<? super T> comparator) {
+        @SuppressWarnings("unchecked")
+        Collection<Observable<? extends T>> collection = (Collection<Observable<? extends T>>) (Collection<?>) Arrays
+                .asList(other);
+        return orderedMergeWith(collection, comparator);
+    }
+
+    /**
+     * Returns the source {@link Observable} merged with all of the other
+     * observables using the given {@link Comparator} for order. A precondition
+     * is that the source and other are already ordered. This transformer
+     * supports backpressure and its inputs must also support backpressure.
+     * 
+     * @param others
+     *            a collection of already ordered observables to merge with
+     * @param comparator
+     *            the ordering to use
+     * @param <T>
+     *            the generic type of the objects being compared
+     * @return merged and ordered observable
+     */
+    public static final <T> Transformer<T, T> orderedMergeWith(
+            final Collection<Observable<? extends T>> others,
+            final Comparator<? super T> comparator) {
         return new Transformer<T, T>() {
 
             @Override
             public Observable<T> call(Observable<T> source) {
-                // return source.lift(OperatorOrderedMerge.create(other,
-                // comparator));
-                Comparator<T> comp = new Comparator<T>() {
-                    @Override
-                    public int compare(T a, T b) {
-                        return comparator.call(a, b);
-                    }
-                };
-                @SuppressWarnings("unchecked")
-                Collection<Observable<? extends T>> collection = Arrays.asList(source, other);
-                return OrderedMerge.<T> create(collection, comp, false);
+                List<Observable<? extends T>> collection = new ArrayList<Observable<? extends T>>();
+                collection.add(source);
+                collection.addAll(others);
+                return OrderedMerge.<T> create(collection, comparator, false);
             }
         };
     }

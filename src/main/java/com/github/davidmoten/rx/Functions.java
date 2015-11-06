@@ -118,12 +118,20 @@ public final class Functions {
         };
     }
 
-    public static <T> Func2<T, T, Integer> toFunc2(final Comparator<T> comparator) {
+    public static <T> Func2<T, T, Integer> toFunc2(final Comparator<? super T> comparator) {
         return new Func2<T, T, Integer>() {
-
             @Override
             public Integer call(T t1, T t2) {
                 return comparator.compare(t1, t2);
+            }
+        };
+    }
+
+    public static <T> Comparator<T> toComparator(final Func2<? super T, ? super T, Integer> f) {
+        return new Comparator<T>() {
+            @Override
+            public int compare(T a, T b) {
+                return f.call(a, b);
             }
         };
     }

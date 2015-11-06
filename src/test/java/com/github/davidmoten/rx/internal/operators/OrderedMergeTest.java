@@ -5,6 +5,7 @@ import static rx.Observable.from;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -18,15 +19,14 @@ import com.google.common.collect.Sets;
 
 import rx.Observable;
 import rx.Scheduler;
-import rx.functions.Func2;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
 public class OrderedMergeTest {
 
-    private static final Func2<Integer, Integer, Integer> comparator = new Func2<Integer, Integer, Integer>() {
+    private static final Comparator<Integer> comparator = new Comparator<Integer>() {
         @Override
-        public Integer call(Integer a, Integer b) {
+        public int compare(Integer a, Integer b) {
             return a.compareTo(b);
         }
     };
