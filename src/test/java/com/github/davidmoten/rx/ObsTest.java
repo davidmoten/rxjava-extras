@@ -2,7 +2,9 @@ package com.github.davidmoten.rx;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -73,7 +75,7 @@ public class ObsTest {
 
     @Test
     public void testRepeating() {
-        assertEquals(1000,(int) Obs.repeating(1000).take(2000).toBlocking().last());
+        assertEquals(1000, (int) Obs.repeating(1000).take(2000).toBlocking().last());
     }
 
     public static void main(String[] args) throws InterruptedException {
@@ -106,6 +108,36 @@ public class ObsTest {
             Thread.sleep((i % 5 + 1) * 1000);
         }
         cached.close();
+    }
+
+    @Test
+    public void testLongs() {
+        List<Long> list = Obs.longs(2).take(3).toList().toBlocking().single();
+        assertEquals(Arrays.asList(2L, 3L, 4L), list);
+    }
+
+    @Test
+    public void testLongsFromZero() {
+        List<Long> list = Obs.longs().take(3).toList().toBlocking().single();
+        assertEquals(Arrays.asList(0L, 1L, 2L), list);
+    }
+
+    @Test
+    public void testInts() {
+        List<Integer> list = Obs.ints(2).take(3).toList().toBlocking().single();
+        assertEquals(Arrays.asList(2, 3, 4), list);
+    }
+
+    @Test
+    public void testIntsFromZero() {
+        List<Integer> list = Obs.ints().take(3).toList().toBlocking().single();
+        assertEquals(Arrays.asList(0, 1, 2), list);
+    }
+
+    @Test
+    public void testIntsFromNegative() {
+        List<Integer> list = Obs.ints(-5).take(3).toList().toBlocking().single();
+        assertEquals(Arrays.asList(-5, -4, -3), list);
     }
 
 }

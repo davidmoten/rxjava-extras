@@ -18,6 +18,7 @@ import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action0;
 import rx.functions.Func0;
+import rx.functions.Func1;
 import rx.functions.Func2;
 
 public final class Obs {
@@ -207,6 +208,34 @@ public final class Obs {
     public static <T> Observable<T> create(Collection<Observable<? extends T>> sources,
             Comparator<? super T> comparator, boolean delayErrors) {
         return OrderedMerge.create(sources, comparator, delayErrors);
+    }
+
+    public static Observable<Integer> ints(int start) {
+        return Observable.range(start, Integer.MAX_VALUE - Math.max(start, 0));
+    }
+
+    public static Observable<Integer> ints() {
+        return ints(0);
+    }
+
+    public static Observable<Long> longs(final long start) {
+        return Observable.defer(new Func0<Observable<Long>>() {
+            long value = start - 1;
+
+            @Override
+            public Observable<Long> call() {
+                return Observable.just(1).repeat().map(new Func1<Integer, Long>() {
+                    @Override
+                    public Long call(Integer n) {
+                        return ++value;
+                    }
+                });
+            }
+        });
+    }
+
+    public static Observable<Long> longs() {
+        return longs(0);
     }
 
 }
