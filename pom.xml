@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -8,8 +9,8 @@
         <artifactId>sonatype-parent</artifactId>
         <version>0.1</version>
     </parent>
-	<artifactId>rxjava-extras</artifactId>
-	<version>0.6.9-SNAPSHOT</version>
+    <artifactId>rxjava-extras</artifactId>
+    <version>0.6.9-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>RxJava utilities</description>
     <packaging>jar</packaging>
@@ -121,6 +122,13 @@
             <version>4.12</version>
             <scope>compile</scope>
             <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>2.0.31-beta</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

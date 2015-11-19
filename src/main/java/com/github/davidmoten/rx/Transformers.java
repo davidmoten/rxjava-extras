@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
+import com.github.davidmoten.rx.internal.operators.OperatorSampleFirst;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.internal.operators.TransformerDecode;
 import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
@@ -28,6 +29,7 @@ import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Observer;
+import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action1;
@@ -36,6 +38,7 @@ import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
+import rx.schedulers.Schedulers;
 
 public final class Transformers {
 
@@ -534,6 +537,24 @@ public final class Transformers {
             @Override
             public Observable<T> call(Observable<T> o) {
                 return Obs.cache(o, duration, unit, worker);
+            }
+        };
+    }
+
+    public static <T> Transformer<T, T> sampleFirst(final long duration, final TimeUnit unit) {
+        return sampleFirst(duration, unit, Schedulers.computation());
+    }
+
+    public static <T> Transformer<T, T> sampleFirst(final long duration, final TimeUnit unit,
+            final Scheduler scheduler) {
+        if (duration <= 0) {
+            throw new IllegalArgumentException("duration must be > 0");
+        }
+        return new Transformer<T, T>() {
+
+            @Override
+            public Observable<T> call(Observable<T> source) {
+                return source.lift(new OperatorSampleFirst<T>(duration, unit, scheduler));
             }
         };
     }
