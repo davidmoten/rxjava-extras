@@ -23,6 +23,7 @@ Utilities for use with rxjava:
 * `Transformers.doOnFirst`
 * `Transformers.doOnNth`
 * `Transformers.ignoreElementsThen`
+* `Transformers.sampleFirst`
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
