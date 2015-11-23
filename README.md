@@ -20,6 +20,9 @@ Utilities for use with rxjava:
 * [`Transformers.toListWhile`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListWhile-rx.functions.Func2-)
 * [`Transformers.toListUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntilChanged--)
 * `Transformers.collectStats` 
+* `Transformers.doOnFirst`
+* `Transformers.doOnNth`
+* `Transformers.ignoreElementsThen`
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
