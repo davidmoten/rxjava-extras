@@ -2,6 +2,8 @@ package com.github.davidmoten.rx.internal.operators;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.github.davidmoten.rx.exceptions.TooManySubscribersException;
+
 import rx.Observable;
 import rx.Observable.Transformer;
 import rx.functions.Action0;
@@ -40,11 +42,6 @@ public final class TransformerLimitSubscribers<T> implements Transformer<T, T> {
                 subscriberCount.decrementAndGet();
             }
         };
-    }
-
-    public static class TooManySubscribersException extends RuntimeException {
-
-        private static final long serialVersionUID = 7701739994705715907L;
     }
 
 }
