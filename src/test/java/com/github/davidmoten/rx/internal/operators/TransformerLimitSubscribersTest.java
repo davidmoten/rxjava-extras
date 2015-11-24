@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Transformers;
-import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers.TooManySubscribersException;
+import com.github.davidmoten.rx.exceptions.TooManySubscribersException;
 
 import rx.Observable;
 import rx.observers.TestSubscriber;
