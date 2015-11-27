@@ -13,9 +13,20 @@ public final class Schedulers {
     }
 
     private static Scheduler withId(Scheduler scheduler) {
+        return new SchedulerWithId(Schedulers.computation(), describeCallSite());
+    }
+
+    private static String describeCallSite() {
         StackTraceElement[] elements = Thread.currentThread().getStackTrace();
-        StackTraceElement e = elements[1];
-        return new SchedulerWithId(Schedulers.computation(),
-                e.getClassName() + ":" + e.getMethodName() + ":" + e.getLineNumber());
+        StackTraceElement e = elements[3];
+        return e.getClassName() + ":" + e.getMethodName() + ":" + e.getLineNumber();
+    }
+
+    private static void doIt() {
+        System.out.println(describeCallSite());
+    }
+
+    public static void main(String[] args) {
+        doIt();
     }
 }
