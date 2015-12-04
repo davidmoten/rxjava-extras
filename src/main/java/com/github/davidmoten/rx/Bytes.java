@@ -12,10 +12,11 @@ import com.github.davidmoten.rx.internal.operators.OnSubscribeInputStream;
 import com.github.davidmoten.rx.util.ZippedEntry;
 
 import rx.Observable;
+import rx.Observer;
 import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
-import rx.observables.AbstractOnSubscribe;
+import rx.observables.SyncOnSubscribe;
 
 public final class Bytes {
 
@@ -63,22 +64,27 @@ public final class Bytes {
     }
 
     public static Observable<ZippedEntry> unzip(final ZipInputStream zis) {
-        return Observable.create(new AbstractOnSubscribe<ZippedEntry, ZipInputStream>() {
+        return Observable.create(new SyncOnSubscribe<ZipInputStream,ZippedEntry>() {
+
             @Override
-            protected void next(
-                    AbstractOnSubscribe.SubscriptionState<ZippedEntry, ZipInputStream> state) {
+            protected ZipInputStream generateState() {
+                return zis;
+            }
+
+            @Override
+            protected ZipInputStream next(ZipInputStream zis, Observer<? super ZippedEntry> observer) {
                 try {
                     ZipEntry zipEntry = zis.getNextEntry();
                     if (zipEntry != null) {
-                        state.onNext(new ZippedEntry(zipEntry, zis));
+                        observer.onNext(new ZippedEntry(zipEntry, zis));
                     } else {
                         zis.close();
-                        state.onCompleted();
+                        observer.onCompleted();
                     }
                 } catch (IOException e) {
-                    Observable.error(e);
-                    return;
+                    observer.onError(e);
                 }
+                return zis;
             }
         });
     }

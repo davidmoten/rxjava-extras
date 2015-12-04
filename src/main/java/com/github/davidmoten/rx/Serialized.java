@@ -13,16 +13,16 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.functions.Action1;
-import rx.functions.Func0;
-import rx.functions.Func1;
-import rx.observables.AbstractOnSubscribe;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+
+import rx.Observable;
+import rx.Observer;
+import rx.functions.Action1;
+import rx.functions.Func0;
+import rx.functions.Func1;
+import rx.observables.SyncOnSubscribe;
 
 /**
  * Utility class for writing Observable streams to ObjectOutputStreams and
@@ -44,27 +44,27 @@ public final class Serialized {
      *         as an {@link Observable}.
      */
     public static <T extends Serializable> Observable<T> read(final ObjectInputStream ois) {
-        return Observable.create(new AbstractOnSubscribe<T, ObjectInputStream>() {
+        return Observable.create(new SyncOnSubscribe<ObjectInputStream,T>() {
 
             @Override
-            protected ObjectInputStream onSubscribe(Subscriber<? super T> subscriber) {
-                return ois;
+            protected ObjectInputStream generateState() {
+               return ois;
             }
 
             @Override
-            protected void next(SubscriptionState<T, ObjectInputStream> state) {
-                ObjectInputStream ois = state.state();
+            protected ObjectInputStream next(ObjectInputStream ois, Observer<? super T> observer) {
                 try {
                     @SuppressWarnings("unchecked")
                     T t = (T) ois.readObject();
-                    state.onNext(t);
+                    observer.onNext(t);
                 } catch (EOFException e) {
-                    state.onCompleted();
+                    observer.onCompleted();
                 } catch (ClassNotFoundException e) {
-                    state.onError(e);
+                    observer.onError(e);
                 } catch (IOException e) {
-                    state.onError(e);
+                    observer.onError(e);
                 }
+                return ois;
             }
         });
     }
@@ -349,22 +349,22 @@ public final class Serialized {
 
         public <T> Observable<T> read(final Class<T> cls, final Input input, final int bufferSize) {
 
-            return Observable.create(new AbstractOnSubscribe<T, Input>() {
+            return Observable.create(new SyncOnSubscribe<Input,T>() {
 
                 @Override
-                protected Input onSubscribe(Subscriber<? super T> subscriber) {
+                protected Input generateState() {
                     return input;
                 }
 
                 @Override
-                protected void next(SubscriptionState<T, Input> state) {
-                    Input input = state.state();
+                protected Input next(Input arg0, Observer<? super T> observer) {
                     if (input.eof()) {
-                        state.onCompleted();
+                        observer.onCompleted();
                     } else {
                         T t = kryo.readObject(input, cls);
-                        state.onNext(t);
+                        observer.onNext(t);
                     }
+                    return input;
                 }
             });
         }
