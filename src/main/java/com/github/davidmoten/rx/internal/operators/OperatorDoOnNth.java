@@ -4,7 +4,7 @@ import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.functions.Action1;
 
-public class OperatorDoOnNth<T> implements Operator<T, T> {
+public final class OperatorDoOnNth<T> implements Operator<T, T> {
 
     public static <T> OperatorDoOnNth<T> create(Action1<? super T> action, int n) {
         return new OperatorDoOnNth<T>(action, n);

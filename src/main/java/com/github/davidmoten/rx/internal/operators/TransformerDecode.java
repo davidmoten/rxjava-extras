@@ -14,7 +14,7 @@ import rx.functions.Func0;
 import rx.functions.Func2;
 import rx.functions.Func3;
 
-public class TransformerDecode {
+public final class TransformerDecode {
 
     public static Transformer<byte[], String> decode(final CharsetDecoder decoder) {
         Func0<ByteBuffer> initialState = new Func0<ByteBuffer>() {
