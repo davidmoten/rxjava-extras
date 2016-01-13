@@ -12,8 +12,8 @@ Utilities for use with rxjava:
 * `Checked` provides lambda helpers for dealing with checked exceptions in functions and actions
 * `TestingHelper`
 * `RetryWhen` builder for use with `.retryWhen(Func1)` operator
-* `Transformers.toOperator`
-* `Tranformers.mapWithIndex`
+* [`Transformers.toOperator`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toOperator-rx.functions.Func1-)
+* [`Transformers.mapWithIndex`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#mapWithIndex--)
 * [`Transformers.stateMachine`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#stateMachine-rx.functions.Func0-rx.functions.Func3-rx.functions.Action2-)
 * [`Transformers.orderedMerge`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#orderedMergeWith-rx.Observable-rx.functions.Func2-)
 * [`Transformers.collectWhile`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectWhile-rx.functions.Func0-rx.functions.Action2-rx.functions.Func2-)
