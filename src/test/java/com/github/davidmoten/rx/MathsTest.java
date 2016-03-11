@@ -43,7 +43,7 @@ public class MathsTest {
     @Test
     public void testPrimes() {
         List<Long> list = Maths.primes().take(10).toList().toBlocking().single();
-        assertEquals(Arrays.asList(1L, 2L, 3L, 5L, 7L, 11L, 13L, 17L, 19L, 23L), list);
+        assertEquals(Arrays.asList(2L, 3L, 5L, 7L, 11L, 13L, 17L, 19L, 23L, 29L), list);
     }
 
 }
