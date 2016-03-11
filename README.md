@@ -24,6 +24,7 @@ Utilities for use with rxjava:
 * `Transformers.doOnNth`
 * `Transformers.ignoreElementsThen`
 * `Transformers.sampleFirst`
+* `Transformers.decode`
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
@@ -31,7 +32,7 @@ Utilities for use with rxjava:
 * `Bytes.unzip` unzips zip archives
 * `Strings.from`
 * `Strings.lines`
-* `Strings.split`
+* `Strings.split` - supports backpressure (not available in rxjava-string 1.0.1)
 
 
 Status: *released to Maven Central*
