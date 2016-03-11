@@ -6,7 +6,11 @@ import com.github.davidmoten.rx.Checked.A1;
 import rx.functions.Action0;
 import rx.functions.Action1;
 
-public class Ignore {
+public final class Ignore {
+    
+    private Ignore() {
+        //prevent instantiation
+    }
 
     public static Action0 a0(final A0 a) {
         return new Action0() {

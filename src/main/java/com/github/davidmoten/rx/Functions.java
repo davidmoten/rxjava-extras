@@ -10,7 +10,7 @@ import rx.functions.Func2;
 public final class Functions {
 
     private Functions() {
-        // do nothing
+        // prevent instantiation
     }
 
     public static <T> Func1<T, T> identity() {
