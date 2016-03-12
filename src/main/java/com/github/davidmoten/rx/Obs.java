@@ -1,12 +1,16 @@
 package com.github.davidmoten.rx;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.rx.internal.operators.OperatorCollectWhile;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
+import com.github.davidmoten.rx.internal.operators.PermutationsSwapIterator;
+import com.github.davidmoten.rx.internal.operators.PermutationsSwapIterator.Swap;
 import com.github.davidmoten.rx.observables.CachedObservable;
 import com.github.davidmoten.util.Optional;
 
@@ -18,6 +22,7 @@ import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action0;
 import rx.functions.Func0;
+import rx.functions.Func1;
 import rx.functions.Func2;
 
 public final class Obs {
@@ -207,6 +212,34 @@ public final class Obs {
     public static <T> Observable<T> create(Collection<Observable<? extends T>> sources,
             Comparator<? super T> comparator, boolean delayErrors) {
         return OrderedMerge.create(sources, comparator, delayErrors);
+    }
+
+    public static <T> Observable<List<T>> permutations(final List<T> list) {
+        List<Integer> indexes = new ArrayList<Integer>(list.size());
+        for (int i = 0; i < list.size(); i++) {
+            indexes.add(i);
+        }
+        return Observable.from(PermutationsSwapIterator.iterable(indexes))
+                .scan(indexes, new Func2<List<Integer>, Swap<Integer>, List<Integer>>() {
+
+                    @Override
+                    public List<Integer> call(List<Integer> a, Swap<Integer> swap) {
+                        List<Integer> b = new ArrayList<Integer>(a);
+                        b.set(swap.getLeft(), a.get(swap.getRight()));
+                        b.set(swap.getRight(), a.get(swap.getLeft()));
+                        return b;
+                    }
+                }).map(new Func1<List<Integer>, List<T>>() {
+
+                    @Override
+                    public List<T> call(List<Integer> a) {
+                        List<T> b = new ArrayList<T>(a.size());
+                        for (int i = 0;i < a.size();i++) {
+                            b.add(list.get(a.get(i)));
+                        }
+                        return b;
+                    }
+                });
     }
 
 }
