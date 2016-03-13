@@ -9,8 +9,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.rx.internal.operators.OperatorCollectWhile;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
-import com.github.davidmoten.rx.internal.operators.PermutationsSwapIterator;
-import com.github.davidmoten.rx.internal.operators.PermutationsSwapIterator.Swap;
+import com.github.davidmoten.rx.internal.operators.Permutations;
+import com.github.davidmoten.rx.internal.operators.Permutations.Swap;
 import com.github.davidmoten.rx.observables.CachedObservable;
 import com.github.davidmoten.util.Optional;
 
@@ -214,32 +214,36 @@ public final class Obs {
         return OrderedMerge.create(sources, comparator, delayErrors);
     }
 
-    public static <T> Observable<List<T>> permutations(final List<T> list) {
-        List<Integer> indexes = new ArrayList<Integer>(list.size());
-        for (int i = 0; i < list.size(); i++) {
+    public static <T> Observable<List<Integer>> permutations(int size) {
+        List<Integer> indexes = new ArrayList<Integer>(size);
+        for (int i = 0; i < size; i++) {
             indexes.add(i);
         }
-        return Observable.from(PermutationsSwapIterator.iterable(indexes))
-                .scan(indexes, new Func2<List<Integer>, Swap<Integer>, List<Integer>>() {
+        return Observable.from(Permutations.iterable(indexes)).scan(indexes,
+                new Func2<List<Integer>, Swap<Integer>, List<Integer>>() {
 
                     @Override
                     public List<Integer> call(List<Integer> a, Swap<Integer> swap) {
                         List<Integer> b = new ArrayList<Integer>(a);
-                        b.set(swap.getLeft(), a.get(swap.getRight()));
-                        b.set(swap.getRight(), a.get(swap.getLeft()));
-                        return b;
-                    }
-                }).map(new Func1<List<Integer>, List<T>>() {
-
-                    @Override
-                    public List<T> call(List<Integer> a) {
-                        List<T> b = new ArrayList<T>(a.size());
-                        for (int i = 0;i < a.size();i++) {
-                            b.add(list.get(a.get(i)));
-                        }
+                        b.set(swap.left(), a.get(swap.right()));
+                        b.set(swap.right(), a.get(swap.left()));
                         return b;
                     }
                 });
+    }
+
+    public static <T> Observable<List<T>> permutations(final List<T> list) {
+        return permutations(list.size()).map(new Func1<List<Integer>, List<T>>() {
+
+            @Override
+            public List<T> call(List<Integer> a) {
+                List<T> b = new ArrayList<T>(a.size());
+                for (int i = 0; i < a.size(); i++) {
+                    b.add(list.get(a.get(i)));
+                }
+                return b;
+            }
+        });
     }
 
 }
