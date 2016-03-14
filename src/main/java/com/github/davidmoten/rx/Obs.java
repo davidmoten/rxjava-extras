@@ -2,9 +2,11 @@ package com.github.davidmoten.rx;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.davidmoten.rx.internal.operators.OnSubscribeFromQueue;
 import com.github.davidmoten.rx.internal.operators.OperatorCollectWhile;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.observables.CachedObservable;
@@ -207,6 +209,10 @@ public final class Obs {
     public static <T> Observable<T> create(Collection<Observable<? extends T>> sources,
             Comparator<? super T> comparator, boolean delayErrors) {
         return OrderedMerge.create(sources, comparator, delayErrors);
+    }
+
+    public static <T> Observable<T> fromQueue(Queue<T> queue) {
+        return Observable.create(new OnSubscribeFromQueue<T>(queue));
     }
 
 }
