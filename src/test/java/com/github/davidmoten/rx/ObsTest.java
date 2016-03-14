@@ -2,6 +2,7 @@ package com.github.davidmoten.rx;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -108,4 +109,8 @@ public class ObsTest {
         cached.close();
     }
 
+    @Test
+    public void testPermutations() {
+        Obs.permutations(Observable.range(0,4).toList().toBlocking().single()).forEach(Actions.println());
+    }
 }

@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import com.github.davidmoten.junit.Asserts;
 import com.github.davidmoten.rx.util.ZippedEntry;
 
 import rx.Observable;
@@ -70,4 +71,9 @@ public class BytesTest {
         assertEquals(Arrays.asList("how are you going?"), list);
     }
 
+    @Test
+    public void isUtilClass() {
+        Asserts.assertIsUtilityClass(Bytes.class);
+    }
+    
 }

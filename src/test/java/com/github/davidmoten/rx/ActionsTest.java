@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 
+import com.github.davidmoten.junit.Asserts;
+
 public class ActionsTest {
 
     @Test
@@ -38,6 +40,11 @@ public class ActionsTest {
         AtomicReference<Integer> a = new AtomicReference<Integer>();
         Actions.setAtomic(a).call(1);
         assertEquals(1, (int) a.get());
+    }
+    
+    @Test
+    public void isUtilClass() {
+        Asserts.assertIsUtilityClass(Actions.class);
     }
 
 }

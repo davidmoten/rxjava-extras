@@ -117,6 +117,30 @@ public final class Transformers {
         };
     }
 
+    /**
+     * <p>
+     * Returns a {@link Transformer} that wraps stream emissions with their
+     * corresponding zero based index numbers (0,1,2,3,..) in instances of
+     * {@link Indexed}.
+     * <p>
+     * Example usage:
+     * 
+     * <pre>
+     * 
+     *  {@code
+     *    Observable
+     *      .just("a","b","c)
+     *      .mapWithIndex(Transformers.mapWithIndex())
+     *      .map(x -> x.index() + "->" + x.value())
+     *      .forEach(System.out::println);
+     *  }
+     * </pre>
+     * 
+     * @param <T>
+     *            generic type of the stream being supplemented with an index
+     * @return transformer that supplements each stream emission with its index
+     *         (zero-based position) in the stream.
+     */
     public static <T> Transformer<T, Indexed<T>> mapWithIndex() {
         return MapWithIndex.instance();
     }

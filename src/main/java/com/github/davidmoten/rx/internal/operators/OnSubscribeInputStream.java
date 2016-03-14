@@ -27,12 +27,15 @@ public final class OnSubscribeInputStream extends SyncOnSubscribe<InputStream,by
         byte[] buffer = new byte[size];
         try {
             int count = is.read(buffer);
-            if (count == -1)
+            if (count == -1) {
                 observer.onCompleted();
-            else if (count < size)
+            }
+            else if (count < size) {
                 observer.onNext(Arrays.copyOf(buffer, count));
-            else
+            }
+            else {
                 observer.onNext(buffer);
+            }
         } catch (IOException e) {
             observer.onError(e);
         }

@@ -50,9 +50,14 @@ public final class Maths {
 
             @Override
             public Boolean call(Long n) {
-                for (int i = 2; i <= Math.floor(Math.sqrt(n)); i++)
-                    if (n % i == 0)
+                if (n < 2) {
+                    return false;
+                }
+                for (int i = 2; i <= Math.floor(Math.sqrt(n)); i++) {
+                    if (n % i == 0) {
                         return false;
+                    }
+                }
                 return true;
             }
         });

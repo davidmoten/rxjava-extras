@@ -12,6 +12,10 @@ import rx.functions.Action2;
 import rx.functions.Action3;
 
 public final class Actions {
+    
+    private Actions() {
+        //prevent instantiation
+    }
 
     public static Action1<Integer> setAtomic(final AtomicInteger a) {
         return new Action1<Integer>() {

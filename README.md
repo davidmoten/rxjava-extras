@@ -3,7 +3,7 @@ rxjava-extras
 
 <a href="https://travis-ci.org/davidmoten/rxjava-extras"><img src="https://travis-ci.org/davidmoten/rxjava-extras.svg"/></a><br/>
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras)<br/>
-[![Dependency Status](https://gemnasium.com/com.github.davidmoten/rxjava-extras.svg)](https://gemnasium.com/com.github.davidmoten/rxjava-extras)
+<!--[![Dependency Status](https://gemnasium.com/com.github.davidmoten/rxjava-extras.svg)](https://gemnasium.com/com.github.davidmoten/rxjava-extras)-->
 
 
 Utilities for use with rxjava:
@@ -12,8 +12,8 @@ Utilities for use with rxjava:
 * `Checked` provides lambda helpers for dealing with checked exceptions in functions and actions
 * `TestingHelper`
 * `RetryWhen` builder for use with `.retryWhen(Func1)` operator
-* `Transformers.toOperator`
-* `Tranformers.mapWithIndex`
+* [`Transformers.toOperator`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toOperator-rx.functions.Func1-)
+* [`Transformers.mapWithIndex`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#mapWithIndex--)
 * [`Transformers.stateMachine`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#stateMachine-rx.functions.Func0-rx.functions.Func3-rx.functions.Action2-)
 * [`Transformers.orderedMerge`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#orderedMergeWith-rx.Observable-rx.functions.Func2-)
 * [`Transformers.collectWhile`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectWhile-rx.functions.Func0-rx.functions.Action2-rx.functions.Func2-)
@@ -24,6 +24,7 @@ Utilities for use with rxjava:
 * `Transformers.doOnNth`
 * `Transformers.ignoreElementsThen`
 * `Transformers.sampleFirst`
+* `Transformers.decode`
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
@@ -31,7 +32,7 @@ Utilities for use with rxjava:
 * `Bytes.unzip` unzips zip archives
 * `Strings.from`
 * `Strings.lines`
-* `Strings.split`
+* `Strings.split` - supports backpressure (not available in rxjava-string 1.0.1)
 
 
 Status: *released to Maven Central*
@@ -46,7 +47,7 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.6.9</version>
+  <version>0.7</version>
 </dependency>
 ```
 
