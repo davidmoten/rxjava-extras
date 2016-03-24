@@ -26,11 +26,12 @@ public class OperatorWindowMinMax<T> implements Operator<T, T> {
     private final Metric metric;
 
     public OperatorWindowMinMax(int windowSize, Comparator<? super T> comparator, Metric metric) {
-        this.metric = metric;
         Preconditions.checkArgument(windowSize > 0, "windowSize must be greater than zero");
         Preconditions.checkNotNull(comparator, "comparator cannot be null");
+        Preconditions.checkNotNull(metric, "metric cannot be null");
         this.windowSize = windowSize;
         this.comparator = comparator;
+        this.metric = metric;
     }
 
     public enum Metric {
