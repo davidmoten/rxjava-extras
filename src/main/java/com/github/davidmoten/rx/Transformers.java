@@ -18,6 +18,7 @@ import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
 import com.github.davidmoten.rx.internal.operators.OperatorSampleFirst;
+import com.github.davidmoten.rx.internal.operators.OperatorWindowMin;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.internal.operators.TransformerDecode;
 import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
@@ -590,5 +591,55 @@ public final class Transformers {
     public static <T> Transformer<T, T> onBackpressureBufferToFile(File file,
             Serializer<T> serializer) {
         return new TransformerOnBackpressureBufferToFile<T>(file, serializer);
+    }
+
+    public static <T extends Comparable<T>> Transformer<T, T> windowMin(final int windowSize) {
+        return new Transformer<T, T>() {
+            @Override
+            public Observable<T> call(Observable<T> o) {
+                return o.lift(
+                        new OperatorWindowMin<T>(windowSize, Transformers.<T> naturalComparator()));
+            }
+        };
+    }
+
+    public static <T extends Comparable<T>> Transformer<T, T> windowMax(final int windowSize) {
+        return new Transformer<T, T>() {
+            @Override
+            public Observable<T> call(Observable<T> o) {
+                return o.lift(new OperatorWindowMin<T>(windowSize,
+                        Transformers.<T> reverseNaturalComparator()));
+            }
+        };
+    }
+
+    private static class NaturalComparatorHolder {
+        static final Comparator<Comparable<Object>> INSTANCE = new Comparator<Comparable<Object>>() {
+
+            @Override
+            public int compare(Comparable<Object> o1, Comparable<Object> o2) {
+                return o1.compareTo(o2);
+            }
+        };
+    }
+
+    private static class ReverseNaturalComparatorHolder {
+        static final Comparator<Comparable<Object>> INSTANCE = new Comparator<Comparable<Object>>() {
+
+            @Override
+            public int compare(Comparable<Object> o1, Comparable<Object> o2) {
+                return o2.compareTo(o1);
+            }
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Comparable<T>> Comparator<T> naturalComparator() {
+        return (Comparator<T>) NaturalComparatorHolder.INSTANCE;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Comparable<T>> Comparator<T> reverseNaturalComparator() {
+        return (Comparator<T>) ReverseNaturalComparatorHolder.INSTANCE;
     }
 }
