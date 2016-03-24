@@ -6,7 +6,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
+import com.github.davidmoten.util.Preconditions;
 
 import rx.Observable.Operator;
 import rx.Producer;
