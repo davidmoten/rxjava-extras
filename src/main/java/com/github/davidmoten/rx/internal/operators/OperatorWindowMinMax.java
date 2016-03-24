@@ -18,8 +18,9 @@ import rx.Subscriber;
  * that are greater or equal to that value are removed).
  * 
  * @param <T>
+ *            generic type of stream emissions
  */
-public class OperatorWindowMinMax<T> implements Operator<T, T> {
+public final class OperatorWindowMinMax<T> implements Operator<T, T> {
 
     private final int windowSize;
     private final Comparator<? super T> comparator;
