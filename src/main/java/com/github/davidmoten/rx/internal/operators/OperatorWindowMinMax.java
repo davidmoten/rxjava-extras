@@ -100,7 +100,7 @@ public class OperatorWindowMinMax<T> implements Operator<T, T> {
         };
     }
 
-    protected int compare(T a, T b) {
+    private int compare(T a, T b) {
         if (metric == Metric.MIN) {
             return comparator.compare(a, b);
         } else {
