@@ -6,6 +6,8 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
+
 import rx.Observable.Operator;
 import rx.Producer;
 import rx.Subscriber;
@@ -17,14 +19,22 @@ import rx.Subscriber;
  * 
  * @param <T>
  */
-public class OperatorWindowMin<T> implements Operator<T, T> {
+public class OperatorWindowMinMax<T> implements Operator<T, T> {
 
     private final int windowSize;
-    private final Comparator<T> comparator;
+    private final Comparator<? super T> comparator;
+    private final Metric metric;
 
-    public OperatorWindowMin(int windowSize, Comparator<T> comparator) {
+    public OperatorWindowMinMax(int windowSize, Comparator<? super T> comparator, Metric metric) {
+        this.metric = metric;
+        Preconditions.checkArgument(windowSize > 0, "windowSize must be greater than zero");
+        Preconditions.checkNotNull(comparator, "comparator cannot be null");
         this.windowSize = windowSize;
         this.comparator = comparator;
+    }
+
+    public enum Metric {
+        MIN, MAX;
     }
 
     @Override
@@ -73,7 +83,7 @@ public class OperatorWindowMin<T> implements Operator<T, T> {
 
             private void addToQueue(T t) {
                 Long v;
-                while ((v = q.peekLast()) != null && comparator.compare(t, values.get(v)) <= 0) {
+                while ((v = q.peekLast()) != null && compare(t, values.get(v)) <= 0) {
                     values.remove(q.pollLast());
                 }
                 values.put(count, t);
@@ -87,6 +97,14 @@ public class OperatorWindowMin<T> implements Operator<T, T> {
             }
 
         };
+    }
+
+    protected int compare(T a, T b) {
+        if (metric == Metric.MIN) {
+            return comparator.compare(a, b);
+        } else {
+            return comparator.compare(b, a);
+        }
     }
 
 }

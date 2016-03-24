@@ -6,13 +6,16 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import com.github.davidmoten.rx.Transformers;
 
 import rx.Observable;
 
-public class OperatorWindowMinTest {
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+public class OperatorWindowMinMaxTest {
 
     @Test
     public void testEmpty() {
@@ -40,6 +43,13 @@ public class OperatorWindowMinTest {
         List<Integer> list = Observable.just(4, 3, 2, 1)
                 .compose(Transformers.<Integer> windowMin(10)).toList().toBlocking().single();
         assertTrue(list.isEmpty());
+    }
+
+    @Test
+    public void testWindowMax() {
+        List<Integer> list = Observable.just(4, 3, 2, 1)
+                .compose(Transformers.<Integer> windowMax(2)).toList().toBlocking().single();
+        assertEquals(Arrays.asList(4, 3, 2), list);
     }
 
 }
