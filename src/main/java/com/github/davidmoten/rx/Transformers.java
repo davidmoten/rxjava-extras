@@ -635,11 +635,11 @@ public final class Transformers {
 
     @SuppressWarnings("unchecked")
     private static <T extends Comparable<T>> Comparator<T> naturalComparator() {
-        return (Comparator<T>) NaturalComparatorHolder.INSTANCE;
+        return (Comparator<T>) (Comparator<?>) NaturalComparatorHolder.INSTANCE;
     }
 
     @SuppressWarnings("unchecked")
     private static <T extends Comparable<T>> Comparator<T> reverseNaturalComparator() {
-        return (Comparator<T>) ReverseNaturalComparatorHolder.INSTANCE;
+        return (Comparator<T>) (Comparator<?>) ReverseNaturalComparatorHolder.INSTANCE;
     }
 }
