@@ -132,6 +132,10 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                                 } else {
                                     //there was a notification on the queue
                                     notification.accept(child);
+                                    if (!notification.isOnNext()) {
+                                        //was terminal notification
+                                        return;
+                                    }
                                     r--;
                                 }
                             }
