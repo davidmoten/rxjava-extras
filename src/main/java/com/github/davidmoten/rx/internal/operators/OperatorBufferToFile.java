@@ -10,8 +10,6 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 
-import com.github.davidmoten.rx.subjects.PublishSubjectSingleSubscriber;
-
 import rx.Notification;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
@@ -78,7 +76,13 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
         Subscriber<T> wrappedChild = Subscribers.wrap(child);
         child.add(sub);
-        child.add(new Subscription() {
+        child.add(disposer(db));
+        source.subscribe(wrappedChild);
+        return sub;
+    }
+
+    private Subscription disposer(final DB db) {
+        return new Subscription() {
 
             @Override
             public void unsubscribe() {
@@ -89,9 +93,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             public boolean isUnsubscribed() {
                 return db.isClosed();
             }
-        });
-        source.subscribe(wrappedChild);
-        return sub;
+        };
     }
 
     private static class QueueProducer<T> extends AtomicLong implements Producer {
