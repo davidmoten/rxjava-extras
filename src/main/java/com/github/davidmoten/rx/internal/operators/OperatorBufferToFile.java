@@ -18,8 +18,6 @@ import rx.Producer;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.internal.operators.BackpressureUtils;
-import rx.internal.operators.NotificationLite;
-import rx.internal.util.BackpressureDrainManager;
 import rx.observers.Subscribers;
 
 public class OperatorBufferToFile<T> implements Operator<T, T> {
@@ -151,71 +149,6 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                     }
                 }
             }
-        }
-
-    }
-
-    private static class BufferToFileSubscriber<T> extends Subscriber<T>
-            implements BackpressureDrainManager.BackpressureQueueCallback {
-
-        private final BackpressureDrainManager manager;
-        private final Subscriber<? super T> child;
-        private final BlockingQueue<Notification<T>> queue;
-        private final NotificationLite<T> on = NotificationLite.instance();
-
-        BufferToFileSubscriber(final Subscriber<? super T> child,
-                BlockingQueue<Notification<T>> queue) {
-            this.child = child;
-            this.queue = queue;
-            this.manager = new BackpressureDrainManager(this);
-        }
-
-        @Override
-        public void onStart() {
-            request(Long.MAX_VALUE);
-        }
-
-        @Override
-        public void onCompleted() {
-            manager.terminateAndDrain();
-        }
-
-        @Override
-        public void onError(Throwable e) {
-            manager.terminateAndDrain(e);
-        }
-
-        @Override
-        public void onNext(T t) {
-            queue.offer(Notification.createOnNext(t));
-            manager.drain();
-        }
-
-        @Override
-        public boolean accept(Object obj) {
-            @SuppressWarnings("unchecked")
-            Notification<T> notification = (Notification<T>) obj;
-            notification.accept(child);
-            return !notification.isOnNext();
-        }
-
-        @Override
-        public void complete(Throwable exception) {
-            if (exception != null) {
-                child.onError(exception);
-            } else {
-                child.onCompleted();
-            }
-        }
-
-        @Override
-        public Object peek() {
-            return queue.peek();
-        }
-
-        @Override
-        public Object poll() {
-            return queue.poll();
         }
 
     }
