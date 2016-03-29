@@ -18,6 +18,8 @@ import rx.Producer;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.internal.operators.BackpressureUtils;
+import rx.internal.operators.NotificationLite;
+import rx.internal.util.BackpressureDrainManager;
 import rx.observers.Subscribers;
 
 public class OperatorBufferToFile<T> implements Operator<T, T> {
@@ -49,7 +51,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
             @Override
             public void onError(Throwable e) {
-                //TODO optionally shortcut error (so queue elements don't get processed)
+                // TODO optionally shortcut error (so queue elements don't get
+                // processed)
                 queue.offer(Notification.<T> createOnError(e));
                 messageArrived();
             }
@@ -98,47 +101,121 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         @Override
         public void request(long n) {
             if (n > 0) {
-                BackpressureUtils.getAndAddRequest(this, n);
-                drain();
+                drain(n);
             }
         }
 
         public void drain() {
+            drain(0);
+        }
+
+        private void drain(long n) {
             // only one thread at a time
-            if (wip.compareAndSet(false, true)) {
-                try {
-                    long r = get();
-                    while (true) {
-                        while (r > 0) {
-                            if (child.isUnsubscribed()) {
+            if ((n > 0 && BackpressureUtils.getAndAddRequest(this, n) == 0)
+                    | wip.compareAndSet(false, true)) {
+                long r = get();
+                long emitted = 0;
+                while (true) {
+                    while (r > 0) {
+                        if (child.isUnsubscribed()) {
+                            // don't touch wip to prevent more draining
+                            return;
+                        } else {
+                            Notification<T> notification = queue.poll();
+                            if (notification == null) {
+                                // queue is empty
+                                wip.set(false);
                                 return;
                             } else {
-                                Notification<T> notification = queue.poll();
-                                if (notification == null) {
-                                    // queue is empty
+                                // there was a notification on the queue
+                                notification.accept(child);
+                                if (!notification.isOnNext()) {
+                                    // was terminal notification
+                                    // dont' touch wip to prevent more
+                                    // draining
                                     return;
-                                } else {
-                                    // there was a notification on the queue
-                                    notification.accept(child);
-                                    if (!notification.isOnNext()) {
-                                        // was terminal notification
-                                        return;
-                                    }
-                                    r--;
                                 }
+                                emitted++;
                             }
                         }
-                        r = addAndGet(-r);
-                        if (r == 0L) {
-                            // we're done emitting the number requested so
-                            // return
-                            return;
-                        }
                     }
-                } finally {
-                    wip.set(false);
+                    r = addAndGet(-emitted);
+                    if (r == 0L) {
+                        // we're done emitting the number requested so
+                        // return
+                        // TODO at this point here there is a race condition
+                        // where a request could mean that
+                        // no drain occurs
+                        wip.set(false);
+                        return;
+                    }
                 }
             }
+        }
+
+    }
+
+    private static class BufferToFileSubscriber<T> extends Subscriber<T>
+            implements BackpressureDrainManager.BackpressureQueueCallback {
+
+        private final BackpressureDrainManager manager;
+        private final Subscriber<? super T> child;
+        private final BlockingQueue<Notification<T>> queue;
+        private final NotificationLite<T> on = NotificationLite.instance();
+
+        BufferToFileSubscriber(final Subscriber<? super T> child,
+                BlockingQueue<Notification<T>> queue) {
+            this.child = child;
+            this.queue = queue;
+            this.manager = new BackpressureDrainManager(this);
+        }
+
+        @Override
+        public void onStart() {
+            request(Long.MAX_VALUE);
+        }
+
+        @Override
+        public void onCompleted() {
+            manager.terminateAndDrain();
+        }
+
+        @Override
+        public void onError(Throwable e) {
+            manager.terminateAndDrain(e);
+        }
+
+        @Override
+        public void onNext(T t) {
+            queue.offer(Notification.createOnNext(t));
+            manager.drain();
+        }
+
+        @Override
+        public boolean accept(Object obj) {
+            @SuppressWarnings("unchecked")
+            Notification<T> notification = (Notification<T>) obj;
+            notification.accept(child);
+            return !notification.isOnNext();
+        }
+
+        @Override
+        public void complete(Throwable exception) {
+            if (exception != null) {
+                child.onError(exception);
+            } else {
+                child.onCompleted();
+            }
+        }
+
+        @Override
+        public Object peek() {
+            return queue.peek();
+        }
+
+        @Override
+        public Object poll() {
+            return queue.poll();
         }
 
     }
