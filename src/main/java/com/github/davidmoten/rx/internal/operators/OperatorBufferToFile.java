@@ -49,6 +49,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
             @Override
             public void onError(Throwable e) {
+                //TODO optionally shortcut error (so queue elements don't get processed)
                 queue.offer(Notification.<T> createOnError(e));
                 messageArrived();
             }
@@ -79,21 +80,6 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         child.add(disposer(db));
         source.subscribe(wrappedChild);
         return sub;
-    }
-
-    private Subscription disposer(final DB db) {
-        return new Subscription() {
-
-            @Override
-            public void unsubscribe() {
-                db.close();
-            }
-
-            @Override
-            public boolean isUnsubscribed() {
-                return db.isClosed();
-            }
-        };
     }
 
     private static class QueueProducer<T> extends AtomicLong implements Producer {
@@ -132,10 +118,10 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                                     // queue is empty
                                     return;
                                 } else {
-                                    //there was a notification on the queue
+                                    // there was a notification on the queue
                                     notification.accept(child);
                                     if (!notification.isOnNext()) {
-                                        //was terminal notification
+                                        // was terminal notification
                                         return;
                                     }
                                     r--;
@@ -166,6 +152,21 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                 return db.createQueue(QUEUE_NAME, serializer, false);
             }
         }
+    }
+
+    private static Subscription disposer(final DB db) {
+        return new Subscription() {
+
+            @Override
+            public void unsubscribe() {
+                db.close();
+            }
+
+            @Override
+            public boolean isUnsubscribed() {
+                return db.isClosed();
+            }
+        };
     }
 
 }
