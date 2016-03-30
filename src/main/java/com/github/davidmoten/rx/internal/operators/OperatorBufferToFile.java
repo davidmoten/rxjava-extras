@@ -14,6 +14,9 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 
+import com.github.davidmoten.rx.buffertofile.CacheType;
+import com.github.davidmoten.rx.buffertofile.DataSerializer;
+import com.github.davidmoten.rx.buffertofile.Options;
 import com.github.davidmoten.util.Preconditions;
 
 import rx.Notification;
@@ -50,79 +53,6 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         this.options = options;
     }
 
-    public static enum CacheType {
-        HARD_REF, SOFT_REF, WEAK_REF, LEAST_RECENTLY_USED, NO_CACHE;
-    }
-
-    public static final class Options {
-        
-        public static final int  UNLIMITED = 0;
-        
-        private final CacheType cacheType;
-        private final int cacheSizeItems;
-        private final double storageSizeLimitBytes;
-
-        private Options(CacheType cacheType, int cacheSizeItems, double storageSizeLimitBytes){
-            Preconditions.checkNotNull(cacheType);
-            Preconditions.checkArgument(cacheSizeItems>=0, "cacheSizeItems cannot be negative");
-            Preconditions.checkArgument(storageSizeLimitBytes>=0,"storageSizeLimitBytes cannot be negative");
-            this.cacheType = cacheType;
-            this.cacheSizeItems = cacheSizeItems;
-            this.storageSizeLimitBytes = storageSizeLimitBytes;
-        }
-
-        public CacheType getCacheType() {
-            return cacheType;
-        }
-
-        public int getCacheSizeItems() {
-            return cacheSizeItems;
-        }
-
-        public double getStorageSizeLimitBytes() {
-            return storageSizeLimitBytes;
-        }
-
-        public static Builder builder() {
-            return new Builder();
-        }
-
-        public static class Builder {
-
-            private CacheType cacheType=CacheType.NO_CACHE;
-            private int cacheSizeItems=UNLIMITED;
-            private double storageSizeLimitBytes=UNLIMITED;
-
-            private Builder() {
-            }
-
-            public Builder cacheType(CacheType cacheType) {
-                this.cacheType = cacheType;
-                return this;
-            }
-
-            public Builder cacheSizeItems(int cacheSizeItems) {
-                this.cacheSizeItems = cacheSizeItems;
-                return this;
-            }
-
-            public Builder storageSizeLimitBytes(double storageSizeLimitBytes) {
-                this.storageSizeLimitBytes = storageSizeLimitBytes;
-                return this;
-            }
-
-            public Options build() {
-                return new Options(cacheType, cacheSizeItems, storageSizeLimitBytes);
-            }
-        }
-    }
-
-    public static interface DataSerializer<T> {
-        void serialize(T t, DataOutput output) throws IOException;
-
-        T deserialize(DataInput input, int size) throws IOException;
-    }
-
     private static <T> Serializer<Notification<T>> createSerializer(
             DataSerializer<T> dataSerializer) {
         return new MySerializer<T>(dataSerializer);
@@ -145,6 +75,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             } else if (type == 1) {
                 String errorClass = input.readUTF();
                 String message = input.readUTF();
+                // TODO exceptions are serializable so we should be able to
+                // handle this
                 return Notification.createOnError(new RuntimeException(errorClass + ":" + message));
             } else {
                 // reduce size by 1 because we have read one byte already
@@ -176,25 +108,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> child) {
         File file = fileFactory.call();
-        DBMaker builder = DBMaker.newFileDB(file);
-        if (options.cacheType==CacheType.NO_CACHE) {
-            builder = builder.cacheDisable();
-        } else if (options.cacheType == CacheType.HARD_REF) {
-            builder = builder.cacheHardRefEnable();
-        }else if (options.cacheType == CacheType.SOFT_REF) {
-            builder = builder.cacheSoftRefEnable();
-        }else if (options.cacheType == CacheType.WEAK_REF) {
-            builder = builder.cacheWeakRefEnable();
-        }else if (options.cacheType == CacheType.LEAST_RECENTLY_USED) {
-            builder = builder.cacheLRUEnable();
-        }
-        if (options.cacheSizeItems!=Options.UNLIMITED) {
-            builder = builder.cacheSize(options.cacheSizeItems);
-        }
-        if (options.storageSizeLimitBytes!=Options.UNLIMITED) {
-            builder = builder.sizeLimit(options.storageSizeLimitBytes);
-        }
-        final DB db = builder.deleteFilesAfterClose().make();
+        final DB db = createDb(file);
         final BlockingQueue<Notification<T>> queue = getQueue(db, serializer);
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
         final Worker worker = scheduler.createWorker();
@@ -215,6 +129,29 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         Subscriber<T> wrappedChild = Subscribers.wrap(child);
         source.subscribe(wrappedChild);
         return sub;
+    }
+
+    private DB createDb(File file) {
+        DBMaker<?> builder = DBMaker.newFileDB(file);
+        if (options.getCacheType() == CacheType.NO_CACHE) {
+            builder = builder.cacheDisable();
+        } else if (options.getCacheType() == CacheType.HARD_REF) {
+            builder = builder.cacheHardRefEnable();
+        } else if (options.getCacheType() == CacheType.SOFT_REF) {
+            builder = builder.cacheSoftRefEnable();
+        } else if (options.getCacheType() == CacheType.WEAK_REF) {
+            builder = builder.cacheWeakRefEnable();
+        } else if (options.getCacheType() == CacheType.LEAST_RECENTLY_USED) {
+            builder = builder.cacheLRUEnable();
+        }
+        if (options.getCacheSizeItems() != Options.UNLIMITED) {
+            builder = builder.cacheSize(options.getCacheSizeItems());
+        }
+        if (options.getStorageSizeLimitBytes() != Options.UNLIMITED) {
+            builder = builder.sizeLimit(options.getStorageSizeLimitBytes());
+        }
+        final DB db = builder.deleteFilesAfterClose().make();
+        return db;
     }
 
     private static class BufferToFileSubscriber<T> extends Subscriber<T> {

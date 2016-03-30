@@ -12,7 +12,7 @@ import java.util.List;
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Transformers;
-import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile.DataSerializer;
+import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.slf4j.Logging;
 
 import rx.Observable;
