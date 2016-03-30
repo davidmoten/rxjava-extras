@@ -25,11 +25,11 @@ import rx.schedulers.Schedulers;
 public final class OperatorBufferToFileTest {
 
     @Test
-    public void handlesThreeElements() {
+    public void handlesThreeElementsImmediateScheduler() throws InterruptedException {
         List<String> b = Observable.just("abc", "def", "ghi")
                 //
                 .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
-                        Schedulers.computation(), createOptions()))
+                        Schedulers.immediate(), createOptions()))
                 .toList().toBlocking().single();
         assertEquals(Arrays.asList("abc", "def", "ghi"), b);
     }
@@ -64,7 +64,7 @@ public final class OperatorBufferToFileTest {
                         Schedulers.computation(), createOptions()))
                 .subscribe(ts);
         ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
-        ts.assertError(RuntimeException.class);
+        ts.assertError(IOException.class);
     }
 
     @Test
@@ -94,6 +94,7 @@ public final class OperatorBufferToFileTest {
                     @Override
                     public void call(Object t) {
                         try {
+                            //pauses drain loop
                             Thread.sleep(500);
                         } catch (InterruptedException e) {
                         }
@@ -107,7 +108,7 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test
-    public void handlesManyOneMbMessages() {
+    public void handlesManyLargeMessages() {
         DataSerializer<Integer> serializer = createLargeMessageSerializer();
         int max = 100;
         int last = Observable.range(1, max)

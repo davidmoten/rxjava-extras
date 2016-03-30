@@ -1,9 +1,15 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,7 +19,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
-import org.mapdb.StoreDirect;
 
 import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
@@ -104,7 +109,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         if (options.getStorageSizeLimitBytes() != Options.UNLIMITED) {
             builder = builder.sizeLimit(options.getStorageSizeLimitBytes());
         }
-        final DB db = builder.transactionDisable().make();
+        final DB db = builder.transactionDisable().deleteFilesAfterClose().make();
         return db;
     }
 
@@ -203,13 +208,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                         }
                     }
                     r = addAndGet(-emitted);
-                    if (r == 0L) {
-                        // we're done emitting the number requested so
-                        // return but we need to check that another request
-                        // hasn't just occurred to be sure it gets drained
-                        if (finished()) {
-                            return;
-                        }
+                    if (r == 0L && finished()) {
+                        return;
                     }
                 }
             }
@@ -269,15 +269,6 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                 } catch (RuntimeException e) {
                     e.printStackTrace();
                 }
-                if (file.exists() && !file.delete()) {
-                    System.err.println("could not delete MapDB file: " + file);
-                }
-
-                File data = new File(file.getParentFile(),
-                        file.getName() + StoreDirect.DATA_FILE_EXT);
-                if (data.exists() && !data.delete()) {
-                    System.err.println("could not delete MapDB data file: " + data);
-                }
             }
 
             @Override
@@ -298,16 +289,30 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         }
 
         @Override
-        public Notification<T> deserialize(DataInput input, int size) throws IOException {
+        public Notification<T> deserialize(final DataInput input, int size) throws IOException {
             byte type = input.readByte();
             if (type == 0) {
                 return Notification.createOnCompleted();
             } else if (type == 1) {
-                String errorClass = input.readUTF();
-                String message = input.readUTF();
-                // TODO exceptions are serializable so we should be able to
-                // handle this
-                return Notification.createOnError(new RuntimeException(errorClass + ":" + message));
+                InputStream is = new InputStream() {
+                    @Override
+                    public int read() throws IOException {
+                        try {
+                            return input.readUnsignedByte();
+                        } catch (EOFException e) {
+                            return -1;
+                        }
+                    }
+                };
+                ObjectInputStream oos = new ObjectInputStream(is);
+                Throwable t;
+                try {
+                    t = (Throwable) oos.readObject();
+                } catch (ClassNotFoundException e) {
+                    throw new IOException(e);
+                }
+                oos.close();
+                return Notification.createOnError(t);
             } else {
                 // reduce size by 1 because we have read one byte already
                 T t = dataSerializer.deserialize(input, size - 1);
@@ -326,8 +331,11 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                 output.writeByte(0);
             } else if (n.isOnError()) {
                 output.writeByte(1);
-                output.writeUTF(n.getThrowable().getClass().getName());
-                output.writeUTF(n.getThrowable().getMessage());
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(bytes);
+                oos.writeObject(n.getThrowable());
+                oos.close();
+                output.write(bytes.toByteArray());
             } else {
                 output.writeByte(2);
                 dataSerializer.serialize(n.getValue(), output);
