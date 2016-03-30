@@ -13,8 +13,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
-import org.mapdb.StoreDirect;
-import org.mapdb.StoreWAL;
 
 import com.github.davidmoten.util.Preconditions;
 
@@ -39,15 +37,84 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
     private final Serializer<Notification<T>> serializer;
     private final Scheduler scheduler;
     private final Func0<File> fileFactory;
+    private final Options options;
 
     public OperatorBufferToFile(Func0<File> fileFactory, DataSerializer<T> dataSerializer,
-            Scheduler scheduler) {
+            Scheduler scheduler, Options options) {
         this.fileFactory = fileFactory;
         Preconditions.checkNotNull(fileFactory);
         Preconditions.checkNotNull(dataSerializer);
         Preconditions.checkNotNull(scheduler);
         this.scheduler = scheduler;
         this.serializer = createSerializer(dataSerializer);
+        this.options = options;
+    }
+
+    public static enum CacheType {
+        HARD_REF, SOFT_REF, WEAK_REF, LEAST_RECENTLY_USED, NO_CACHE;
+    }
+
+    public static final class Options {
+        
+        public static final int  UNLIMITED = 0;
+        
+        private final CacheType cacheType;
+        private final int cacheSizeItems;
+        private final double storageSizeLimitBytes;
+
+        private Options(CacheType cacheType, int cacheSizeItems, double storageSizeLimitBytes){
+            Preconditions.checkNotNull(cacheType);
+            Preconditions.checkArgument(cacheSizeItems>=0, "cacheSizeItems cannot be negative");
+            Preconditions.checkArgument(storageSizeLimitBytes>=0,"storageSizeLimitBytes cannot be negative");
+            this.cacheType = cacheType;
+            this.cacheSizeItems = cacheSizeItems;
+            this.storageSizeLimitBytes = storageSizeLimitBytes;
+        }
+
+        public CacheType getCacheType() {
+            return cacheType;
+        }
+
+        public int getCacheSizeItems() {
+            return cacheSizeItems;
+        }
+
+        public double getStorageSizeLimitBytes() {
+            return storageSizeLimitBytes;
+        }
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static class Builder {
+
+            private CacheType cacheType=CacheType.NO_CACHE;
+            private int cacheSizeItems=UNLIMITED;
+            private double storageSizeLimitBytes=UNLIMITED;
+
+            private Builder() {
+            }
+
+            public Builder cacheType(CacheType cacheType) {
+                this.cacheType = cacheType;
+                return this;
+            }
+
+            public Builder cacheSizeItems(int cacheSizeItems) {
+                this.cacheSizeItems = cacheSizeItems;
+                return this;
+            }
+
+            public Builder storageSizeLimitBytes(double storageSizeLimitBytes) {
+                this.storageSizeLimitBytes = storageSizeLimitBytes;
+                return this;
+            }
+
+            public Options build() {
+                return new Options(cacheType, cacheSizeItems, storageSizeLimitBytes);
+            }
+        }
     }
 
     public static interface DataSerializer<T> {
@@ -109,7 +176,25 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> child) {
         File file = fileFactory.call();
-        final DB db = DBMaker.newFileDB(file).cacheDisable().make();
+        DBMaker builder = DBMaker.newFileDB(file);
+        if (options.cacheType==CacheType.NO_CACHE) {
+            builder = builder.cacheDisable();
+        } else if (options.cacheType == CacheType.HARD_REF) {
+            builder = builder.cacheHardRefEnable();
+        }else if (options.cacheType == CacheType.SOFT_REF) {
+            builder = builder.cacheSoftRefEnable();
+        }else if (options.cacheType == CacheType.WEAK_REF) {
+            builder = builder.cacheWeakRefEnable();
+        }else if (options.cacheType == CacheType.LEAST_RECENTLY_USED) {
+            builder = builder.cacheLRUEnable();
+        }
+        if (options.cacheSizeItems!=Options.UNLIMITED) {
+            builder = builder.cacheSize(options.cacheSizeItems);
+        }
+        if (options.storageSizeLimitBytes!=Options.UNLIMITED) {
+            builder = builder.sizeLimit(options.storageSizeLimitBytes);
+        }
+        final DB db = builder.deleteFilesAfterClose().make();
         final BlockingQueue<Notification<T>> queue = getQueue(db, serializer);
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
         final Worker worker = scheduler.createWorker();
@@ -268,19 +353,6 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                     db.close();
                 } catch (RuntimeException e) {
                     e.printStackTrace();
-                }
-                if (!file.delete()) {
-                    System.err.println("could not delete MapDB db file: " + file);
-                }
-                File data = new File(file.getParentFile(),
-                        file.getName() + StoreDirect.DATA_FILE_EXT);
-                if (!data.delete()) {
-                    System.err.println("could not delete MapDB data file: " + data);
-                }
-                File logFile = new File(file.getParentFile(),
-                        file.getName() + StoreWAL.TRANS_LOG_FILE_EXT);
-                if (!logFile.delete()) {
-                    System.err.println("could not delete MapDB log file: " + logFile);
                 }
             }
 

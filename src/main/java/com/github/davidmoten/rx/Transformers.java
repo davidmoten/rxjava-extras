@@ -15,7 +15,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
+import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile.CacheType;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile.DataSerializer;
+import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile.Options;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
 import com.github.davidmoten.rx.internal.operators.OperatorSampleFirst;
@@ -591,7 +593,7 @@ public final class Transformers {
     }
 
     public static <T> Transformer<T, T> onBackpressureBufferToFile(
-            final DataSerializer<T> serializer, final Scheduler scheduler) {
+            final DataSerializer<T> serializer, final Scheduler scheduler, final Options options) {
         return new Transformer<T, T>() {
 
             @Override
@@ -605,9 +607,14 @@ public final class Transformers {
                             throw new RuntimeException(e);
                         }
                     }
-                }, serializer, scheduler));
+                }, serializer, scheduler, options));
             }
         };
+    }
+    
+    public static <T> Transformer<T, T> onBackpressureBufferToFile(
+            final DataSerializer<T> serializer, final Scheduler scheduler) {
+        return onBackpressureBufferToFile(serializer, scheduler, Options.builder().cacheType(CacheType.WEAK_REF).build());
     }
 
     public static <T> Transformer<T, T> windowMin(final int windowSize,
