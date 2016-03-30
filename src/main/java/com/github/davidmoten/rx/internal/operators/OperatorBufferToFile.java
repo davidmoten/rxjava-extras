@@ -104,7 +104,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> child) {
-        final DB db = DBMaker.newFileDB(file).make();
+        final DB db = DBMaker.newFileDB(file).cacheDisable().make();
         final BlockingQueue<Notification<T>> queue = getQueue(db, serializer);
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
         final Worker worker = scheduler.createWorker();
