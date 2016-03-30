@@ -13,6 +13,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
+import org.mapdb.StoreDirect;
+import org.mapdb.StoreWAL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
@@ -36,6 +40,7 @@ import rx.observers.Subscribers;
 public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static final String QUEUE_NAME = "q";
+    private static final Logger log = LoggerFactory.getLogger(OperatorBufferToFile.class);
 
     private final Serializer<Notification<T>> serializer;
     private final Scheduler scheduler;
@@ -103,7 +108,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         if (options.getStorageSizeLimitBytes() != Options.UNLIMITED) {
             builder = builder.sizeLimit(options.getStorageSizeLimitBytes());
         }
-        final DB db = builder.deleteFilesAfterClose().transactionDisable().make();
+        final DB db = builder.transactionDisable().make();
         return db;
     }
 
@@ -267,6 +272,16 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                     db.close();
                 } catch (RuntimeException e) {
                     e.printStackTrace();
+                }
+                log.warn(file.toString());
+                if (file.exists() && !file.delete()) {
+                    log.warn("could not delete MapDB file: " + file);
+                }
+
+                File data = new File(file.getParentFile(),
+                        file.getName() + StoreDirect.DATA_FILE_EXT);
+                if (data.exists() && !data.delete()) {
+                    log.warn("could not delete MapDB data file: " + data);
                 }
             }
 

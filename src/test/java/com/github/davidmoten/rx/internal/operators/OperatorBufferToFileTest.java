@@ -50,7 +50,7 @@ public final class OperatorBufferToFileTest {
         ts.assertNoValues();
         ts.requestMore(2);
         ts.requestMore(2);
-        ts.awaitTerminalEvent(10000, TimeUnit.SECONDS);
+        ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
         ts.assertCompleted();
         ts.assertValues("abc", "def", "ghi");
     }
