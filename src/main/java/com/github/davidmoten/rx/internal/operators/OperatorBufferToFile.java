@@ -1,6 +1,5 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.EOFException;
@@ -8,8 +7,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,7 +23,6 @@ import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.Options;
 import com.github.davidmoten.util.Preconditions;
 
-import rx.Notification;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Observable.Operator;
@@ -42,7 +40,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static final String QUEUE_NAME = "q";
 
-    private final Serializer<Notification<T>> serializer;
+    private final Serializer<T> serializer;
     private final Scheduler scheduler;
     private final Func0<File> fileFactory;
     private final Options options;
@@ -59,8 +57,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         this.options = options;
     }
 
-    private static <T> Serializer<Notification<T>> createSerializer(
-            DataSerializer<T> dataSerializer) {
+    private static <T> Serializer<T> createSerializer(DataSerializer<T> dataSerializer) {
         return new MapDbSerializer<T>(dataSerializer);
     }
 
@@ -68,12 +65,12 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
     public Subscriber<? super T> call(Subscriber<? super T> child) {
         File file = fileFactory.call();
         final DB db = createDb(file, options);
-        final BlockingQueue<Notification<T>> queue = getQueue(db, serializer);
+        final Queue<T> queue = getQueue(db, serializer);
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
         final Worker worker = scheduler.createWorker();
         child.add(worker);
 
-        Subscriber<T> sub = new BufferToFileSubscriber<T>(queue, queueProducer);
+        Subscriber<T> sub = new BufferToFileSubscriber<T>(queueProducer);
 
         Observable<T> source = Observable.create(new OnSubscribe<T>() {
             @Override
@@ -115,12 +112,9 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static class BufferToFileSubscriber<T> extends Subscriber<T> {
 
-        private final BlockingQueue<Notification<T>> queue;
         private final AtomicReference<QueueProducer<T>> queueProducer;
 
-        public BufferToFileSubscriber(BlockingQueue<Notification<T>> queue,
-                AtomicReference<QueueProducer<T>> queueProducer) {
-            this.queue = queue;
+        BufferToFileSubscriber(AtomicReference<QueueProducer<T>> queueProducer) {
             this.queueProducer = queueProducer;
         }
 
@@ -131,26 +125,17 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
         @Override
         public void onCompleted() {
-            queue.offer(Notification.<T> createOnCompleted());
-            messageArrived();
+            queueProducer.get().onCompleted();
         }
 
         @Override
         public void onError(Throwable e) {
-            // TODO optionally shortcut error (so queue elements don't get
-            // processed)
-            queue.offer(Notification.<T> createOnError(e));
-            messageArrived();
+            queueProducer.get().onError(e);
         }
 
         @Override
         public void onNext(T t) {
-            queue.offer(Notification.createOnNext(t));
-            messageArrived();
-        }
-
-        private void messageArrived() {
-            queueProducer.get().drain();
+            queueProducer.get().onNext(t);
         }
 
     }
@@ -158,10 +143,12 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
     private static class QueueProducer<T> extends AtomicLong implements Producer {
 
         private static final long serialVersionUID = 2521533710633950102L;
-        private final BlockingQueue<Notification<T>> queue;
+        private final Queue<T> queue;
         private final AtomicInteger drainRequested = new AtomicInteger(0);
         private final Subscriber<? super T> child;
         private final Worker worker;
+        private volatile boolean done = false;
+        private volatile Throwable error = null;
         private final Action0 drainAction = new Action0() {
 
             @Override
@@ -181,10 +168,10 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                             // scheduling of drains
                             return;
                         } else {
-                            Notification<T> notification = queue.poll();
-                            if (notification == null) {
+                            T item = queue.poll();
+                            if (item == null) {
                                 // queue is empty
-                                if (drainRequestsSatisfied()) {
+                                if (drainRequestsSatisfied(true)) {
                                     return;
                                 } else {
                                     // another drain was requested so go
@@ -194,33 +181,53 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                                     break;
                                 }
                             } else {
-                                // there was a notification on the queue
-                                notification.accept(child);
-                                if (!notification.isOnNext()) {
-                                    // is terminal notification
-                                    // leave drainRequested > 0 to prevent
-                                    // more scheduling of drains
-                                    return;
-                                }
+                                // there was an item on the queue
+                                child.onNext(item);
                                 r--;
                                 emitted++;
                             }
                         }
                     }
                     r = addAndGet(-emitted);
-                    if (r == 0L && drainRequestsSatisfied()) {
+                    if (r == 0L && drainRequestsSatisfied(queue.isEmpty())) {
                         return;
                     }
                 }
             }
         };
 
-        private boolean drainRequestsSatisfied() {
-            return drainRequested.compareAndSet(1, 0);
+        private boolean drainRequestsSatisfied(boolean isQueueEmpty) {
+            if (done && isQueueEmpty) {
+                Throwable t = error;
+                if (t != null) {
+                    child.onError(t);
+                } else {
+                    child.onCompleted();
+                }
+                //leave drainRequested > 0 so that further drain requests are ignored
+                return true;
+            } else {
+                return drainRequested.compareAndSet(1, 0);
+            }
         }
 
-        QueueProducer(BlockingQueue<Notification<T>> queue, Subscriber<? super T> child,
-                Worker worker) {
+        void onNext(T t) {
+            queue.offer(t);
+            drain();
+        }
+
+        void onError(Throwable e) {
+            error = e;
+            done = true;
+            drain();
+        }
+
+        void onCompleted() {
+            done = true;
+            drain();
+        }
+
+        QueueProducer(Queue<T> queue, Subscriber<? super T> child, Worker worker) {
             super();
             this.queue = queue;
             this.child = child;
@@ -247,8 +254,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     }
 
-    private static <T> BlockingQueue<Notification<T>> getQueue(DB db,
-            Serializer<Notification<T>> serializer) {
+    private static <T> BlockingQueue<T> getQueue(DB db, Serializer<T> serializer) {
         return db.createQueue(QUEUE_NAME, serializer, false);
     }
 
@@ -273,8 +279,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         };
     }
 
-    public static final class MapDbSerializer<T>
-            implements Serializer<Notification<T>>, Serializable {
+    public static final class MapDbSerializer<T> implements Serializer<T>, Serializable {
 
         private static final long serialVersionUID = -4992031045087289671L;
         private transient final DataSerializer<T> dataSerializer;
@@ -284,21 +289,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         }
 
         @Override
-        public Notification<T> deserialize(final DataInput input, int size) throws IOException {
-            byte type = input.readByte();
-            if (type == 0) {
-                return Notification.createOnCompleted();
-            } else if (type == 1) {
-                InputStream is = createInputStream(input);
-                ObjectInputStream oos = new ObjectInputStream(is);
-                Throwable t = readThrowable(oos);
-                oos.close();
-                return Notification.createOnError(t);
-            } else {
-                // reduce size by 1 because we have read one byte already
-                T t = dataSerializer.deserialize(input, size - 1);
-                return Notification.createOnNext(t);
-            }
+        public T deserialize(final DataInput input, int size) throws IOException {
+            return dataSerializer.deserialize(input, size);
         }
 
         @Override
@@ -307,20 +299,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         }
 
         @Override
-        public void serialize(DataOutput output, Notification<T> n) throws IOException {
-            if (n.isOnCompleted()) {
-                output.writeByte(0);
-            } else if (n.isOnError()) {
-                output.writeByte(1);
-                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(bytes);
-                oos.writeObject(n.getThrowable());
-                oos.close();
-                output.write(bytes.toByteArray());
-            } else {
-                output.writeByte(2);
-                dataSerializer.serialize(n.getValue(), output);
-            }
+        public void serialize(DataOutput output, T t) throws IOException {
+            dataSerializer.serialize(output, t);
         }
     };
 

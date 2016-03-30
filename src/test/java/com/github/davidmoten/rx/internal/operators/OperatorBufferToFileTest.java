@@ -214,7 +214,7 @@ public final class OperatorBufferToFileTest {
         DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
 
             @Override
-            public void serialize(Integer n, DataOutput output) throws IOException {
+            public void serialize(DataOutput output, Integer n) throws IOException {
                 output.writeInt(n);
             }
 
@@ -233,7 +233,7 @@ public final class OperatorBufferToFileTest {
             final static int chunkSize = 1000;
 
             @Override
-            public void serialize(Integer n, DataOutput output) throws IOException {
+            public void serialize(DataOutput output, Integer n) throws IOException {
                 output.writeInt(n);
                 // write some filler
                 int toWrite = dummyArraySize;
@@ -274,7 +274,7 @@ public final class OperatorBufferToFileTest {
         return new DataSerializer<String>() {
 
             @Override
-            public void serialize(String s, DataOutput output) throws IOException {
+            public void serialize(DataOutput output, String s) throws IOException {
                 output.writeUTF(s);
             }
 
