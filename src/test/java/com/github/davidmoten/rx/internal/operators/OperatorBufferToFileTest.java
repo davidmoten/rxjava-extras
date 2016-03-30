@@ -4,10 +4,10 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
@@ -17,46 +17,69 @@ import com.github.davidmoten.rx.slf4j.Logging;
 
 import rx.Observable;
 import rx.functions.Action1;
+import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
-public class OperatorBufferToFileTest {
-
-    private static void reset() {
-        System.out.println("deleting db");
-        File[] files = new File("target").listFiles();
-        for (File file : files) {
-            if (file.getName().startsWith("db"))
-                file.delete();
-        }
-        System.out.println("deleted db");
-    }
+public final class OperatorBufferToFileTest {
 
     @Test
-    public void testThreeElements() {
-        reset();
-        DataSerializer<String> serializer = new DataSerializer<String>() {
-
-            @Override
-            public void serialize(String s, DataOutput output) throws IOException {
-                output.writeUTF(s);
-            }
-
-            @Override
-            public String deserialize(DataInput input, int size) throws IOException {
-                return input.readUTF();
-            }
-        };
-
-        List<String> b = Observable
-                .just("abc", "def", "ghi").compose(Transformers
-                        .onBackpressureBufferToFile(serializer, Schedulers.computation()))
+    public void handlesThreeElements() {
+        List<String> b = Observable.just("abc", "def", "ghi")
+                //
+                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                        Schedulers.computation()))
                 .toList().toBlocking().single();
         assertEquals(Arrays.asList("abc", "def", "ghi"), b);
     }
 
     @Test
-    public void testMany() {
-        reset();
+    public void handlesThreeElementsWithBackpressureAndEnsureCompletionEventArrivesEvenThoughOnlyThreeRequested()
+            throws InterruptedException {
+        TestSubscriber<String> ts = TestSubscriber.create(0);
+        Observable.just("abc", "def", "ghi")
+                // 
+                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                        Schedulers.computation()))
+                .subscribe(ts);
+        ts.assertNoValues();
+        ts.requestMore(4);
+        ts.awaitTerminalEvent(10000, TimeUnit.SECONDS);
+        ts.assertCompleted();
+        ts.assertValues("abc", "def", "ghi");
+    }
+
+    @Test
+    public void handlesManyOneMbMessages() {
+        DataSerializer<Integer> serializer = createLargeMessageSerializer();
+        int max = 100;
+        long t = System.currentTimeMillis();
+        int last = Observable.range(1, max)
+                .compose(Transformers.onBackpressureBufferToFile(serializer,
+                        Schedulers.computation()))
+                .lift(Logging.<Integer> logger().showMemory().log())
+                .doOnNext(new Action1<Object>() {
+                    int count = 0;
+
+                    @Override
+                    public void call(Object t) {
+                        // delay processing of reads for first three items
+                        count++;
+                        if (count < 3) {
+                            try {
+                                System.out.println(t);
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                //
+                            }
+                        }
+                    }
+                }).last().subscribeOn(Schedulers.computation()).toBlocking().single();
+        t = System.currentTimeMillis() - t;
+        System.out.println("rate = " + (double) max / t * 1000);
+        assertEquals(max, last);
+    }
+
+    private DataSerializer<Integer> createLargeMessageSerializer() {
         DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
 
             final static int dummyArraySize = 1000000;// 1MB
@@ -97,32 +120,22 @@ public class OperatorBufferToFileTest {
                 return value;
             }
         };
-        int max = 100;
-        long t = System.currentTimeMillis();
-        int last = Observable.range(1, max)
-                .compose(Transformers.onBackpressureBufferToFile(serializer,
-                        Schedulers.computation()))
-                .lift(Logging.<Integer> logger().showMemory().log())
-                .doOnNext(new Action1<Object>() {
-                    int count = 0;
+        return serializer;
+    }
 
-                    @Override
-                    public void call(Object t) {
-                        // delay processing of reads for
-                        count++;
-                        if (count < 3) {
-                            try {
-                                System.out.println(t);
-                                Thread.sleep(1000);
-                            } catch (InterruptedException e) {
-                                //
-                            }
-                        }
-                    }
-                }).last().subscribeOn(Schedulers.computation()).toBlocking().single();
-        t = System.currentTimeMillis() - t;
-        System.out.println("rate = " + (double) max / t * 1000);
-        assertEquals(max, last);
+    private static DataSerializer<String> createStringSerializer() {
+        return new DataSerializer<String>() {
+
+            @Override
+            public void serialize(String s, DataOutput output) throws IOException {
+                output.writeUTF(s);
+            }
+
+            @Override
+            public String deserialize(DataInput input, int size) throws IOException {
+                return input.readUTF();
+            }
+        };
     }
 
 }

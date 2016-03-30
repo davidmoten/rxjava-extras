@@ -55,55 +55,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static <T> Serializer<Notification<T>> createSerializer(
             DataSerializer<T> dataSerializer) {
-        return new MySerializer<T>(dataSerializer);
+        return new MapDbSerializer<T>(dataSerializer);
     }
-
-    public static final class MySerializer<T> implements Serializer<Notification<T>>, Serializable {
-
-        private static final long serialVersionUID = -4992031045087289671L;
-        private transient final DataSerializer<T> dataSerializer;
-
-        public MySerializer(DataSerializer<T> dataSerializer) {
-            this.dataSerializer = dataSerializer;
-        }
-
-        @Override
-        public Notification<T> deserialize(DataInput input, int size) throws IOException {
-            byte type = input.readByte();
-            if (type == 0) {
-                return Notification.createOnCompleted();
-            } else if (type == 1) {
-                String errorClass = input.readUTF();
-                String message = input.readUTF();
-                // TODO exceptions are serializable so we should be able to
-                // handle this
-                return Notification.createOnError(new RuntimeException(errorClass + ":" + message));
-            } else {
-                // reduce size by 1 because we have read one byte already
-                T t = dataSerializer.deserialize(input, size - 1);
-                return Notification.createOnNext(t);
-            }
-        }
-
-        @Override
-        public int fixedSize() {
-            return -1;
-        }
-
-        @Override
-        public void serialize(DataOutput output, Notification<T> n) throws IOException {
-            if (n.isOnCompleted()) {
-                output.writeByte(0);
-            } else if (n.isOnError()) {
-                output.writeByte(1);
-                output.writeUTF(n.getThrowable().getClass().getName());
-                output.writeUTF(n.getThrowable().getMessage());
-            } else {
-                output.writeByte(2);
-                dataSerializer.serialize(n.getValue(), output);
-            }
-        }
-    };
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> child) {
@@ -208,8 +161,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             @Override
             public void call() {
                 long r = get();
-                long emitted = 0;
                 while (true) {
+                    long emitted = 0;
                     while (r > 0) {
                         if (child.isUnsubscribed()) {
                             // don't touch wip to prevent more draining
@@ -229,6 +182,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                                     // draining
                                     return;
                                 }
+                                r--;
                                 emitted++;
                             }
                         }
@@ -287,6 +241,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             @Override
             public void unsubscribe() {
                 try {
+                    // note that db is configured to attempt to delete files
+                    // after close
                     db.close();
                 } catch (RuntimeException e) {
                     e.printStackTrace();
@@ -299,5 +255,53 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             }
         };
     }
+
+    public static final class MapDbSerializer<T>
+            implements Serializer<Notification<T>>, Serializable {
+
+        private static final long serialVersionUID = -4992031045087289671L;
+        private transient final DataSerializer<T> dataSerializer;
+
+        public MapDbSerializer(DataSerializer<T> dataSerializer) {
+            this.dataSerializer = dataSerializer;
+        }
+
+        @Override
+        public Notification<T> deserialize(DataInput input, int size) throws IOException {
+            byte type = input.readByte();
+            if (type == 0) {
+                return Notification.createOnCompleted();
+            } else if (type == 1) {
+                String errorClass = input.readUTF();
+                String message = input.readUTF();
+                // TODO exceptions are serializable so we should be able to
+                // handle this
+                return Notification.createOnError(new RuntimeException(errorClass + ":" + message));
+            } else {
+                // reduce size by 1 because we have read one byte already
+                T t = dataSerializer.deserialize(input, size - 1);
+                return Notification.createOnNext(t);
+            }
+        }
+
+        @Override
+        public int fixedSize() {
+            return -1;
+        }
+
+        @Override
+        public void serialize(DataOutput output, Notification<T> n) throws IOException {
+            if (n.isOnCompleted()) {
+                output.writeByte(0);
+            } else if (n.isOnError()) {
+                output.writeByte(1);
+                output.writeUTF(n.getThrowable().getClass().getName());
+                output.writeUTF(n.getThrowable().getMessage());
+            } else {
+                output.writeByte(2);
+                dataSerializer.serialize(n.getValue(), output);
+            }
+        }
+    };
 
 }
