@@ -14,8 +14,6 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 import org.mapdb.StoreDirect;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
