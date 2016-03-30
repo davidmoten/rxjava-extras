@@ -1,6 +1,5 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -294,16 +293,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             if (type == 0) {
                 return Notification.createOnCompleted();
             } else if (type == 1) {
-                InputStream is = new InputStream() {
-                    @Override
-                    public int read() throws IOException {
-                        try {
-                            return input.readUnsignedByte();
-                        } catch (EOFException e) {
-                            return -1;
-                        }
-                    }
-                };
+                InputStream is = createInputStream(input);
                 ObjectInputStream oos = new ObjectInputStream(is);
                 Throwable t;
                 try {
@@ -342,5 +332,18 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             }
         }
     };
+
+    private static InputStream createInputStream(final DataInput input) {
+        return new InputStream() {
+            @Override
+            public int read() throws IOException {
+                try {
+                    return input.readUnsignedByte();
+                } catch (EOFException e) {
+                    return -1;
+                }
+            }
+        };
+    }
 
 }
