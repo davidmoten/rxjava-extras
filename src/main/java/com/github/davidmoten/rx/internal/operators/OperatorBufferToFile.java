@@ -103,7 +103,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         if (options.getStorageSizeLimitBytes() != Options.UNLIMITED) {
             builder = builder.sizeLimit(options.getStorageSizeLimitBytes());
         }
-        final DB db = builder.deleteFilesAfterClose().make();
+        final DB db = builder.deleteFilesAfterClose().transactionDisable().make();
         return db;
     }
 
@@ -139,7 +139,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
         @Override
         public void onNext(T t) {
-            queue.offer(Notification.createOnNext(t));       
+            queue.offer(Notification.createOnNext(t));
             messageArrived();
         }
 
