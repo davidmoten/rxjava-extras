@@ -102,11 +102,11 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         } else if (options.getCacheType() == CacheType.LEAST_RECENTLY_USED) {
             builder = builder.cacheLRUEnable();
         }
-        if (options.getCacheSizeItems() != Options.UNLIMITED) {
-            builder = builder.cacheSize(options.getCacheSizeItems());
+        if (options.getCacheSizeItems().isPresent()) {
+            builder = builder.cacheSize(options.getCacheSizeItems().get());
         }
-        if (options.getStorageSizeLimitBytes() != Options.UNLIMITED) {
-            builder = builder.sizeLimit(options.getStorageSizeLimitBytes());
+        if (options.getStorageSizeLimitBytes().isPresent()) {
+            builder = builder.sizeLimit(options.getStorageSizeLimitBytes().get());
         }
         final DB db = builder.transactionDisable().deleteFilesAfterClose().make();
         return db;
@@ -228,18 +228,13 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
         @Override
         public void request(long n) {
-            drain(n);
-        }
-
-        void drain() {
-            drain(0);
-        }
-
-        private void drain(long n) {
-            // only one drain at a time
             if (n > 0) {
                 BackpressureUtils.getAndAddRequest(this, n);
+                drain();
             }
+        }
+
+        private void drain() {
             // only schedule a drain if current drain has finished
             // otherwise the drainRequested counter will be incremented
             // and the drain loop will ensure that another drain cyle occurs if
@@ -295,12 +290,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             } else if (type == 1) {
                 InputStream is = createInputStream(input);
                 ObjectInputStream oos = new ObjectInputStream(is);
-                Throwable t;
-                try {
-                    t = (Throwable) oos.readObject();
-                } catch (ClassNotFoundException e) {
-                    throw new IOException(e);
-                }
+                Throwable t = readThrowable(oos);
                 oos.close();
                 return Notification.createOnError(t);
             } else {
@@ -309,6 +299,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                 return Notification.createOnNext(t);
             }
         }
+
+        
 
         @Override
         public int fixedSize() {
@@ -346,4 +338,14 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         };
     }
 
+    private static Throwable readThrowable(ObjectInputStream oos) throws IOException {
+        Throwable t;
+        try {
+            t = (Throwable) oos.readObject();
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
+        return t;
+    }
+    
 }
