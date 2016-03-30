@@ -164,9 +164,10 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                 // received after third that terminal event was emitted as
                 // well
                 while (true) {
-                    drainRequested.set(1);
                     long r = get();
                     while (true) {
+                        //reset drainRequested counter
+                        drainRequested.set(1);
                         long emitted = 0;
                         while (r > 0) {
                             if (child.isUnsubscribed()) {
@@ -180,7 +181,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                                     if (finished()) {
                                         return;
                                     } else {
-                                        //another drain was requested so go round again
+                                        // another drain was requested so go
+                                        // round again
                                         break;
                                     }
                                 } else {
@@ -212,14 +214,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         };
 
         private boolean finished() {
-            while (true) {
-                if (drainRequested.get() > 1) {
-                    // another drain was requested
-                    return false;
-                } else if (drainRequested.compareAndSet(1, 0)) {
-                    return true;
-                }
-            }
+            return drainRequested.compareAndSet(1, 0);
         }
 
         QueueProducer(BlockingQueue<Notification<T>> queue, Subscriber<? super T> child,
