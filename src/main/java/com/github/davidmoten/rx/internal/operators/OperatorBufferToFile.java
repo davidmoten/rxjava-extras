@@ -165,54 +165,54 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
             @Override
             public void call() {
-                // TODO would be nice if 3 were requested and terminal event was
-                // received after third that terminal event was emitted as
-                // well
+                // TODO would be nice if n were requested and terminal event was
+                // received after nth that terminal event was emitted as
+                // well (at the moment requires another request which is still
+                // compliant but not optimal)
+                long r = get();
                 while (true) {
-                    long r = get();
-                    while (true) {
-                        // reset drainRequested counter
-                        drainRequested.set(1);
-                        long emitted = 0;
-                        while (r > 0) {
-                            if (child.isUnsubscribed()) {
-                                // leave drainRequested > 0 to prevent more
-                                // scheduling of drains
-                                return;
-                            } else {
-                                Notification<T> notification = queue.poll();
-                                if (notification == null) {
-                                    // queue is empty
-                                    if (finished()) {
-                                        return;
-                                    } else {
-                                        // another drain was requested so go
-                                        // round again but break out of this
-                                        // while loop to the outer loop
-                                        break;
-                                    }
+                    // reset drainRequested counter
+                    drainRequested.set(1);
+                    long emitted = 0;
+                    while (r > 0) {
+                        if (child.isUnsubscribed()) {
+                            // leave drainRequested > 0 to prevent more
+                            // scheduling of drains
+                            return;
+                        } else {
+                            Notification<T> notification = queue.poll();
+                            if (notification == null) {
+                                // queue is empty
+                                if (finished()) {
+                                    return;
                                 } else {
-                                    // there was a notification on the queue
-                                    notification.accept(child);
-                                    if (!notification.isOnNext()) {
-                                        // was terminal notification
-                                        // dont' touch wip to prevent more
-                                        // draining
-                                        return;
-                                    }
-                                    r--;
-                                    emitted++;
+                                    // another drain was requested so go
+                                    // round again but break out of this
+                                    // while loop to the outer loop so we
+                                    // can update r and reset drainRequested
+                                    break;
                                 }
+                            } else {
+                                // there was a notification on the queue
+                                notification.accept(child);
+                                if (!notification.isOnNext()) {
+                                    // is terminal notification
+                                    // leave drainRequested > 0 to prevent
+                                    // more scheduling of drains
+                                    return;
+                                }
+                                r--;
+                                emitted++;
                             }
                         }
-                        r = addAndGet(-emitted);
-                        if (r == 0L) {
-                            // we're done emitting the number requested so
-                            // return but we need to check that another request
-                            // hasn't just occurred to be sure it gets drained
-                            if (finished()) {
-                                return;
-                            }
+                    }
+                    r = addAndGet(-emitted);
+                    if (r == 0L) {
+                        // we're done emitting the number requested so
+                        // return but we need to check that another request
+                        // hasn't just occurred to be sure it gets drained
+                        if (finished()) {
+                            return;
                         }
                     }
                 }
