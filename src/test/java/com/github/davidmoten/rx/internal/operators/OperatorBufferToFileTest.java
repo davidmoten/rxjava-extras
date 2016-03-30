@@ -42,7 +42,8 @@ public final class OperatorBufferToFileTest {
                         Schedulers.computation()))
                 .subscribe(ts);
         ts.assertNoValues();
-        ts.requestMore(4);
+        ts.requestMore(2);
+        ts.requestMore(2);
         ts.awaitTerminalEvent(10000, TimeUnit.SECONDS);
         ts.assertCompleted();
         ts.assertValues("abc", "def", "ghi");
