@@ -54,6 +54,19 @@ public final class OperatorBufferToFileTest {
         ts.assertCompleted();
         ts.assertValues("abc", "def", "ghi");
     }
+    
+    @Test
+    public void handlesErrorSerialization()
+            throws InterruptedException {
+        TestSubscriber<String> ts = TestSubscriber.create();
+        Observable.<String>error(new IOException("boo"))
+                //
+                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                        Schedulers.computation(), createOptions()))
+                .subscribe(ts);
+        ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
+        ts.assertError(RuntimeException.class);
+    }
 
     @Test
     public void handlesManyOneMbMessages() {
