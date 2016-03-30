@@ -166,7 +166,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                 while (true) {
                     long r = get();
                     while (true) {
-                        //reset drainRequested counter
+                        // reset drainRequested counter
                         drainRequested.set(1);
                         long emitted = 0;
                         while (r > 0) {
@@ -182,7 +182,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                                         return;
                                     } else {
                                         // another drain was requested so go
-                                        // round again
+                                        // round again but break out of this
+                                        // while loop to the outer loop
                                         break;
                                     }
                                 } else {
@@ -239,6 +240,10 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             if (n > 0) {
                 BackpressureUtils.getAndAddRequest(this, n);
             }
+            // only schedule a drain if current drain has finished
+            // otherwise the drainRequested counter will be incremented
+            // and the drain loop will ensure that another drain cyle occurs if
+            // required
             if (drainRequested.getAndIncrement() == 0) {
                 worker.schedule(drainAction);
             }
