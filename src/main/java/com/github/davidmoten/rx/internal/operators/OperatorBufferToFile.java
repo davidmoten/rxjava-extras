@@ -183,7 +183,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                             Notification<T> notification = queue.poll();
                             if (notification == null) {
                                 // queue is empty
-                                if (finished()) {
+                                if (drainRequestsSatisfied()) {
                                     return;
                                 } else {
                                     // another drain was requested so go
@@ -207,14 +207,14 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                         }
                     }
                     r = addAndGet(-emitted);
-                    if (r == 0L && finished()) {
+                    if (r == 0L && drainRequestsSatisfied()) {
                         return;
                     }
                 }
             }
         };
 
-        private boolean finished() {
+        private boolean drainRequestsSatisfied() {
             return drainRequested.compareAndSet(1, 0);
         }
 
