@@ -12,7 +12,9 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Transformers;
+import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
+import com.github.davidmoten.rx.buffertofile.Options;
 import com.github.davidmoten.rx.slf4j.Logging;
 
 import rx.Observable;
@@ -27,19 +29,23 @@ public final class OperatorBufferToFileTest {
         List<String> b = Observable.just("abc", "def", "ghi")
                 //
                 .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
-                        Schedulers.computation()))
+                        Schedulers.computation(), createOptions()))
                 .toList().toBlocking().single();
         assertEquals(Arrays.asList("abc", "def", "ghi"), b);
     }
 
+    private static Options createOptions() {
+        return Options.builder().cacheType(CacheType.NO_CACHE).build();
+    }
+
     @Test
-    public void handlesThreeElementsWithBackpressureAndEnsureCompletionEventArrivesEvenThoughOnlyThreeRequested()
+    public void handlesThreeElementsWithBackpressureAndEnsureCompletionEventArrivesWhenFourRequested()
             throws InterruptedException {
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
-                // 
+                //
                 .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
-                        Schedulers.computation()))
+                        Schedulers.computation(), createOptions()))
                 .subscribe(ts);
         ts.assertNoValues();
         ts.requestMore(2);
@@ -53,11 +59,13 @@ public final class OperatorBufferToFileTest {
     public void handlesManyOneMbMessages() {
         DataSerializer<Integer> serializer = createLargeMessageSerializer();
         int max = 100;
-        long t = System.currentTimeMillis();
         int last = Observable.range(1, max)
+                //
                 .compose(Transformers.onBackpressureBufferToFile(serializer,
-                        Schedulers.computation()))
+                        Schedulers.computation(), createOptions()))
+                // log
                 .lift(Logging.<Integer> logger().showMemory().log())
+                // delay emissions
                 .doOnNext(new Action1<Object>() {
                     int count = 0;
 
@@ -74,10 +82,41 @@ public final class OperatorBufferToFileTest {
                             }
                         }
                     }
-                }).last().subscribeOn(Schedulers.computation()).toBlocking().single();
-        t = System.currentTimeMillis() - t;
-        System.out.println("rate = " + (double) max / t * 1000);
+                }).last().toBlocking().single();
         assertEquals(max, last);
+    }
+
+    @Test
+    public void checkRateForSmallMessages() {
+        DataSerializer<Integer> serializer = createIntegerSerializer();
+        int max = 1000000;
+        long t = System.currentTimeMillis();
+        int last = Observable.range(1, max)
+                //
+                .compose(Transformers.onBackpressureBufferToFile(serializer,
+                        Schedulers.computation(), Options.builder().cacheType(CacheType.NO_CACHE).build()))
+                // log
+                .lift(Logging.<Integer> logger().every(1000).showMemory().log()).last().toBlocking().single();
+        t = System.currentTimeMillis() - t;
+        assertEquals(max, last);
+        System.out.println("rate = " + (double) max / (t) * 1000);
+        //about 19000 messages per second on i7
+    }
+
+    private static DataSerializer<Integer> createIntegerSerializer() {
+        DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
+
+            @Override
+            public void serialize(Integer n, DataOutput output) throws IOException {
+                output.writeInt(n);
+            }
+
+            @Override
+            public Integer deserialize(DataInput input, int size) throws IOException {
+                return input.readInt();
+            }
+        };
+        return serializer;
     }
 
     private DataSerializer<Integer> createLargeMessageSerializer() {

@@ -139,7 +139,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
         @Override
         public void onNext(T t) {
-            queue.offer(Notification.createOnNext(t));
+            queue.offer(Notification.createOnNext(t));       
             messageArrived();
         }
 
@@ -160,6 +160,9 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
             @Override
             public void call() {
+                // TODO would be nice if 3 were requested and terminal event was
+                // received after third that terminal event was emitted as
+                // well
                 long r = get();
                 while (true) {
                     long emitted = 0;

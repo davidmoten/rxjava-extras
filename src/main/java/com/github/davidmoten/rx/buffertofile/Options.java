@@ -33,7 +33,7 @@ public final class Options {
     }
 
     /**
-     * Defaults are {@code cacheType=CacheType.NO_CACHE},
+     * Defaults are {@code cacheType=CacheType.SOFT_REF},
      * {@code cacheSizeItems=Options.UNLIMITED},
      * {@code storageSizeLimitBytes=Options.UNLIMITED}.
      * 
@@ -45,7 +45,7 @@ public final class Options {
 
     public static class Builder {
 
-        private CacheType cacheType = CacheType.NO_CACHE;
+        private CacheType cacheType = CacheType.SOFT_REF;
         private int cacheSizeItems = UNLIMITED;
         private double storageSizeLimitBytes = UNLIMITED;
 
