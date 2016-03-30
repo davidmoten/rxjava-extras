@@ -61,7 +61,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> child) {
         File file = fileFactory.call();
-        final DB db = createDb(file);
+        final DB db = createDb(file, options);
         final BlockingQueue<Notification<T>> queue = getQueue(db, serializer);
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
         final Worker worker = scheduler.createWorker();
@@ -84,7 +84,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         return sub;
     }
 
-    private DB createDb(File file) {
+    private static DB createDb(File file, Options options) {
         DBMaker<?> builder = DBMaker.newFileDB(file);
         if (options.getCacheType() == CacheType.NO_CACHE) {
             builder = builder.cacheDisable();
@@ -180,6 +180,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                                     if (finished()) {
                                         return;
                                     } else {
+                                        //another drain was requested so go round again
                                         break;
                                     }
                                 } else {
@@ -239,13 +240,11 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         }
 
         private void drain(long n) {
-            // only one thread at a time
-            // the or wip.compareAndSet handles the case where the drainAction
-            // hasn't finished but it has just set the wip to false
+            // only one drain at a time
             if (n > 0) {
                 BackpressureUtils.getAndAddRequest(this, n);
             }
-            if (drainRequested.getAndAdd(1) == 0) {
+            if (drainRequested.getAndIncrement() == 0) {
                 worker.schedule(drainAction);
             }
         }
