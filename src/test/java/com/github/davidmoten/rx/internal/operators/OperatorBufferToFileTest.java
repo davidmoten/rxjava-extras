@@ -2,85 +2,95 @@ package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
-import java.io.DataInputStream;
 import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
-import org.mapdb.Serializer;
 
-import rx.Notification;
+import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile.DataSerializer;
+import com.github.davidmoten.rx.slf4j.Logging;
+
 import rx.Observable;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 public class OperatorBufferToFileTest {
 
-    @Test
-    public void testSerialization() throws IOException {
-        Notification<String> n = Notification.createOnNext("abc");
-        MySerializer m = new MySerializer();
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        DataOutput output = new DataOutputStream(bytes);
-        m.serialize(output, n);
-        ByteArrayInputStream is = new ByteArrayInputStream(bytes.toByteArray());
-        DataInput input = new DataInputStream(is);
-        System.out.println(m.deserialize(input, bytes.size()));
+    private static void reset() {
+        File[] files = new File("target").listFiles();
+        for (File file : files) {
+            if (file.getName().startsWith("db"))
+                file.delete();
+        }
     }
 
     @Test
-    public void test() {
+    public void testThreeElements() {
+        reset();
+        DataSerializer<String> serializer = new DataSerializer<String>() {
+
+            @Override
+            public void serialize(String s, DataOutput output) throws IOException {
+                output.writeUTF(s);
+            }
+
+            @Override
+            public String deserialize(DataInput input, int size) throws IOException {
+                return input.readUTF();
+            }
+        };
 
         List<String> b = Observable.just("abc", "def", "ghi")
-                .lift(new OperatorBufferToFile<String>(new File("target/db"), new MySerializer()))
-                .toList().toBlocking().single();
+                .lift(new OperatorBufferToFile<String>(new File("target/db"), serializer, Schedulers.computation())).toList()
+                .toBlocking().single();
         assertEquals(Arrays.asList("abc", "def", "ghi"), b);
     }
 
-    public static final class MySerializer
-            implements Serializer<Notification<String>>, Serializable {
+    @Test
+    public void testMany() {
+        reset();
+        DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
 
-        private static final long serialVersionUID = -4992031045087289671L;
-
-        @Override
-        public Notification<String> deserialize(DataInput input, int size) throws IOException {
-            byte type = input.readByte();
-            if (type == 0) {
-                return Notification.createOnCompleted();
-            } else if (type == 1) {
-                String errorClass = input.readUTF();
-                String message = input.readUTF();
-                return Notification.createOnError(new RuntimeException(errorClass + ":" + message));
-            } else {
-                String value = input.readUTF();
-                return Notification.createOnNext(value);
+            @Override
+            public void serialize(Integer n, DataOutput output) throws IOException {
+                output.writeInt(n);
+                output.write(new byte[1000000]);
+                System.out.println("written " + n);
             }
-        }
 
-        @Override
-        public int fixedSize() {
-            return -1;
-        }
-
-        @Override
-        public void serialize(DataOutput output, Notification<String> n) throws IOException {
-            if (n.isOnCompleted()) {
-                output.writeByte(0);
-            } else if (n.isOnError()) {
-                output.writeByte(1);
-                output.writeUTF(n.getThrowable().getClass().getName());
-                output.writeUTF(n.getThrowable().getMessage());
-            } else {
-                output.writeByte(2);
-                output.writeUTF(n.getValue());
+            @Override
+            public Integer deserialize(DataInput input, int size) throws IOException {
+                int value = input.readInt();
+                input.readFully(new byte[1000000]);
+                System.out.println("read " + value);
+                return value;
             }
-        }
-    };
-    
+        };
+        int max = 1000;
+        long t = System.currentTimeMillis();
+        int last = Observable.range(1, max)
+                .lift(new OperatorBufferToFile<Integer>(new File("target/db"), serializer, Schedulers.computation()))
+                .lift(Logging.<Integer> logger().showMemory().log())
+                .doOnNext(new Action1<Object>() {
+
+                    @Override
+                    public void call(Object t) {
+                        try {
+                            System.out.println(t);
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            //
+                        }
+
+                    }
+                }).last().subscribeOn(Schedulers.computation()).toBlocking().single();
+        t = System.currentTimeMillis() - t;
+        System.out.println("rate = " + (double) max / t * 1000);
+        assertEquals(max, last);
+    }
+
 }
