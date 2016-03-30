@@ -89,18 +89,20 @@ public final class OperatorBufferToFileTest {
     @Test
     public void checkRateForSmallMessages() {
         DataSerializer<Integer> serializer = createIntegerSerializer();
-        int max = 1000000;
+        int max = 10000;
         long t = System.currentTimeMillis();
         int last = Observable.range(1, max)
                 //
                 .compose(Transformers.onBackpressureBufferToFile(serializer,
-                        Schedulers.computation(), Options.builder().cacheType(CacheType.NO_CACHE).build()))
+                        Schedulers.computation(),
+                        Options.builder().cacheType(CacheType.NO_CACHE).build()))
                 // log
-                .lift(Logging.<Integer> logger().every(1000).showMemory().log()).last().toBlocking().single();
+                .lift(Logging.<Integer> logger().every(1000).showMemory().log()).last().toBlocking()
+                .single();
         t = System.currentTimeMillis() - t;
         assertEquals(max, last);
         System.out.println("rate = " + (double) max / (t) * 1000);
-        //about 19000 messages per second on i7
+        // about 19000 messages per second on i7
     }
 
     private static DataSerializer<Integer> createIntegerSerializer() {
