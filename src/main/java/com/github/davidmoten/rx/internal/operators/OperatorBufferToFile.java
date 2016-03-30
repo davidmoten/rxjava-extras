@@ -6,7 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -153,7 +153,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
         private static final long serialVersionUID = 2521533710633950102L;
         private final BlockingQueue<Notification<T>> queue;
-        private final AtomicBoolean wip = new AtomicBoolean(false);
+        private final AtomicInteger drainRequested = new AtomicInteger(0);
         private final Subscriber<? super T> child;
         private final Worker worker;
         private final Action0 drainAction = new Action0() {
@@ -163,46 +163,63 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                 // TODO would be nice if 3 were requested and terminal event was
                 // received after third that terminal event was emitted as
                 // well
-                long r = get();
                 while (true) {
-                    long emitted = 0;
-                    while (r > 0) {
-                        if (child.isUnsubscribed()) {
-                            // don't touch wip to prevent more draining
-                            return;
-                        } else {
-                            Notification<T> notification = queue.poll();
-                            if (notification == null) {
-                                // queue is empty
-                                wip.set(false);
+                    drainRequested.set(1);
+                    long r = get();
+                    while (true) {
+                        long emitted = 0;
+                        while (r > 0) {
+                            if (child.isUnsubscribed()) {
+                                // leave drainRequested > 0 to prevent more
+                                // scheduling of drains
                                 return;
                             } else {
-                                // there was a notification on the queue
-                                notification.accept(child);
-                                if (!notification.isOnNext()) {
-                                    // was terminal notification
-                                    // dont' touch wip to prevent more
-                                    // draining
-                                    return;
+                                Notification<T> notification = queue.poll();
+                                if (notification == null) {
+                                    // queue is empty
+                                    if (finished()) {
+                                        return;
+                                    } else {
+                                        break;
+                                    }
+                                } else {
+                                    // there was a notification on the queue
+                                    notification.accept(child);
+                                    if (!notification.isOnNext()) {
+                                        // was terminal notification
+                                        // dont' touch wip to prevent more
+                                        // draining
+                                        return;
+                                    }
+                                    r--;
+                                    emitted++;
                                 }
-                                r--;
-                                emitted++;
                             }
                         }
-                    }
-                    r = addAndGet(-emitted);
-                    if (r == 0L) {
-                        // we're done emitting the number requested so
-                        // return
-                        // TODO at this point here there is a race condition
-                        // where a request could mean that
-                        // no drain occurs
-                        wip.set(false);
-                        return;
+                        r = addAndGet(-emitted);
+                        if (r == 0L) {
+                            // we're done emitting the number requested so
+                            // return but we need to check that another request
+                            // hasn't just occurred to be sure it gets drained
+                            if (finished()) {
+                                return;
+                            }
+                        }
                     }
                 }
             }
         };
+
+        private boolean finished() {
+            while (true) {
+                if (drainRequested.get() > 1) {
+                    // another drain was requested
+                    return false;
+                } else if (drainRequested.compareAndSet(1, 0)) {
+                    return true;
+                }
+            }
+        }
 
         QueueProducer(BlockingQueue<Notification<T>> queue, Subscriber<? super T> child,
                 Worker worker) {
@@ -225,8 +242,10 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             // only one thread at a time
             // the or wip.compareAndSet handles the case where the drainAction
             // hasn't finished but it has just set the wip to false
-            if ((n > 0 && BackpressureUtils.getAndAddRequest(this, n) == 0)
-                    | wip.compareAndSet(false, true)) {
+            if (n > 0) {
+                BackpressureUtils.getAndAddRequest(this, n);
+            }
+            if (drainRequested.getAndAdd(1) == 0) {
                 worker.schedule(drainAction);
             }
         }
