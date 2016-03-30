@@ -54,18 +54,32 @@ public final class OperatorBufferToFileTest {
         ts.assertCompleted();
         ts.assertValues("abc", "def", "ghi");
     }
-    
+
     @Test
-    public void handlesErrorSerialization()
-            throws InterruptedException {
+    public void handlesErrorSerialization() throws InterruptedException {
         TestSubscriber<String> ts = TestSubscriber.create();
-        Observable.<String>error(new IOException("boo"))
+        Observable.<String> error(new IOException("boo"))
                 //
                 .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
                         Schedulers.computation(), createOptions()))
                 .subscribe(ts);
         ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
         ts.assertError(RuntimeException.class);
+    }
+
+    @Test
+    public void handlesUnsubscription() throws InterruptedException {
+        TestSubscriber<String> ts = TestSubscriber.create(0);
+        Observable.just("abc", "def", "ghi")
+                //
+                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                        Schedulers.computation(), createOptions()))
+                .subscribe(ts);
+        ts.requestMore(2);
+        TimeUnit.MILLISECONDS.sleep(500);
+        ts.unsubscribe();
+        TimeUnit.MILLISECONDS.sleep(500);
+        ts.assertValues("abc", "def");
     }
 
     @Test
