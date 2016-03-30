@@ -49,10 +49,11 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     public OperatorBufferToFile(Func0<File> fileFactory, DataSerializer<T> dataSerializer,
             Scheduler scheduler, Options options) {
-        this.fileFactory = fileFactory;
         Preconditions.checkNotNull(fileFactory);
         Preconditions.checkNotNull(dataSerializer);
         Preconditions.checkNotNull(scheduler);
+        Preconditions.checkNotNull(options);
+        this.fileFactory = fileFactory;
         this.scheduler = scheduler;
         this.serializer = createSerializer(dataSerializer);
         this.options = options;
