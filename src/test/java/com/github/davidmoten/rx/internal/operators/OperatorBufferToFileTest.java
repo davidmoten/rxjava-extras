@@ -4,12 +4,16 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.CacheType;
@@ -26,16 +30,57 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesThreeElementsImmediateScheduler() throws InterruptedException {
+        checkHandlesThreeElements(createOptions());
+    }
+
+    @Test
+    public void handlesThreeElementsImmediateSchedulerWeakRef() throws InterruptedException {
+        checkHandlesThreeElements(Options.cacheType(CacheType.WEAK_REF).build());
+    }
+
+    @Test
+    public void handlesThreeElementsImmediateSchedulerSoftRef() throws InterruptedException {
+        checkHandlesThreeElements(Options.cacheType(CacheType.SOFT_REF).build());
+    }
+
+    @Test
+    public void handlesThreeElementsImmediateSchedulerHardRef() throws InterruptedException {
+        checkHandlesThreeElements(Options.cacheType(CacheType.HARD_REF).build());
+    }
+
+    @Test
+    public void handlesThreeElementsImmediateSchedulerLRU() throws InterruptedException {
+        checkHandlesThreeElements(Options.cacheType(CacheType.LEAST_RECENTLY_USED).build());
+    }
+
+    @Test
+    public void handlesThreeElementsImmediateSchedulerWeakWithLimitedCacheAndLimitedStorageSize()
+            throws InterruptedException {
+        checkHandlesThreeElements(Options.cacheType(CacheType.SOFT_REF).cacheSizeItems(1)
+                .storageSizeLimitBytes(10000).build());
+    }
+
+    private void checkHandlesThreeElements(Options options) {
         List<String> b = Observable.just("abc", "def", "ghi")
                 //
                 .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
-                        Schedulers.immediate(), createOptions()))
+                        Schedulers.immediate(), options))
+                .toList().toBlocking().single();
+        assertEquals(Arrays.asList("abc", "def", "ghi"), b);
+    }
+
+    @Test
+    public void handlesThreeElementsImmediateSchedulerSoft() throws InterruptedException {
+        List<String> b = Observable.just("abc", "def", "ghi")
+                //
+                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                        Schedulers.immediate(), Options.cacheType(CacheType.WEAK_REF).build()))
                 .toList().toBlocking().single();
         assertEquals(Arrays.asList("abc", "def", "ghi"), b);
     }
 
     private static Options createOptions() {
-        return Options.builder().cacheType(CacheType.NO_CACHE).build();
+        return Options.cacheType(CacheType.NO_CACHE).build();
     }
 
     @Test
@@ -81,7 +126,7 @@ public final class OperatorBufferToFileTest {
         TimeUnit.MILLISECONDS.sleep(500);
         ts.assertValues("abc", "def");
     }
-    
+
     @Test
     public void handlesUnsubscriptionDuringDrainLoop() throws InterruptedException {
         TestSubscriber<String> ts = TestSubscriber.create(0);
@@ -94,12 +139,12 @@ public final class OperatorBufferToFileTest {
                     @Override
                     public void call(Object t) {
                         try {
-                            //pauses drain loop
+                            // pauses drain loop
                             Thread.sleep(500);
                         } catch (InterruptedException e) {
                         }
-                    }})
-                .subscribe(ts);
+                    }
+                }).subscribe(ts);
         ts.requestMore(2);
         TimeUnit.MILLISECONDS.sleep(250);
         ts.unsubscribe();
@@ -146,8 +191,7 @@ public final class OperatorBufferToFileTest {
         int last = Observable.range(1, max)
                 //
                 .compose(Transformers.onBackpressureBufferToFile(serializer,
-                        Schedulers.computation(),
-                        Options.builder().cacheType(CacheType.NO_CACHE).build()))
+                        Schedulers.computation(), Options.cacheType(CacheType.NO_CACHE).build()))
                 // log
                 .lift(Logging.<Integer> logger().every(1000).showMemory().log()).last().toBlocking()
                 .single();
@@ -155,6 +199,15 @@ public final class OperatorBufferToFileTest {
         assertEquals(max, last);
         System.out.println("rate = " + (double) max / (t) * 1000);
         // about 19000 messages per second on i7
+    }
+
+    @Test
+    public void testCreateInputStream() throws IOException {
+        DataInput input = Mockito.mock(DataInput.class);
+        Mockito.when(input.readUnsignedByte()).thenThrow(new EOFException());
+        InputStream is = OperatorBufferToFile.createInputStream(input);
+        assertEquals(-1, is.read());
+        Mockito.verify(input);
     }
 
     private static DataSerializer<Integer> createIntegerSerializer() {

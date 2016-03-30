@@ -41,10 +41,22 @@ public final class Options {
      * 
      * @return a builder object for Options
      */
-    public static Builder builder() {
+    private static Builder builder() {
         return new Builder();
     }
 
+    public static Builder cacheType(CacheType cacheType) {
+       return builder().cacheType(cacheType);
+    }
+
+    public static Builder cacheSizeItems(int cacheSizeItems) {
+        return builder().cacheSizeItems(cacheSizeItems);
+    }
+
+    public static Builder storageSizeLimitBytes(double storageSizeLimitBytes) {
+        return builder().storageSizeLimitBytes(storageSizeLimitBytes);
+    }
+    
     public static class Builder {
 
         private CacheType cacheType = CacheType.SOFT_REF;

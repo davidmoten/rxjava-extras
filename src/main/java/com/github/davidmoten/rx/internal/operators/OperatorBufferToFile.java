@@ -300,8 +300,6 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             }
         }
 
-        
-
         @Override
         public int fixedSize() {
             return -1;
@@ -325,7 +323,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         }
     };
 
-    private static InputStream createInputStream(final DataInput input) {
+    // VisibleForTesting
+    static InputStream createInputStream(final DataInput input) {
         return new InputStream() {
             @Override
             public int read() throws IOException {
@@ -338,14 +337,14 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         };
     }
 
-    private static Throwable readThrowable(ObjectInputStream oos) throws IOException {
+    private static Throwable readThrowable(ObjectInputStream ois) throws IOException {
         Throwable t;
         try {
-            t = (Throwable) oos.readObject();
+            t = (Throwable) ois.readObject();
         } catch (ClassNotFoundException e) {
             throw new IOException(e);
         }
         return t;
     }
-    
+
 }

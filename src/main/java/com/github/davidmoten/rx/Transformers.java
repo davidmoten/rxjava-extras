@@ -613,7 +613,7 @@ public final class Transformers {
     
     public static <T> Transformer<T, T> onBackpressureBufferToFile(
             final DataSerializer<T> serializer, final Scheduler scheduler) {
-        return onBackpressureBufferToFile(serializer, scheduler, Options.builder().cacheType(CacheType.WEAK_REF).build());
+        return onBackpressureBufferToFile(serializer, scheduler, Options.cacheType(CacheType.WEAK_REF).build());
     }
 
     public static <T> Transformer<T, T> windowMin(final int windowSize,
