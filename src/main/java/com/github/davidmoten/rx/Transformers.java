@@ -1,6 +1,7 @@
 package com.github.davidmoten.rx;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.CharsetDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,9 +13,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.mapdb.Serializer;
-
 import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
+import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
+import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile.DataSerializer;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
 import com.github.davidmoten.rx.internal.operators.OperatorSampleFirst;
@@ -589,9 +590,24 @@ public final class Transformers {
         };
     }
 
-    public static <T> Transformer<T, T> onBackpressureBufferToFile(File file,
-            Serializer<T> serializer) {
-        return new TransformerOnBackpressureBufferToFile<T>(file, serializer);
+    public static <T> Transformer<T, T> onBackpressureBufferToFile(
+            final DataSerializer<T> serializer, final Scheduler scheduler) {
+        return new Transformer<T, T>() {
+
+            @Override
+            public Observable<T> call(Observable<T> o) {
+                return o.lift(new OperatorBufferToFile<T>(new Func0<File>() {
+                    @Override
+                    public File call() {
+                        try {
+                            return File.createTempFile("bufferToFileDb", "");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }, serializer, scheduler));
+            }
+        };
     }
 
     public static <T> Transformer<T, T> windowMin(final int windowSize,

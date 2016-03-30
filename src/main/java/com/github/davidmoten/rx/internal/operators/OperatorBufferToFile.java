@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
+import org.mapdb.StoreDirect;
+import org.mapdb.StoreWAL;
 
 import com.github.davidmoten.util.Preconditions;
 
@@ -26,6 +28,7 @@ import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action0;
+import rx.functions.Func0;
 import rx.internal.operators.BackpressureUtils;
 import rx.observers.Subscribers;
 
@@ -33,15 +36,16 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static final String QUEUE_NAME = "q";
 
-    private final File file;
     private final Serializer<Notification<T>> serializer;
     private final Scheduler scheduler;
+    private final Func0<File> fileFactory;
 
-    public OperatorBufferToFile(File file, DataSerializer<T> dataSerializer, Scheduler scheduler) {
-        Preconditions.checkNotNull(file);
+    public OperatorBufferToFile(Func0<File> fileFactory, DataSerializer<T> dataSerializer,
+            Scheduler scheduler) {
+        this.fileFactory = fileFactory;
+        Preconditions.checkNotNull(fileFactory);
         Preconditions.checkNotNull(dataSerializer);
         Preconditions.checkNotNull(scheduler);
-        this.file = file;
         this.scheduler = scheduler;
         this.serializer = createSerializer(dataSerializer);
     }
@@ -104,44 +108,14 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> child) {
+        File file = fileFactory.call();
         final DB db = DBMaker.newFileDB(file).cacheDisable().make();
         final BlockingQueue<Notification<T>> queue = getQueue(db, serializer);
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
         final Worker worker = scheduler.createWorker();
         child.add(worker);
-        
-        Subscriber<T> sub = new Subscriber<T>() {
 
-            @Override
-            public void onStart() {
-                request(Long.MAX_VALUE);
-            }
-
-            @Override
-            public void onCompleted() {
-                queue.offer(Notification.<T> createOnCompleted());
-                messageArrived();
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                // TODO optionally shortcut error (so queue elements don't get
-                // processed)
-                queue.offer(Notification.<T> createOnError(e));
-                messageArrived();
-            }
-
-            @Override
-            public void onNext(T t) {
-                queue.offer(Notification.createOnNext(t));
-                messageArrived();
-            }
-
-            private void messageArrived() {
-                queueProducer.get().drain();
-            }
-
-        };
+        Subscriber<T> sub = new BufferToFileSubscriber<T>(queue, queueProducer);
 
         Observable<T> source = Observable.create(new OnSubscribe<T>() {
             @Override
@@ -151,12 +125,53 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                 child.setProducer(qp);
             }
         });
-
-        Subscriber<T> wrappedChild = Subscribers.wrap(child);
         child.add(sub);
-        child.add(disposer(db));
+        child.add(disposer(db, file));
+        Subscriber<T> wrappedChild = Subscribers.wrap(child);
         source.subscribe(wrappedChild);
         return sub;
+    }
+
+    private static class BufferToFileSubscriber<T> extends Subscriber<T> {
+
+        private final BlockingQueue<Notification<T>> queue;
+        private final AtomicReference<QueueProducer<T>> queueProducer;
+
+        public BufferToFileSubscriber(BlockingQueue<Notification<T>> queue,
+                AtomicReference<QueueProducer<T>> queueProducer) {
+            this.queue = queue;
+            this.queueProducer = queueProducer;
+        }
+
+        @Override
+        public void onStart() {
+            request(Long.MAX_VALUE);
+        }
+
+        @Override
+        public void onCompleted() {
+            queue.offer(Notification.<T> createOnCompleted());
+            messageArrived();
+        }
+
+        @Override
+        public void onError(Throwable e) {
+            // TODO optionally shortcut error (so queue elements don't get
+            // processed)
+            queue.offer(Notification.<T> createOnError(e));
+            messageArrived();
+        }
+
+        @Override
+        public void onNext(T t) {
+            queue.offer(Notification.createOnNext(t));
+            messageArrived();
+        }
+
+        private void messageArrived() {
+            queueProducer.get().drain();
+        }
+
     }
 
     private static class QueueProducer<T> extends AtomicLong implements Producer {
@@ -206,10 +221,12 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                         wip.set(false);
                         return;
                     }
-                }                
-            }};
+                }
+            }
+        };
 
-        QueueProducer(BlockingQueue<Notification<T>> queue, Subscriber<? super T> child, Worker worker) {
+        QueueProducer(BlockingQueue<Notification<T>> queue, Subscriber<? super T> child,
+                Worker worker) {
             super();
             this.queue = queue;
             this.child = child;
@@ -227,7 +244,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
         private void drain(long n) {
             // only one thread at a time
-            // the or wip.compareAndSet handles the case where the drainAction hasn't finished but it has just set the wip to false
+            // the or wip.compareAndSet handles the case where the drainAction
+            // hasn't finished but it has just set the wip to false
             if ((n > 0 && BackpressureUtils.getAndAddRequest(this, n) == 0)
                     | wip.compareAndSet(false, true)) {
                 worker.schedule(drainAction);
@@ -238,21 +256,32 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static <T> BlockingQueue<Notification<T>> getQueue(DB db,
             Serializer<Notification<T>> serializer) {
-        synchronized (db) {
-            if (db.getCatalog().containsKey(QUEUE_NAME)) {
-                return db.getQueue(QUEUE_NAME);
-            } else {
-                return db.createQueue(QUEUE_NAME, serializer, false);
-            }
-        }
+        return db.createQueue(QUEUE_NAME, serializer, false);
     }
 
-    private static Subscription disposer(final DB db) {
+    private static Subscription disposer(final DB db, final File file) {
         return new Subscription() {
 
             @Override
             public void unsubscribe() {
-                db.close();
+                try {
+                    db.close();
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                }
+                if (!file.delete()) {
+                    System.err.println("could not delete MapDB db file: " + file);
+                }
+                File data = new File(file.getParentFile(),
+                        file.getName() + StoreDirect.DATA_FILE_EXT);
+                if (!data.delete()) {
+                    System.err.println("could not delete MapDB data file: " + data);
+                }
+                File logFile = new File(file.getParentFile(),
+                        file.getName() + StoreWAL.TRANS_LOG_FILE_EXT);
+                if (!logFile.delete()) {
+                    System.err.println("could not delete MapDB log file: " + logFile);
+                }
             }
 
             @Override
