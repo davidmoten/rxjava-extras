@@ -5,8 +5,6 @@ import com.github.davidmoten.util.Preconditions;
 
 public final class Options {
 
-    public static final int UNLIMITED = 0;
-
     private final CacheType cacheType;
     private final Optional<Integer> cacheSizeItems;
     private final Optional<Double> storageSizeLimitBytes;
