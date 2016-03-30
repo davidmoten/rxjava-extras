@@ -81,6 +81,30 @@ public final class OperatorBufferToFileTest {
         TimeUnit.MILLISECONDS.sleep(500);
         ts.assertValues("abc", "def");
     }
+    
+    @Test
+    public void handlesUnsubscriptionDuringDrainLoop() throws InterruptedException {
+        TestSubscriber<String> ts = TestSubscriber.create(0);
+        Observable.just("abc", "def", "ghi")
+                //
+                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                        Schedulers.computation(), createOptions()))
+                .doOnNext(new Action1<Object>() {
+
+                    @Override
+                    public void call(Object t) {
+                        try {
+                            Thread.sleep(500);
+                        } catch (InterruptedException e) {
+                        }
+                    }})
+                .subscribe(ts);
+        ts.requestMore(2);
+        TimeUnit.MILLISECONDS.sleep(250);
+        ts.unsubscribe();
+        TimeUnit.MILLISECONDS.sleep(500);
+        ts.assertValues("abc");
+    }
 
     @Test
     public void handlesManyOneMbMessages() {
