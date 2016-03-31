@@ -84,7 +84,7 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test
-    public void handlesThreeElementsWithBackpressureAndEnsureCompletionEventArrivesWhenFourRequested()
+    public void handlesThreeElementsWithBackpressureAndEnsureCompletionEventArrivesWhenThreeRequested()
             throws InterruptedException {
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
@@ -94,7 +94,7 @@ public final class OperatorBufferToFileTest {
                 .subscribe(ts);
         ts.assertNoValues();
         ts.requestMore(2);
-        ts.requestMore(2);
+        ts.requestMore(1);
         ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
         ts.assertCompleted();
         ts.assertValues("abc", "def", "ghi");
