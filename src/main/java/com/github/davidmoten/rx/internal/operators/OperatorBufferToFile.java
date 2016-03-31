@@ -29,7 +29,6 @@ import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.Subscription;
-import rx.exceptions.Exceptions;
 import rx.functions.Action0;
 import rx.internal.operators.BackpressureUtils;
 import rx.observers.Subscribers;
@@ -58,29 +57,48 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> child) {
+        // create the file to be used for queue storage (and whose file name
+        // will determine the names of other files used for storage)
         File file = options.fileFactory().call();
+
+        // create a MapDB database using that file name
         final DB db = createDb(file, options);
-        final Queue<T> queue = getQueue(db, serializer);
+
+        // create the MapDB queue
+        final Queue<T> queue = createQueue(db, serializer);
+
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
+
+        // emissions will propagate to downstream via this worker
         final Worker worker = scheduler.createWorker();
+
+        // set up the observable to read from the MapDB queue
+        Observable<T> source = Observable
+                .create(new OnSubscribeFromQueue<T>(queueProducer, queue, worker, options));
+
+        // create the parent subscriber
+        Subscriber<T> parentSubscriber = new ParentSubscriber<T>(queueProducer);
+
+        // ensure worker gets unsubscribed
         child.add(worker);
 
-        Subscriber<T> sub = new BufferToFileSubscriber<T>(queueProducer);
+        // link unsubscription
+        child.add(parentSubscriber);
 
-        Observable<T> source = Observable.create(new OnSubscribe<T>() {
-            @Override
-            public void call(Subscriber<? super T> child) {
-                QueueProducer<T> qp = new QueueProducer<T>(queue, child, worker,
-                        options.delayError());
-                queueProducer.set(qp);
-                child.setProducer(qp);
-            }
-        });
-        child.add(sub);
+        // close and delete database on unsubscription
         child.add(disposer(db));
+
+        // ensure onStart not called twice
         Subscriber<T> wrappedChild = Subscribers.wrap(child);
+
+        // subscribe to queue
         source.unsafeSubscribe(wrappedChild);
-        return sub;
+
+        return parentSubscriber;
+    }
+
+    private static <T> BlockingQueue<T> createQueue(final DB db, Serializer<T> serializer) {
+        return db.createQueue(QUEUE_NAME, serializer, false);
     }
 
     private static DB createDb(File file, Options options) {
@@ -95,6 +113,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
             builder = builder.cacheWeakRefEnable();
         } else if (options.cacheType() == CacheType.LEAST_RECENTLY_USED) {
             builder = builder.cacheLRUEnable();
+        } else {
+            throw new RuntimeException("unknown cacheType " + options.cacheType());
         }
         if (options.cacheSizeItems().isPresent()) {
             builder = builder.cacheSize(options.cacheSizeItems().get());
@@ -106,11 +126,34 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         return builder.transactionDisable().deleteFilesAfterClose().make();
     }
 
-    private static class BufferToFileSubscriber<T> extends Subscriber<T> {
+    private static final class OnSubscribeFromQueue<T> implements OnSubscribe<T> {
+
+        private final AtomicReference<QueueProducer<T>> queueProducer;
+        private final Queue<T> queue;
+        private final Worker worker;
+        private final Options options;
+
+        OnSubscribeFromQueue(AtomicReference<QueueProducer<T>> queueProducer, Queue<T> queue,
+                Worker worker, Options options) {
+            this.queueProducer = queueProducer;
+            this.queue = queue;
+            this.worker = worker;
+            this.options = options;
+        }
+
+        @Override
+        public void call(Subscriber<? super T> child) {
+            QueueProducer<T> qp = new QueueProducer<T>(queue, child, worker, options.delayError());
+            queueProducer.set(qp);
+            child.setProducer(qp);
+        }
+    }
+
+    private static final class ParentSubscriber<T> extends Subscriber<T> {
 
         private final AtomicReference<QueueProducer<T>> queueProducer;
 
-        BufferToFileSubscriber(AtomicReference<QueueProducer<T>> queueProducer) {
+        ParentSubscriber(AtomicReference<QueueProducer<T>> queueProducer) {
             this.queueProducer = queueProducer;
         }
 
@@ -136,7 +179,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
     }
 
-    private static class QueueProducer<T> extends AtomicLong implements Producer, Action0 {
+    private static final class QueueProducer<T> extends AtomicLong implements Producer, Action0 {
 
         private static final long serialVersionUID = 2521533710633950102L;
         private final Queue<T> queue;
@@ -195,6 +238,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         // this method executed from drain() only
         @Override
         public void call() {
+            // catch exceptions related to MapDB usage in drainNow()
             try {
                 drainNow();
             } catch (IOError e) {
@@ -255,8 +299,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                 Throwable t = error;
                 if (isQueueEmpty) {
                     // assign volatile to a temp variable so we don't
-                    // read
-                    // it twice
+                    // read it twice
                     if (t != null) {
                         child.onError(t);
                     } else {
@@ -268,13 +311,13 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                 } else if (t != null && !delayError) {
                     // queue is not empty but we are going to shortcut
                     // that because delayError is false
-                    
-                    //first clear the queue
+
+                    // first clear the queue
                     queue.clear();
-                    
-                    //now report the error
+
+                    // now report the error
                     child.onError(t);
-                    
+
                     // leave drainRequested > 0 so that further drain
                     // requests are ignored
                     return true;
@@ -288,10 +331,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                 return drainRequested.compareAndSet(1, 0);
             }
         }
-    }
-
-    private static <T> BlockingQueue<T> getQueue(DB db, Serializer<T> serializer) {
-        return db.createQueue(QUEUE_NAME, serializer, false);
     }
 
     private static Subscription disposer(final DB db) {

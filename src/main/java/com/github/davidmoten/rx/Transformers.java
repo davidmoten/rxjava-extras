@@ -1,7 +1,5 @@
 package com.github.davidmoten.rx;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.charset.CharsetDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,7 +11,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.Options;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
@@ -603,14 +600,13 @@ public final class Transformers {
 
     public static <T> Transformer<T, T> onBackpressureBufferToFile(
             final DataSerializer<T> serializer) {
-        return onBackpressureBufferToFile(serializer, Schedulers.immediate(),
+        return onBackpressureBufferToFile(serializer, Schedulers.computation(),
                 Options.defaultInstance());
     }
 
     public static <T> Transformer<T, T> onBackpressureBufferToFile(
             final DataSerializer<T> serializer, final Scheduler scheduler) {
-        return onBackpressureBufferToFile(serializer, scheduler,
-                Options.defaultInstance());
+        return onBackpressureBufferToFile(serializer, scheduler, Options.defaultInstance());
     }
 
     public static <T> Transformer<T, T> windowMin(final int windowSize,
