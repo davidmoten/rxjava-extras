@@ -25,13 +25,14 @@ Utilities for use with rxjava:
 * `Transformers.ignoreElementsThen`
 * `Transformers.sampleFirst`
 * `Transformers.decode`
+* `Transformers.onBackpressureBufferToFile` - uses MapDB to buffer items to cache backed by disk, supports weak/soft/hard/LRU reference cache
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
 * `Bytes.from`
 * `Bytes.unzip` unzips zip archives
 * `Strings.from`
-* `Strings.lines`
+* `Strings.lines` - supports backpressure (not available in rxjava-string 1.0.1)
 * `Strings.split` - supports backpressure (not available in rxjava-string 1.0.1)
 
 
@@ -257,6 +258,66 @@ To merge two streams in order (according to a `Comparator`):
 ```java
 source1.compose(Transformers.orderedMergeWith(source2, comparator));
 ```
+
+Transformers.onBackpressureBufferToFile
+----------------------------------------
+As of 0.7.1-RC1, if you add a dependency for MapDB you can offload an observable chain to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
+
+```xml
+ <dependency>
+    <groupId>org.mapdb</groupId>
+    <artifactId>mapdb</artifactId>
+    <version>1.0.9</version>
+</dependency>
+```
+Here's an example:
+
+```java
+// define how the items in the source stream would be serialized
+DataSerializer<String> serializer = new DataSerializer<String>() {
+
+    @Override
+    public void serialize(DataOutput output, String s) throws IOException {
+        output.writeUTF(s);
+    }
+
+    @Override
+    public String deserialize(DataInput input, int size) throws IOException {
+        return input.readUTF();
+    }
+};
+
+// write the source strings to a 
+// disk-backed queue on the subscription
+// thread and emit the items read from 
+// the queue on the computation() scheduler.
+Observable
+  .just("a", "b", "c")
+  .compose(
+    Transformers.onBackpressureBufferToFile(
+        serializer, Schedulers.computation()))
+  ...
+```
+You can configure various options:
+
+```java
+Observable
+  .just("a", "b", "c")
+  .compose(
+    Transformers.onBackpressureBufferToFile(
+        serializer, 
+        Schedulers.computation(), 
+        Options
+          .cacheType(CacheType.SOFT_REF)
+          .cacheSizeItems(1000)
+          .storageSizeLimitBytes(1000000)
+          .delayError(false)
+          .build()))
+  ...
+```
+
+Caching options include `SOFT_REF`, `WEAK_REF`, `HARD_REF`, `LEAST_RECENTLY_USED`, and `NO_CACHE`. The default is `NO_CACHE`.
+
 
 TestingHelper
 -----------------

@@ -90,7 +90,7 @@ public final class Options {
     public static class Builder {
 
         private Func0<File> fileFactory = FileFactoryHolder.INSTANCE;
-        private CacheType cacheType = CacheType.SOFT_REF;
+        private CacheType cacheType = CacheType.NO_CACHE;
         private Optional<Integer> cacheSizeItems = Optional.absent();
         private Optional<Double> storageSizeLimitBytes = Optional.absent();
         private boolean delayError = true;
@@ -115,7 +115,7 @@ public final class Options {
 
         /**
          * Sets the cache type used by the queue storage mechanism. Defaults to
-         * {@code CacheType.SOFT_REF} if this method is not called.
+         * {@code CacheType.NO_CACHE} if this method is not called.
          * 
          * @param cacheType
          * @return the current builder

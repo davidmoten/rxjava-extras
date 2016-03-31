@@ -227,6 +227,24 @@ public final class OperatorBufferToFileTest {
         // about 19000 messages per second on i7
     }
 
+    @Test
+    public void testForReadMe() {
+        DataSerializer<String> serializer = new DataSerializer<String>() {
+
+            @Override
+            public void serialize(DataOutput output, String s) throws IOException {
+                output.writeUTF(s);
+            }
+
+            @Override
+            public String deserialize(DataInput input, int size) throws IOException {
+                return input.readUTF();
+            }
+        };
+        List<String> list = Observable.just("a", "b", "c").compose(Transformers.onBackpressureBufferToFile(serializer, Schedulers.computation())).toList().toBlocking().single();
+        assertEquals(Arrays.asList("a","b","c"), list);
+    }
+
     private static DataSerializer<Integer> createIntegerSerializer() {
         DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
 
