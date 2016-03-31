@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -12,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.mapdb.DBMaker;
 
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.CacheType;
@@ -56,7 +59,7 @@ public final class OperatorBufferToFileTest {
     public void handlesThreeElementsImmediateSchedulerWeakWithLimitedCacheAndLimitedStorageSize()
             throws InterruptedException {
         checkHandlesThreeElements(Options.cacheType(CacheType.SOFT_REF).cacheSizeItems(1)
-                .storageSizeLimitBytes(10000).build());
+                .storageSizeLimitMB(1).build());
     }
 
     private void checkHandlesThreeElements(Options options) {
@@ -241,8 +244,27 @@ public final class OperatorBufferToFileTest {
                 return input.readUTF();
             }
         };
-        List<String> list = Observable.just("a", "b", "c").compose(Transformers.onBackpressureBufferToFile(serializer, Schedulers.computation())).toList().toBlocking().single();
-        assertEquals(Arrays.asList("a","b","c"), list);
+        List<String> list = Observable.just("a", "b", "c").compose(
+                Transformers.onBackpressureBufferToFile(serializer, Schedulers.computation()))
+                .toList().toBlocking().single();
+        assertEquals(Arrays.asList("a", "b", "c"), list);
+    }
+
+    @Test
+    public void testOverflow() throws InterruptedException {
+        TestSubscriber<Integer> ts = TestSubscriber.create();
+        DataSerializer<Integer> serializer = createLargeMessageSerializer();
+        int max = 100;
+        Observable.range(1, max)
+                //
+                .compose(Transformers.onBackpressureBufferToFile(serializer,
+                        Schedulers.computation(),
+                        Options.cacheType(CacheType.NO_CACHE).storageSizeLimitMB(1).build()))
+                .delay(50, TimeUnit.MILLISECONDS, Schedulers.immediate()).last().subscribe(ts);
+        ts.awaitTerminalEvent();
+        ts.assertError(IOException.class);
+        //wait for unsubscribe
+        Thread.sleep(500);
     }
 
     private static DataSerializer<Integer> createIntegerSerializer() {

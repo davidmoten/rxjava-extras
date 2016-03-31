@@ -3,6 +3,7 @@ package com.github.davidmoten.rx.internal.operators;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
+import java.io.IOError;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Queue;
@@ -28,6 +29,7 @@ import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.Subscription;
+import rx.exceptions.Exceptions;
 import rx.functions.Action0;
 import rx.internal.operators.BackpressureUtils;
 import rx.observers.Subscribers;
@@ -77,7 +79,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         child.add(sub);
         child.add(disposer(db));
         Subscriber<T> wrappedChild = Subscribers.wrap(child);
-        source.subscribe(wrappedChild);
+        source.unsafeSubscribe(wrappedChild);
         return sub;
     }
 
@@ -97,8 +99,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         if (options.cacheSizeItems().isPresent()) {
             builder = builder.cacheSize(options.cacheSizeItems().get());
         }
-        if (options.storageSizeLimitBytes().isPresent()) {
-            builder = builder.sizeLimit(options.storageSizeLimitBytes().get());
+        if (options.storageSizeLimitMB().isPresent()) {
+            // sizeLimit is expected in GB
+            builder = builder.sizeLimit(options.storageSizeLimitMB().get() / 1024);
         }
         return builder.transactionDisable().deleteFilesAfterClose().make();
     }
@@ -192,6 +195,22 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         // this method executed from drain() only
         @Override
         public void call() {
+            try {
+                drainNow();
+            } catch (IOError e) {
+                if (e.getCause() != null) {
+                    // unwrap IOError(IOException: no free space to expand
+                    // Volume)
+                    child.onError(e.getCause());
+                } else {
+                    child.onError(e);
+                }
+            } catch (Throwable t) {
+                child.onError(t);
+            }
+        }
+
+        private void drainNow() {
             // get the number of unsatisfied requests
             long r = get();
             while (true) {
@@ -278,7 +297,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                     // note that db is configured to attempt to delete files
                     // after close
                     db.close();
-                } catch (RuntimeException e) {
+                } catch (Throwable e) {
                     // there is no facility to report unsubscription failures in
                     // the observable chain so write to stderr
                     e.printStackTrace();

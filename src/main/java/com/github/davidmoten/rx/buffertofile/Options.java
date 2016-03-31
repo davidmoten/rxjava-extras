@@ -13,22 +13,22 @@ public final class Options {
     private final Func0<File> fileFactory;
     private final CacheType cacheType;
     private final Optional<Integer> cacheSizeItems;
-    private final Optional<Double> storageSizeLimitBytes;
+    private final Optional<Double> storageSizeLimitMB;
     private final boolean delayError;
 
     private Options(Func0<File> filefactory, CacheType cacheType, Optional<Integer> cacheSizeItems,
-            Optional<Double> storageSizeLimitBytes, boolean delayError) {
+            Optional<Double> storageSizeLimitMB, boolean delayError) {
         Preconditions.checkNotNull(filefactory);
         Preconditions.checkNotNull(cacheType);
         Preconditions.checkArgument(!cacheSizeItems.isPresent() || cacheSizeItems.get() > 0,
                 "cacheSizeItems cannot be negative or zero");
         Preconditions.checkArgument(
-                !storageSizeLimitBytes.isPresent() || storageSizeLimitBytes.get() > 0,
+                !storageSizeLimitMB.isPresent() || storageSizeLimitMB.get() > 0,
                 "storageSizeLimitBytes cannot be negative or zero");
         this.fileFactory = filefactory;
         this.cacheType = cacheType;
         this.cacheSizeItems = cacheSizeItems;
-        this.storageSizeLimitBytes = storageSizeLimitBytes;
+        this.storageSizeLimitMB = storageSizeLimitMB;
         this.delayError = delayError;
     }
 
@@ -44,8 +44,8 @@ public final class Options {
         return cacheSizeItems;
     }
 
-    public Optional<Double> storageSizeLimitBytes() {
-        return storageSizeLimitBytes;
+    public Optional<Double> storageSizeLimitMB() {
+        return storageSizeLimitMB;
     }
 
     public boolean delayError() {
@@ -75,8 +75,8 @@ public final class Options {
         return builder().cacheSizeItems(cacheSizeItems);
     }
 
-    public static Builder storageSizeLimitBytes(double storageSizeLimitBytes) {
-        return builder().storageSizeLimitBytes(storageSizeLimitBytes);
+    public static Builder storageSizeLimitMB(double storageSizeLimitMB) {
+        return builder().storageSizeLimitMB(storageSizeLimitMB);
     }
 
     public static Builder delayError(boolean delayError) {
@@ -92,7 +92,7 @@ public final class Options {
         private Func0<File> fileFactory = FileFactoryHolder.INSTANCE;
         private CacheType cacheType = CacheType.NO_CACHE;
         private Optional<Integer> cacheSizeItems = Optional.absent();
-        private Optional<Double> storageSizeLimitBytes = Optional.absent();
+        private Optional<Double> storageSizeLimitMB = Optional.absent();
         private boolean delayError = true;
 
         private Builder() {
@@ -130,8 +130,8 @@ public final class Options {
             return this;
         }
 
-        public Builder storageSizeLimitBytes(double storageSizeLimitBytes) {
-            this.storageSizeLimitBytes = Optional.of(storageSizeLimitBytes);
+        public Builder storageSizeLimitMB(double storageSizeLimitMB) {
+            this.storageSizeLimitMB = Optional.of(storageSizeLimitMB);
             return this;
         }
 
@@ -149,7 +149,7 @@ public final class Options {
         }
 
         public Options build() {
-            return new Options(fileFactory, cacheType, cacheSizeItems, storageSizeLimitBytes,
+            return new Options(fileFactory, cacheType, cacheSizeItems, storageSizeLimitMB,
                     delayError);
         }
     }
