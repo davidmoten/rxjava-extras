@@ -263,6 +263,11 @@ public final class Transformers {
                 completion, BackpressureStrategy.BUFFER);
     }
 
+    /**
+     * This operator has not been reviewed properly yet so don't use.
+     * 
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public static <T> Transformer<T, T> bufferEmissions() {
         return (Transformer<T, T>) BufferEmissionsHolder.INSTANCE;
