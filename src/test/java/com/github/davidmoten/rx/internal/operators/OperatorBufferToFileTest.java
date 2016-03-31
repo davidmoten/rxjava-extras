@@ -9,7 +9,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.CacheType;
@@ -22,6 +24,7 @@ import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public final class OperatorBufferToFileTest {
 
     @Test
@@ -133,7 +136,6 @@ public final class OperatorBufferToFileTest {
         ts.requestMore(2);
         ts.awaitTerminalEvent(5000, TimeUnit.SECONDS);
         ts.assertError(IOException.class);
-        ts.assertValueCount(2);
     }
 
     @Test
