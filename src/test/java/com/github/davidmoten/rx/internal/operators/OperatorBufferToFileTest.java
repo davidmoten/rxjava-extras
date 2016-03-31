@@ -4,8 +4,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.File;
-import java.io.IOError;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -14,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import org.mapdb.DBMaker;
 
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.CacheType;
@@ -29,6 +26,19 @@ import rx.schedulers.Schedulers;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public final class OperatorBufferToFileTest {
+
+    @Test
+    public void handlesEmpty() {
+        TestSubscriber<String> ts = TestSubscriber.create(0);
+        Observable.<String> empty().compose(Transformers
+                .onBackpressureBufferToFile(createStringSerializer(), Schedulers.computation()))
+                .subscribe(ts);
+        ts.requestMore(1);
+        ts.awaitTerminalEvent();
+        ts.assertNoErrors();
+        ts.assertNoValues();
+        ts.assertCompleted();
+    }
 
     @Test
     public void handlesThreeElementsImmediateScheduler() throws InterruptedException {
@@ -240,7 +250,7 @@ public final class OperatorBufferToFileTest {
             }
 
             @Override
-            public String deserialize(DataInput input, int size) throws IOException {
+            public String deserialize(DataInput input, int availableBytes) throws IOException {
                 return input.readUTF();
             }
         };
@@ -263,7 +273,7 @@ public final class OperatorBufferToFileTest {
                 .delay(50, TimeUnit.MILLISECONDS, Schedulers.immediate()).last().subscribe(ts);
         ts.awaitTerminalEvent();
         ts.assertError(IOException.class);
-        //wait for unsubscribe
+        // wait for unsubscribe
         Thread.sleep(500);
     }
 
@@ -276,7 +286,7 @@ public final class OperatorBufferToFileTest {
             }
 
             @Override
-            public Integer deserialize(DataInput input, int size) throws IOException {
+            public Integer deserialize(DataInput input, int availableBytes) throws IOException {
                 return input.readInt();
             }
         };
@@ -307,7 +317,7 @@ public final class OperatorBufferToFileTest {
             }
 
             @Override
-            public Integer deserialize(DataInput input, int size) throws IOException {
+            public Integer deserialize(DataInput input, int availableBytes) throws IOException {
                 int value = input.readInt();
                 // read the filler
                 int bytesRead = 0;
@@ -336,7 +346,7 @@ public final class OperatorBufferToFileTest {
             }
 
             @Override
-            public String deserialize(DataInput input, int size) throws IOException {
+            public String deserialize(DataInput input, int availableBytes) throws IOException {
                 return input.readUTF();
             }
         };

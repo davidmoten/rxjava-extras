@@ -282,7 +282,7 @@ DataSerializer<String> serializer = new DataSerializer<String>() {
     }
 
     @Override
-    public String deserialize(DataInput input, int size) throws IOException {
+    public String deserialize(DataInput input, int availableBytes) throws IOException {
         return input.readUTF();
     }
 };

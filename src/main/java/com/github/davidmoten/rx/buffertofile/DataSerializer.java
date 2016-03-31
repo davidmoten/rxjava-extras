@@ -23,8 +23,8 @@ public interface DataSerializer<T> {
      * @param input
      *            input data to read from
      * @param availableBytes
-     *            the number of bytes available. No bytes available may be
-     *            represented by -1 or 0
+     *            the number of bytes available. 0 would correspond to a null
+     *            object, -1 is EOF.
      * @return deserialized object
      * @throws IOException
      */

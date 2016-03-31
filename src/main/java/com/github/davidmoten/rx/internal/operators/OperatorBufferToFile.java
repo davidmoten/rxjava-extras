@@ -256,12 +256,12 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
         private void drainNow() {
             // get the number of unsatisfied requests
-            long r = get();
+            long requests = get();
             while (true) {
                 // reset drainRequested counter
                 drainRequested.set(1);
                 long emitted = 0;
-                while (r > 0) {
+                while (requests > 0) {
                     if (child.isUnsubscribed()) {
                         // leave drainRequested > 0 to prevent more
                         // scheduling of drains
@@ -276,19 +276,19 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                                 // another drain was requested so go
                                 // round again but break out of this
                                 // while loop to the outer loop so we
-                                // can update r and reset drainRequested
+                                // can update requests and reset drainRequested
                                 break;
                             }
                         } else {
                             // there was an item on the queue
                             child.onNext(item);
-                            r--;
+                            requests--;
                             emitted++;
                         }
                     }
                 }
-                r = addAndGet(-emitted);
-                if (r == 0L && finished(queue.isEmpty())) {
+                requests = addAndGet(-emitted);
+                if (requests == 0L && finished(queue.isEmpty())) {
                     return;
                 }
             }
