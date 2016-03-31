@@ -40,8 +40,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
     private final Scheduler scheduler;
     private final Options options;
 
-    public OperatorBufferToFile( DataSerializer<T> dataSerializer,
-            Scheduler scheduler, Options options) {
+    public OperatorBufferToFile(DataSerializer<T> dataSerializer, Scheduler scheduler,
+            Options options) {
         Preconditions.checkNotNull(dataSerializer);
         Preconditions.checkNotNull(scheduler);
         Preconditions.checkNotNull(options);
@@ -133,7 +133,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
     }
 
-    private static class QueueProducer<T> extends AtomicLong implements Producer {
+    private static class QueueProducer<T> extends AtomicLong implements Producer, Action0 {
 
         private static final long serialVersionUID = 2521533710633950102L;
         private final Queue<T> queue;
@@ -142,7 +142,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         private final Worker worker;
         private volatile boolean done = false;
         private volatile Throwable error = null;
-        private final Action0 drainAction = createDrainAction();
         private final boolean delayError;
 
         QueueProducer(Queue<T> queue, Subscriber<? super T> child, Worker worker,
@@ -186,89 +185,84 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
             // and the drain loop will ensure that another drain cyle occurs if
             // required
             if (drainRequested.getAndIncrement() == 0) {
-                worker.schedule(drainAction);
+                worker.schedule(this);
             }
         }
 
-        private Action0 createDrainAction() {
-            return new Action0() {
-
-                @Override
-                public void call() {
-                    // get the number of unsatisfied requests
-                    long r = get();
-                    while (true) {
-                        // reset drainRequested counter
-                        drainRequested.set(1);
-                        long emitted = 0;
-                        while (r > 0) {
-                            if (child.isUnsubscribed()) {
-                                // leave drainRequested > 0 to prevent more
-                                // scheduling of drains
+        // this method executed from drain() only
+        @Override
+        public void call() {
+            // get the number of unsatisfied requests
+            long r = get();
+            while (true) {
+                // reset drainRequested counter
+                drainRequested.set(1);
+                long emitted = 0;
+                while (r > 0) {
+                    if (child.isUnsubscribed()) {
+                        // leave drainRequested > 0 to prevent more
+                        // scheduling of drains
+                        return;
+                    } else {
+                        T item = queue.poll();
+                        if (item == null) {
+                            // queue is empty
+                            if (finished(true)) {
                                 return;
                             } else {
-                                T item = queue.poll();
-                                if (item == null) {
-                                    // queue is empty
-                                    if (finished(true)) {
-                                        return;
-                                    } else {
-                                        // another drain was requested so go
-                                        // round again but break out of this
-                                        // while loop to the outer loop so we
-                                        // can update r and reset drainRequested
-                                        break;
-                                    }
-                                } else {
-                                    // there was an item on the queue
-                                    child.onNext(item);
-                                    r--;
-                                    emitted++;
-                                }
+                                // another drain was requested so go
+                                // round again but break out of this
+                                // while loop to the outer loop so we
+                                // can update r and reset drainRequested
+                                break;
                             }
-                        }
-                        r = addAndGet(-emitted);
-                        if (r == 0L && finished(queue.isEmpty())) {
-                            return;
-                        }
-                    }
-                }
-
-                private boolean finished(boolean isQueueEmpty) {
-                    if (done) {
-                        Throwable t = error;
-                        if (isQueueEmpty) {
-                            // assign volatile to a temp variable so we don't
-                            // read
-                            // it twice
-                            if (t != null) {
-                                child.onError(t);
-                            } else {
-                                child.onCompleted();
-                            }
-                            // leave drainRequested > 0 so that further drain
-                            // requests are ignored
-                            return true;
-                        } else if (t != null && !delayError) {
-                            // queue is not empty but we are going to shortcut
-                            // that because delayError is false
-                            child.onError(t);
-                            // leave drainRequested > 0 so that further drain
-                            // requests are ignored
-                            return true;
                         } else {
-                            // otherwise we need to wait for all items waiting
-                            // on the queue to be requested and delivered
-                            // (delayError=true)
-                            return drainRequested.compareAndSet(1, 0);
+                            // there was an item on the queue
+                            child.onNext(item);
+                            r--;
+                            emitted++;
                         }
-                    } else {
-                        return drainRequested.compareAndSet(1, 0);
                     }
                 }
-            };
+                r = addAndGet(-emitted);
+                if (r == 0L && finished(queue.isEmpty())) {
+                    return;
+                }
+            }
         }
 
+        private boolean finished(boolean isQueueEmpty) {
+            if (done) {
+                Throwable t = error;
+                if (isQueueEmpty) {
+                    // assign volatile to a temp variable so we don't
+                    // read
+                    // it twice
+                    if (t != null) {
+                        child.onError(t);
+                    } else {
+                        child.onCompleted();
+                    }
+                    // leave drainRequested > 0 so that further drain
+                    // requests are ignored
+                    return true;
+                } else if (t != null && !delayError) {
+                    // queue is not empty but we are going to shortcut
+                    // that because delayError is false
+                    child.onError(t);
+                    // leave drainRequested > 0 so that further drain
+                    // requests are ignored
+                    return true;
+                } else {
+                    // otherwise we need to wait for all items waiting
+                    // on the queue to be requested and delivered
+                    // (delayError=true)
+                    return drainRequested.compareAndSet(1, 0);
+                }
+            } else {
+                return drainRequested.compareAndSet(1, 0);
+            }
+        }
     }
 
     private static <T> BlockingQueue<T> getQueue(DB db, Serializer<T> serializer) {
