@@ -268,7 +268,13 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                 } else if (t != null && !delayError) {
                     // queue is not empty but we are going to shortcut
                     // that because delayError is false
+                    
+                    //first clear the queu
+                    queue.clear();
+                    
+                    //now report the error
                     child.onError(t);
+                    
                     // leave drainRequested > 0 so that further drain
                     // requests are ignored
                     return true;
