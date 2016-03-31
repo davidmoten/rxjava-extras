@@ -201,15 +201,6 @@ public final class OperatorBufferToFileTest {
         // about 19000 messages per second on i7
     }
 
-    @Test
-    public void testCreateInputStream() throws IOException {
-        DataInput input = Mockito.mock(DataInput.class);
-        Mockito.when(input.readUnsignedByte()).thenThrow(new EOFException());
-        InputStream is = OperatorBufferToFile.createInputStream(input);
-        assertEquals(-1, is.read());
-        Mockito.verify(input);
-    }
-
     private static DataSerializer<Integer> createIntegerSerializer() {
         DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
 

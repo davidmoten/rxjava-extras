@@ -2,11 +2,8 @@ package com.github.davidmoten.rx.internal.operators;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
@@ -171,7 +168,7 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                             T item = queue.poll();
                             if (item == null) {
                                 // queue is empty
-                                if (drainRequestsSatisfied(true)) {
+                                if (finished(true)) {
                                     return;
                                 } else {
                                     // another drain was requested so go
@@ -189,22 +186,24 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                         }
                     }
                     r = addAndGet(-emitted);
-                    if (r == 0L && drainRequestsSatisfied(queue.isEmpty())) {
+                    if (r == 0L && finished(queue.isEmpty())) {
                         return;
                     }
                 }
             }
         };
 
-        private boolean drainRequestsSatisfied(boolean isQueueEmpty) {
+        private boolean finished(boolean isQueueEmpty) {
             if (done && isQueueEmpty) {
+                // assign volatile to a temp variable so we don't read it twice
                 Throwable t = error;
                 if (t != null) {
                     child.onError(t);
                 } else {
                     child.onCompleted();
                 }
-                //leave drainRequested > 0 so that further drain requests are ignored
+                // leave drainRequested > 0 so that further drain requests are
+                // ignored
                 return true;
             } else {
                 return drainRequested.compareAndSet(1, 0);
@@ -217,6 +216,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         }
 
         void onError(Throwable e) {
+            // must assign error before assign done = true to avoid race
+            // condition
             error = e;
             done = true;
             drain();
@@ -268,6 +269,8 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
                     // after close
                     db.close();
                 } catch (RuntimeException e) {
+                    // there is no facility to report unsubscription failures in
+                    // the observable chain so write to stderr
                     e.printStackTrace();
                 }
             }
@@ -304,28 +307,5 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         }
     };
 
-    // VisibleForTesting
-    static InputStream createInputStream(final DataInput input) {
-        return new InputStream() {
-            @Override
-            public int read() throws IOException {
-                try {
-                    return input.readUnsignedByte();
-                } catch (EOFException e) {
-                    return -1;
-                }
-            }
-        };
-    }
-
-    private static Throwable readThrowable(ObjectInputStream ois) throws IOException {
-        Throwable t;
-        try {
-            t = (Throwable) ois.readObject();
-        } catch (ClassNotFoundException e) {
-            throw new IOException(e);
-        }
-        return t;
-    }
 
 }
