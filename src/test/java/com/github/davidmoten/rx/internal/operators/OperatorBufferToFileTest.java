@@ -124,7 +124,7 @@ public final class OperatorBufferToFileTest {
                         if (first) {
                             first = false;
                             try {
-                                Thread.sleep(500);
+                                TimeUnit.MILLISECONDS.sleep(500);
                             } catch (InterruptedException e) {
                             }
                         }
