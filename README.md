@@ -25,7 +25,7 @@ Utilities for use with rxjava:
 * `Transformers.ignoreElementsThen`
 * `Transformers.sampleFirst`
 * `Transformers.decode`
-* [`Transformers.onBackpressureBufferToFile`](#transformersonbackpressurebuffertofile) - uses MapDB to buffer items to cache backed by disk, supports weak/soft/hard/LRU reference cache
+* [`Transformers.onBackpressureBufferToFile`](README.md#transformersonbackpressurebuffertofile) - uses MapDB to buffer items to cache backed by disk, supports weak/soft/hard/LRU reference cache
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
