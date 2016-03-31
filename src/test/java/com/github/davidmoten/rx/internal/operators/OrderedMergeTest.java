@@ -87,7 +87,6 @@ public class OrderedMergeTest {
 
         TestSubscriber<Integer> ts = TestSubscriber.create();
         OrderedMerge.create((Collection) Arrays.asList(o1, o2)).subscribe(ts);
-
         ts.assertNoErrors();
         ts.assertCompleted();
         ts.assertValues(1, 2, 3, 4, 5, 6, 7, 8);

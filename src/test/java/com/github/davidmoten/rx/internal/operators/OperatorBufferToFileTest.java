@@ -4,16 +4,12 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.CacheType;
