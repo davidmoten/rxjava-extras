@@ -33,7 +33,7 @@ import rx.functions.Func0;
 import rx.internal.operators.BackpressureUtils;
 import rx.observers.Subscribers;
 
-public class OperatorBufferToFile<T> implements Operator<T, T> {
+public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static final String QUEUE_NAME = "q";
 
@@ -72,13 +72,14 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         Observable<T> source = Observable.create(new OnSubscribe<T>() {
             @Override
             public void call(Subscriber<? super T> child) {
-                QueueProducer<T> qp = new QueueProducer<T>(queue, child, worker);
+                QueueProducer<T> qp = new QueueProducer<T>(queue, child, worker,
+                        options.delayError());
                 queueProducer.set(qp);
                 child.setProducer(qp);
             }
         });
         child.add(sub);
-        child.add(disposer(db, file));
+        child.add(disposer(db));
         Subscriber<T> wrappedChild = Subscribers.wrap(child);
         source.subscribe(wrappedChild);
         return sub;
@@ -86,25 +87,24 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static DB createDb(File file, Options options) {
         DBMaker<?> builder = DBMaker.newFileDB(file);
-        if (options.getCacheType() == CacheType.NO_CACHE) {
+        if (options.cacheType() == CacheType.NO_CACHE) {
             builder = builder.cacheDisable();
-        } else if (options.getCacheType() == CacheType.HARD_REF) {
+        } else if (options.cacheType() == CacheType.HARD_REF) {
             builder = builder.cacheHardRefEnable();
-        } else if (options.getCacheType() == CacheType.SOFT_REF) {
+        } else if (options.cacheType() == CacheType.SOFT_REF) {
             builder = builder.cacheSoftRefEnable();
-        } else if (options.getCacheType() == CacheType.WEAK_REF) {
+        } else if (options.cacheType() == CacheType.WEAK_REF) {
             builder = builder.cacheWeakRefEnable();
-        } else if (options.getCacheType() == CacheType.LEAST_RECENTLY_USED) {
+        } else if (options.cacheType() == CacheType.LEAST_RECENTLY_USED) {
             builder = builder.cacheLRUEnable();
         }
-        if (options.getCacheSizeItems().isPresent()) {
-            builder = builder.cacheSize(options.getCacheSizeItems().get());
+        if (options.cacheSizeItems().isPresent()) {
+            builder = builder.cacheSize(options.cacheSizeItems().get());
         }
-        if (options.getStorageSizeLimitBytes().isPresent()) {
-            builder = builder.sizeLimit(options.getStorageSizeLimitBytes().get());
+        if (options.storageSizeLimitBytes().isPresent()) {
+            builder = builder.sizeLimit(options.storageSizeLimitBytes().get());
         }
-        final DB db = builder.transactionDisable().deleteFilesAfterClose().make();
-        return db;
+        return builder.transactionDisable().deleteFilesAfterClose().make();
     }
 
     private static class BufferToFileSubscriber<T> extends Subscriber<T> {
@@ -146,68 +146,16 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         private final Worker worker;
         private volatile boolean done = false;
         private volatile Throwable error = null;
-        private final Action0 drainAction = new Action0() {
+        private final Action0 drainAction = createDrainAction();
+        private final boolean delayError;
 
-            @Override
-            public void call() {
-                // TODO would be nice if n were requested and terminal event was
-                // received after nth that terminal event was emitted as
-                // well (at the moment requires another request which is still
-                // compliant but not optimal)
-                long r = get();
-                while (true) {
-                    // reset drainRequested counter
-                    drainRequested.set(1);
-                    long emitted = 0;
-                    while (r > 0) {
-                        if (child.isUnsubscribed()) {
-                            // leave drainRequested > 0 to prevent more
-                            // scheduling of drains
-                            return;
-                        } else {
-                            T item = queue.poll();
-                            if (item == null) {
-                                // queue is empty
-                                if (finished(true)) {
-                                    return;
-                                } else {
-                                    // another drain was requested so go
-                                    // round again but break out of this
-                                    // while loop to the outer loop so we
-                                    // can update r and reset drainRequested
-                                    break;
-                                }
-                            } else {
-                                // there was an item on the queue
-                                child.onNext(item);
-                                r--;
-                                emitted++;
-                            }
-                        }
-                    }
-                    r = addAndGet(-emitted);
-                    if (r == 0L && finished(queue.isEmpty())) {
-                        return;
-                    }
-                }
-            }
-        };
-
-        private boolean finished(boolean isQueueEmpty) {
-            if (done && isQueueEmpty) {
-                // assign volatile to a temp variable so we don't read it twice
-                Throwable t = error;
-                if (t != null) {
-                    child.onError(t);
-                } else {
-                    child.onCompleted();
-                }
-                // leave drainRequested > 0 so that further drain requests are
-                // ignored
-                return true;
-            } else {
-                return drainRequested.compareAndSet(1, 0);
-            }
+        QueueProducer(Queue<T> queue, Subscriber<? super T> child, Worker worker,
+                boolean delayError) {
+            super();
+            this.queue = queue;
+            this.child = child;
+            this.worker = worker;
+            this.delayError = delayError;
         }
 
         void onNext(T t) {
@@ -228,13 +176,6 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             drain();
         }
 
-        QueueProducer(Queue<T> queue, Subscriber<? super T> child, Worker worker) {
-            super();
-            this.queue = queue;
-            this.child = child;
-            this.worker = worker;
-        }
-
         @Override
         public void request(long n) {
             if (n > 0) {
@@ -253,13 +194,92 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             }
         }
 
+        private Action0 createDrainAction() {
+            return new Action0() {
+
+                @Override
+                public void call() {
+                    // get the number of unsatisfied requests
+                    long r = get();
+                    while (true) {
+                        // reset drainRequested counter
+                        drainRequested.set(1);
+                        long emitted = 0;
+                        while (r > 0) {
+                            if (child.isUnsubscribed()) {
+                                // leave drainRequested > 0 to prevent more
+                                // scheduling of drains
+                                return;
+                            } else {
+                                T item = queue.poll();
+                                if (item == null) {
+                                    // queue is empty
+                                    if (finished(true)) {
+                                        return;
+                                    } else {
+                                        // another drain was requested so go
+                                        // round again but break out of this
+                                        // while loop to the outer loop so we
+                                        // can update r and reset drainRequested
+                                        break;
+                                    }
+                                } else {
+                                    // there was an item on the queue
+                                    child.onNext(item);
+                                    r--;
+                                    emitted++;
+                                }
+                            }
+                        }
+                        r = addAndGet(-emitted);
+                        if (r == 0L && finished(queue.isEmpty())) {
+                            return;
+                        }
+                    }
+                }
+
+                private boolean finished(boolean isQueueEmpty) {
+                    if (done) {
+                        Throwable t = error;
+                        if (isQueueEmpty) {
+                            // assign volatile to a temp variable so we don't
+                            // read
+                            // it twice
+                            if (t != null) {
+                                child.onError(t);
+                            } else {
+                                child.onCompleted();
+                            }
+                            // leave drainRequested > 0 so that further drain
+                            // requests are ignored
+                            return true;
+                        } else if (t != null && !delayError) {
+                            // queue is not empty but we are going to shortcut
+                            // that because delayError is false
+                            child.onError(t);
+                            // leave drainRequested > 0 so that further drain
+                            // requests are ignored
+                            return true;
+                        } else {
+                            // otherwise we need to wait for all items waiting
+                            // on the queue to be requested and delivered
+                            // (delayError=true)
+                            return drainRequested.compareAndSet(1, 0);
+                        }
+                    } else {
+                        return drainRequested.compareAndSet(1, 0);
+                    }
+                }
+            };
+        }
+
     }
 
     private static <T> BlockingQueue<T> getQueue(DB db, Serializer<T> serializer) {
         return db.createQueue(QUEUE_NAME, serializer, false);
     }
 
-    private static Subscription disposer(final DB db, final File file) {
+    private static Subscription disposer(final DB db) {
         return new Subscription() {
 
             @Override
@@ -282,12 +302,12 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
         };
     }
 
-    public static final class MapDbSerializer<T> implements Serializer<T>, Serializable {
+    private static final class MapDbSerializer<T> implements Serializer<T>, Serializable {
 
         private static final long serialVersionUID = -4992031045087289671L;
         private transient final DataSerializer<T> dataSerializer;
 
-        public MapDbSerializer(DataSerializer<T> dataSerializer) {
+        MapDbSerializer(DataSerializer<T> dataSerializer) {
             this.dataSerializer = dataSerializer;
         }
 
@@ -306,6 +326,5 @@ public class OperatorBufferToFile<T> implements Operator<T, T> {
             dataSerializer.serialize(output, t);
         }
     };
-
 
 }

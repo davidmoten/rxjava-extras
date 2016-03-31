@@ -113,6 +113,34 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test
+    public void handlesErrorWhenDelayErrorIsFalse() throws InterruptedException {
+        TestSubscriber<String> ts = TestSubscriber.create(0);
+        Observable.just("abc", "def").concatWith(Observable.<String> error(new IOException("boo")))
+                //
+                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                        Schedulers.computation(),
+                        Options.cacheType(CacheType.NO_CACHE).delayError(false).build()))
+                .doOnNext(new Action1<String>() {
+                    boolean first = true;
+
+                    @Override
+                    public void call(String t) {
+                        if (first) {
+                            first = false;
+                            try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException e) {
+                            }
+                        }
+                    }
+                }).subscribe(ts);
+        ts.requestMore(2);
+        ts.awaitTerminalEvent(5000, TimeUnit.SECONDS);
+        ts.assertError(IOException.class);
+        ts.assertValueCount(2);
+    }
+
+    @Test
     public void handlesUnsubscription() throws InterruptedException {
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
