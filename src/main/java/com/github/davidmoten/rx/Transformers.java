@@ -594,26 +594,23 @@ public final class Transformers {
     public static <T> Transformer<T, T> onBackpressureBufferToFile(
             final DataSerializer<T> serializer, final Scheduler scheduler, final Options options) {
         return new Transformer<T, T>() {
-
             @Override
             public Observable<T> call(Observable<T> o) {
-                return o.lift(new OperatorBufferToFile<T>(new Func0<File>() {
-                    @Override
-                    public File call() {
-                        try {
-                            return File.createTempFile("bufferToFileDb", "");
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }, serializer, scheduler, options));
+                return o.lift(new OperatorBufferToFile<T>(serializer, scheduler, options));
             }
         };
     }
-    
+
+    public static <T> Transformer<T, T> onBackpressureBufferToFile(
+            final DataSerializer<T> serializer) {
+        return onBackpressureBufferToFile(serializer, Schedulers.immediate(),
+                Options.defaultInstance());
+    }
+
     public static <T> Transformer<T, T> onBackpressureBufferToFile(
             final DataSerializer<T> serializer, final Scheduler scheduler) {
-        return onBackpressureBufferToFile(serializer, scheduler, Options.cacheType(CacheType.WEAK_REF).build());
+        return onBackpressureBufferToFile(serializer, scheduler,
+                Options.defaultInstance());
     }
 
     public static <T> Transformer<T, T> windowMin(final int windowSize,

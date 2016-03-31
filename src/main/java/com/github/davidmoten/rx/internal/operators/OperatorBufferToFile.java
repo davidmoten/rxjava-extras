@@ -29,7 +29,6 @@ import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action0;
-import rx.functions.Func0;
 import rx.internal.operators.BackpressureUtils;
 import rx.observers.Subscribers;
 
@@ -39,16 +38,13 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private final Serializer<T> serializer;
     private final Scheduler scheduler;
-    private final Func0<File> fileFactory;
     private final Options options;
 
-    public OperatorBufferToFile(Func0<File> fileFactory, DataSerializer<T> dataSerializer,
+    public OperatorBufferToFile( DataSerializer<T> dataSerializer,
             Scheduler scheduler, Options options) {
-        Preconditions.checkNotNull(fileFactory);
         Preconditions.checkNotNull(dataSerializer);
         Preconditions.checkNotNull(scheduler);
         Preconditions.checkNotNull(options);
-        this.fileFactory = fileFactory;
         this.scheduler = scheduler;
         this.serializer = createSerializer(dataSerializer);
         this.options = options;
@@ -60,7 +56,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
     @Override
     public Subscriber<? super T> call(Subscriber<? super T> child) {
-        File file = fileFactory.call();
+        File file = options.fileFactory().call();
         final DB db = createDb(file, options);
         final Queue<T> queue = getQueue(db, serializer);
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
