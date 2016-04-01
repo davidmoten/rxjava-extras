@@ -150,7 +150,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 				return new Q2<T>(db, q);
 			}
 		};
-		return new RollingQueue<T>(queueFactory, 1000);
+		return new RollingQueue<T>(queueFactory, options.rolloverEvery());
 	}
 
 	private static DB createDb(File file, Options options) {

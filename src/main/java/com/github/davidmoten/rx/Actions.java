@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -200,5 +201,15 @@ public final class Actions {
             }
         };
     }
+
+	public static Action0 countDown(final CountDownLatch latch) {
+		return new Action0() {
+
+            @Override
+            public void call() {
+                latch.countDown();
+            }
+        };
+	}
 
 }

@@ -7,12 +7,15 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
+import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
@@ -21,6 +24,7 @@ import com.github.davidmoten.rx.buffertofile.Options;
 import com.github.davidmoten.rx.slf4j.Logging;
 
 import rx.Observable;
+import rx.Scheduler;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
@@ -246,21 +250,50 @@ public final class OperatorBufferToFileTest {
 				}).last().toBlocking().single();
 		assertEquals(max, last);
 	}
+	
+	@Test
+	public void rolloverWorks() throws InterruptedException {
+		DataSerializer<Integer> serializer = DataSerializers.integer();
+		int max = 100;
+		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
+		int last = Observable.range(1, max)
+				//
+				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
+						Options.cacheType(CacheType.NO_CACHE).rolloverEvery(10).build()))
+				.last().toBlocking().single();
+		assertEquals(max, last);
+		//wait for all scheduled work to complete (unsubscription)
+		waitUntilWorkCompleted(scheduler, 10, TimeUnit.SECONDS);
+	}
+
+	private static void waitUntilWorkCompleted(Scheduler scheduler, long duration, TimeUnit unit)  {
+		final CountDownLatch latch = new CountDownLatch(1);
+		scheduler.createWorker().schedule(Actions.countDown(latch));
+		try {
+			if (!latch.await(duration, unit)) {
+				throw new RuntimeException("did not complete");
+			}
+		} catch (InterruptedException e) {	
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Test
 	public void checkRateForSmallMessages() {
+		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
 		DataSerializer<Integer> serializer = DataSerializers.integer();
-		int max = 10000;
+		int max = 100000;
 		long t = System.currentTimeMillis();
 		int last = Observable.range(1, max)
 				//
-				.compose(Transformers.onBackpressureBufferToFile(serializer, Schedulers.computation(),
-						Options.cacheType(CacheType.NO_CACHE).build()))
+				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
+						Options.cacheType(CacheType.NO_CACHE).rolloverEvery(1000).build()))
 				// log
 				.lift(Logging.<Integer> logger().every(1000).showMemory().log()).last().toBlocking().single();
 		t = System.currentTimeMillis() - t;
 		assertEquals(max, last);
 		System.out.println("rate = " + (double) max / (t) * 1000);
+		waitUntilWorkCompleted(scheduler, 100, TimeUnit.SECONDS);
 		// about 33,000 messages per second on i7 for NO_CACHE
 		// about 46,000 messages per second on i7 for WEAK_REF
 	}

@@ -10,163 +10,179 @@ import rx.functions.Func0;
 
 public final class Options {
 
-    public static final String DEFAULT_FILE_PREFIX = "bufferToFileDb";
+	public static final String DEFAULT_FILE_PREFIX = "bufferToFileDb";
 
-    private final Func0<File> fileFactory;
-    private final CacheType cacheType;
-    private final Optional<Integer> cacheSizeItems;
-    private final Optional<Double> storageSizeLimitMB;
-    private final boolean delayError;
+	private final Func0<File> fileFactory;
+	private final CacheType cacheType;
+	private final Optional<Integer> cacheSizeItems;
+	private final Optional<Double> storageSizeLimitMB;
+	private final boolean delayError;
+	private final long rolloverEvery;
 
-    private Options(Func0<File> filefactory, CacheType cacheType, Optional<Integer> cacheSizeItems,
-            Optional<Double> storageSizeLimitMB, boolean delayError) {
-        Preconditions.checkNotNull(filefactory);
-        Preconditions.checkNotNull(cacheType);
-        Preconditions.checkArgument(!cacheSizeItems.isPresent() || cacheSizeItems.get() > 0,
-                "cacheSizeItems cannot be negative or zero");
-        Preconditions.checkArgument(!storageSizeLimitMB.isPresent() || storageSizeLimitMB.get() > 0,
-                "storageSizeLimitMB cannot be negative or zero");
-        this.fileFactory = filefactory;
-        this.cacheType = cacheType;
-        this.cacheSizeItems = cacheSizeItems;
-        this.storageSizeLimitMB = storageSizeLimitMB;
-        this.delayError = delayError;
-    }
+	private Options(Func0<File> filefactory, CacheType cacheType, Optional<Integer> cacheSizeItems,
+			Optional<Double> storageSizeLimitMB, boolean delayError, long rolloverEvery) {
+		Preconditions.checkNotNull(filefactory);
+		Preconditions.checkNotNull(cacheType);
+		Preconditions.checkArgument(!cacheSizeItems.isPresent() || cacheSizeItems.get() > 0,
+				"cacheSizeItems cannot be negative or zero");
+		Preconditions.checkArgument(!storageSizeLimitMB.isPresent() || storageSizeLimitMB.get() > 0,
+				"storageSizeLimitMB cannot be negative or zero");
+		Preconditions.checkArgument(rolloverEvery > 1, "rolloverEvery must be greater than 1");
+		this.fileFactory = filefactory;
+		this.cacheType = cacheType;
+		this.cacheSizeItems = cacheSizeItems;
+		this.storageSizeLimitMB = storageSizeLimitMB;
+		this.delayError = delayError;
+		this.rolloverEvery = rolloverEvery;
+	}
 
-    public Func0<File> fileFactory() {
-        return fileFactory;
-    }
+	public Func0<File> fileFactory() {
+		return fileFactory;
+	}
 
-    public CacheType cacheType() {
-        return cacheType;
-    }
+	public CacheType cacheType() {
+		return cacheType;
+	}
 
-    public Optional<Integer> cacheSizeItems() {
-        return cacheSizeItems;
-    }
+	public Optional<Integer> cacheSizeItems() {
+		return cacheSizeItems;
+	}
 
-    public Optional<Double> storageSizeLimitMB() {
-        return storageSizeLimitMB;
-    }
+	public Optional<Double> storageSizeLimitMB() {
+		return storageSizeLimitMB;
+	}
 
-    public boolean delayError() {
-        return delayError;
-    }
+	public boolean delayError() {
+		return delayError;
+	}
 
-    /**
-     * Defaults are {@code cacheType=CacheType.SOFT_REF},
-     * {@code cacheSizeItems=absent (UNLIMITED)},
-     * {@code storageSizeLimitBytes=absent (UNLIMITED)}.
-     * 
-     * @return a builder object for Options
-     */
-    private static Builder builder() {
-        return new Builder();
-    }
+	public long rolloverEvery() {
+		return rolloverEvery;
+	}
 
-    public static Builder fileFactory(Func0<File> fileFactory) {
-        return builder().fileFactory(fileFactory);
-    }
+	/**
+	 * Defaults are {@code cacheType=CacheType.SOFT_REF},
+	 * {@code cacheSizeItems=absent (UNLIMITED)},
+	 * {@code storageSizeLimitBytes=absent (UNLIMITED)}.
+	 * 
+	 * @return a builder object for Options
+	 */
+	private static Builder builder() {
+		return new Builder();
+	}
 
-    public static Builder cacheType(CacheType cacheType) {
-        return builder().cacheType(cacheType);
-    }
+	public static Builder fileFactory(Func0<File> fileFactory) {
+		return builder().fileFactory(fileFactory);
+	}
 
-    public static Builder cacheSizeItems(int cacheSizeItems) {
-        return builder().cacheSizeItems(cacheSizeItems);
-    }
+	public static Builder cacheType(CacheType cacheType) {
+		return builder().cacheType(cacheType);
+	}
 
-    public static Builder storageSizeLimitMB(double storageSizeLimitMB) {
-        return builder().storageSizeLimitMB(storageSizeLimitMB);
-    }
+	public static Builder cacheSizeItems(int cacheSizeItems) {
+		return builder().cacheSizeItems(cacheSizeItems);
+	}
 
-    public static Builder delayError(boolean delayError) {
-        return builder().delayError(delayError);
-    }
+	public static Builder storageSizeLimitMB(double storageSizeLimitMB) {
+		return builder().storageSizeLimitMB(storageSizeLimitMB);
+	}
 
-    public static Options defaultInstance() {
-        return builder().build();
-    }
+	public static Builder delayError(boolean delayError) {
+		return builder().delayError(delayError);
+	}
 
-    public static class Builder {
+	public static Builder rolloverEvery(long rolloverEvery) {
+		return builder().rolloverEvery(rolloverEvery);
+	}
 
-        private Func0<File> fileFactory = FileFactoryHolder.INSTANCE;
-        private CacheType cacheType = CacheType.NO_CACHE;
-        private Optional<Integer> cacheSizeItems = Optional.absent();
-        private Optional<Double> storageSizeLimitMB = Optional.absent();
-        private boolean delayError = true;
+	public static Options defaultInstance() {
+		return builder().build();
+	}
 
-        private Builder() {
-        }
+	public static class Builder {
 
-        /**
-         * Sets the file factory to be used by the queue storage mechanism.
-         * Defaults to using {@code File.createTempFile("bufferToFileDb","")} if
-         * this method is not called. MapDB for instance creates two files, one
-         * without extension and the other a {@code .p} file.
-         * 
-         * @param fileFactory
-         *            the factory
-         * @return the current builder
-         */
-        public Builder fileFactory(Func0<File> fileFactory) {
-            this.fileFactory = fileFactory;
-            return this;
-        }
+		private Func0<File> fileFactory = FileFactoryHolder.INSTANCE;
+		private CacheType cacheType = CacheType.NO_CACHE;
+		private Optional<Integer> cacheSizeItems = Optional.absent();
+		private Optional<Double> storageSizeLimitMB = Optional.absent();
+		private boolean delayError = true;
+		private long rolloverEvery = 1000000;
 
-        /**
-         * Sets the cache type used by the queue storage mechanism. Defaults to
-         * {@code CacheType.NO_CACHE} if this method is not called.
-         * 
-         * @param cacheType
-         *            the type of cache
-         * @return the current builder
-         */
-        public Builder cacheType(CacheType cacheType) {
-            this.cacheType = cacheType;
-            return this;
-        }
+		private Builder() {
+		}
 
-        public Builder cacheSizeItems(int cacheSizeItems) {
-            this.cacheSizeItems = Optional.of(cacheSizeItems);
-            return this;
-        }
+		public Builder rolloverEvery(long rolloverEvery) {
+			this.rolloverEvery = rolloverEvery;
+			return this;
+		}
 
-        public Builder storageSizeLimitMB(double storageSizeLimitMB) {
-            this.storageSizeLimitMB = Optional.of(storageSizeLimitMB);
-            return this;
-        }
+		/**
+		 * Sets the file factory to be used by the queue storage mechanism.
+		 * Defaults to using {@code File.createTempFile("bufferToFileDb","")} if
+		 * this method is not called. MapDB for instance creates two files, one
+		 * without extension and the other a {@code .p} file.
+		 * 
+		 * @param fileFactory
+		 *            the factory
+		 * @return the current builder
+		 */
+		public Builder fileFactory(Func0<File> fileFactory) {
+			this.fileFactory = fileFactory;
+			return this;
+		}
 
-        /**
-         * Sets if errors are delayed or not when detected. Defaults to
-         * {@code false} if this method not called.
-         * 
-         * @param delayError
-         *            if true errors do not shortcut the queue.
-         * @return the current builder
-         */
-        public Builder delayError(boolean delayError) {
-            this.delayError = delayError;
-            return this;
-        }
+		/**
+		 * Sets the cache type used by the queue storage mechanism. Defaults to
+		 * {@code CacheType.NO_CACHE} if this method is not called.
+		 * 
+		 * @param cacheType
+		 *            the type of cache
+		 * @return the current builder
+		 */
+		public Builder cacheType(CacheType cacheType) {
+			this.cacheType = cacheType;
+			return this;
+		}
 
-        public Options build() {
-            return new Options(fileFactory, cacheType, cacheSizeItems, storageSizeLimitMB,
-                    delayError);
-        }
-    }
+		public Builder cacheSizeItems(int cacheSizeItems) {
+			this.cacheSizeItems = Optional.of(cacheSizeItems);
+			return this;
+		}
 
-    private static class FileFactoryHolder {
+		public Builder storageSizeLimitMB(double storageSizeLimitMB) {
+			this.storageSizeLimitMB = Optional.of(storageSizeLimitMB);
+			return this;
+		}
 
-        private static final Func0<File> INSTANCE = new Func0<File>() {
-            @Override
-            public File call() {
-                try {
-                    return File.createTempFile(DEFAULT_FILE_PREFIX, "");
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
-    }
+		/**
+		 * Sets if errors are delayed or not when detected. Defaults to
+		 * {@code false} if this method not called.
+		 * 
+		 * @param delayError
+		 *            if true errors do not shortcut the queue.
+		 * @return the current builder
+		 */
+		public Builder delayError(boolean delayError) {
+			this.delayError = delayError;
+			return this;
+		}
+
+		public Options build() {
+			return new Options(fileFactory, cacheType, cacheSizeItems, storageSizeLimitMB, delayError, rolloverEvery);
+		}
+	}
+
+	private static class FileFactoryHolder {
+
+		private static final Func0<File> INSTANCE = new Func0<File>() {
+			@Override
+			public File call() {
+				try {
+					return File.createTempFile(DEFAULT_FILE_PREFIX, "");
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		};
+	}
 }
