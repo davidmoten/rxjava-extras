@@ -271,7 +271,7 @@ As of 0.7.1-RC1, if you add a dependency for [MapDB](http://www.mapdb.org) you c
 </dependency>
 ```
 
-Note that new file(s) for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription).
+Note that new files (there may be multiple for indexes and whatnot) for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription).
 
 Here's an example:
 
@@ -359,7 +359,7 @@ Observable.just(1, 2, 3, 4)
     //accumulate into sublists of length 2
     .buffer(2)
     .compose(
-      Transformers.<List<Integer>>onBackpressureBufferToFile());
+      Transformers.<List<Integer>>onBackpressureBufferToFile())
 ```
 
 In the above example it's fortunate that `.buffer` emits `ArrayList<Integer>` instances which are serializable. To be strict you might want to `.map` the returned list to a data type you know is serializable:
@@ -369,7 +369,7 @@ Observable.just(1, 2, 3, 4)
     .buffer(2)
     .map(list -> new ArrayList<Integer>(list))
     .compose(
-      Transformers.<List<Integer>>onBackpressureBufferToFile());
+      Transformers.<List<Integer>>onBackpressureBufferToFile())
 ```
 
 TestingHelper
