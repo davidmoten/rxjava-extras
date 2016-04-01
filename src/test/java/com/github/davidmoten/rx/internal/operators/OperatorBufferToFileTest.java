@@ -253,7 +253,7 @@ public final class OperatorBufferToFileTest {
     @Test
     public void checkRateForSmallMessages() {
         DataSerializer<Integer> serializer = DataSerializers.integer();
-        int max = 10000;
+        int max = 300000;
         long t = System.currentTimeMillis();
         int last = Observable.range(1, max)
                 //
@@ -265,7 +265,8 @@ public final class OperatorBufferToFileTest {
         t = System.currentTimeMillis() - t;
         assertEquals(max, last);
         System.out.println("rate = " + (double) max / (t) * 1000);
-        // about 19000 messages per second on i7
+        // about 33,000 messages per second on i7 for NO_CACHE
+        // about 46,000 messages per second on i7 for WEAK_REF
     }
 
     @Test

@@ -372,6 +372,9 @@ Observable.just(1, 2, 3, 4)
       Transformers.<List<Integer>>onBackpressureBufferToFile())
 ```
 
+###Performance
+* about 33,000 integers/second throughput writing to spinning disk on an i7
+
 TestingHelper
 -----------------
 For a given named test the following variations  are tested:
