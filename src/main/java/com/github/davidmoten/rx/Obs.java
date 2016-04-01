@@ -171,7 +171,9 @@ public final class Obs {
      * Returns an Observable that epeats emitting {@code t} without completing.
      * Supports backpressure.
      * 
-     * @param t
+     * @param t value to repeat
+     * @param <T> type of t
+
      * @return an observable that repeats t forever (or until unsubscribed)
      */
     public static <T> Observable<T> repeating(final T t) {

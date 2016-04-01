@@ -13,7 +13,7 @@ public interface DataSerializer<T> {
      *            the data stream
      * @param t
      *            the object to serialize
-     * @throws IOException
+     * @throws IOException exception
      */
     void serialize(DataOutput output, T t) throws IOException;
 
@@ -26,7 +26,7 @@ public interface DataSerializer<T> {
      *            the number of bytes available. 0 would correspond to a null
      *            object, -1 is EOF.
      * @return deserialized object
-     * @throws IOException
+     * @throws IOException exception
      */
     T deserialize(DataInput input, int availableBytes) throws IOException;
 }

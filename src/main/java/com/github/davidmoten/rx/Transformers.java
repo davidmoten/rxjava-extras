@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
-import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
@@ -262,27 +261,6 @@ public final class Transformers {
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completion, BackpressureStrategy.BUFFER);
-    }
-
-    /**
-     * This operator has not been reviewed properly yet so don't use.
-     * 
-     * @return
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> Transformer<T, T> bufferEmissions() {
-        return (Transformer<T, T>) BufferEmissionsHolder.INSTANCE;
-    }
-
-    // holder lazy singleton pattern
-    private static class BufferEmissionsHolder {
-        static Transformer<Object, Object> INSTANCE = new Transformer<Object, Object>() {
-
-            @Override
-            public Observable<Object> call(Observable<Object> o) {
-                return o.lift(new OperatorBufferEmissions<Object>());
-            }
-        };
     }
 
     /**

@@ -119,6 +119,7 @@ public final class Options {
          * {@code CacheType.NO_CACHE} if this method is not called.
          * 
          * @param cacheType
+         *            the type of cache
          * @return the current builder
          */
         public Builder cacheType(CacheType cacheType) {
