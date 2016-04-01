@@ -314,11 +314,6 @@ DataSerializer<String> serializer = new DataSerializer<String>() {
         return input.readUTF();
     }
 };
-
-// write the source strings to a 
-// disk-backed queue on the subscription
-// thread and emit the items read from 
-// the queue on the computation() scheduler.
 Observable
   .just("a", "b", "c")
   .compose(
