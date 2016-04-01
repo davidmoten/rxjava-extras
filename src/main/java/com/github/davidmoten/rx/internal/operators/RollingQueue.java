@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.Queue;
-import java.util.concurrent.atomic.AtomicLong;
 
 import rx.functions.Func0;
 
@@ -38,7 +37,8 @@ public final class RollingQueue<T> implements Queue<T> {
 	@Override
 	public boolean offer(T t) {
 		synchronized (queues) {
-			if (++count == 1 || ++count == maxItemsPerQueue) {
+			count++;
+			if (count == 1 || count == maxItemsPerQueue) {
 				count = 1;
 				queues.add(queueFactory.call());
 			}

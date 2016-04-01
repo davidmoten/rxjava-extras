@@ -96,14 +96,10 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private final DB db;
 		private final Queue<T> queue;
-		private final Serializer<T> serializer;
-		private final Options options;
 
-		public Q2(DB db, Queue<T> queue, Serializer<T> serializer, Options options) {
+		public Q2(DB db, Queue<T> queue) {
 			this.db = db;
 			this.queue = queue;
-			this.serializer = serializer;
-			this.options = options;
 		}
 
 		@Override
@@ -123,7 +119,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		@Override
 		public void dispose() {
+			System.out.println("disposing "+ db);
 			db.close();
+			System.out.println("disposed");
 		}
 
 		@Override
@@ -149,10 +147,10 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 				// create the queue
 				Queue<T> q = db.createQueue(QUEUE_NAME, serializer, false);
 
-				return new Q2<T>(db, q, serializer, options);
+				return new Q2<T>(db, q);
 			}
 		};
-		return new RollingQueue<T>(queueFactory, 10);
+		return new RollingQueue<T>(queueFactory, 1000);
 	}
 
 	private static DB createDb(File file, Options options) {
@@ -395,7 +393,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 	private static <T> Subscription disposer(final Queue<T> queue) {
 		return new Subscription() {
-			
+
 			private volatile boolean isUnsubscribed = false;
 
 			@Override
