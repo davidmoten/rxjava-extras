@@ -16,6 +16,7 @@ import org.junit.runners.MethodSorters;
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
+import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
 import com.github.davidmoten.rx.slf4j.Logging;
 
@@ -31,12 +32,39 @@ public final class OperatorBufferToFileTest {
     public void handlesEmpty() {
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.<String> empty().compose(Transformers
-                .onBackpressureBufferToFile(createStringSerializer(), Schedulers.computation()))
+                .onBackpressureBufferToFile(DataSerializers.string(), Schedulers.computation()))
                 .subscribe(ts);
         ts.requestMore(1);
         ts.awaitTerminalEvent();
         ts.assertNoErrors();
         ts.assertNoValues();
+        ts.assertCompleted();
+    }
+
+    @Test
+    public void handlesEmptyUsingJavaIOSerialization() {
+        TestSubscriber<String> ts = TestSubscriber.create(0);
+        Observable.<String> empty()
+                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.<String> javaIO(),
+                        Schedulers.computation()))
+                .subscribe(ts);
+        ts.requestMore(1);
+        ts.awaitTerminalEvent();
+        ts.assertNoErrors();
+        ts.assertNoValues();
+        ts.assertCompleted();
+    }
+
+    @Test
+    public void handlesThreeUsingJavaIOSerialization() {
+        TestSubscriber<String> ts = TestSubscriber.create();
+        Observable.just("a", "bc", "def")
+                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.<String> javaIO(),
+                        Schedulers.computation()))
+                .subscribe(ts);
+        ts.awaitTerminalEvent();
+        ts.assertNoErrors();
+        ts.assertValues("a", "bc", "def");
         ts.assertCompleted();
     }
 
@@ -75,7 +103,7 @@ public final class OperatorBufferToFileTest {
     private void checkHandlesThreeElements(Options options) {
         List<String> b = Observable.just("abc", "def", "ghi")
                 //
-                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
                         Schedulers.immediate(), options))
                 .toList().toBlocking().single();
         assertEquals(Arrays.asList("abc", "def", "ghi"), b);
@@ -85,7 +113,7 @@ public final class OperatorBufferToFileTest {
     public void handlesThreeElementsImmediateSchedulerSoft() throws InterruptedException {
         List<String> b = Observable.just("abc", "def", "ghi")
                 //
-                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
                         Schedulers.immediate(), Options.cacheType(CacheType.WEAK_REF).build()))
                 .toList().toBlocking().single();
         assertEquals(Arrays.asList("abc", "def", "ghi"), b);
@@ -101,7 +129,7 @@ public final class OperatorBufferToFileTest {
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
                 //
-                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
                         Schedulers.computation(), createOptions()))
                 .subscribe(ts);
         ts.assertNoValues();
@@ -117,7 +145,7 @@ public final class OperatorBufferToFileTest {
         TestSubscriber<String> ts = TestSubscriber.create();
         Observable.<String> error(new IOException("boo"))
                 //
-                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
                         Schedulers.computation(), createOptions()))
                 .subscribe(ts);
         ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
@@ -129,7 +157,7 @@ public final class OperatorBufferToFileTest {
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def").concatWith(Observable.<String> error(new IOException("boo")))
                 //
-                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
                         Schedulers.computation(),
                         Options.cacheType(CacheType.NO_CACHE).delayError(false).build()))
                 .doOnNext(new Action1<String>() {
@@ -156,7 +184,7 @@ public final class OperatorBufferToFileTest {
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
                 //
-                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
                         Schedulers.computation(), createOptions()))
                 .subscribe(ts);
         ts.requestMore(2);
@@ -171,7 +199,7 @@ public final class OperatorBufferToFileTest {
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
                 //
-                .compose(Transformers.onBackpressureBufferToFile(createStringSerializer(),
+                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
                         Schedulers.computation(), createOptions()))
                 .doOnNext(new Action1<Object>() {
 
@@ -224,7 +252,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void checkRateForSmallMessages() {
-        DataSerializer<Integer> serializer = createIntegerSerializer();
+        DataSerializer<Integer> serializer = DataSerializers.integer();
         int max = 10000;
         long t = System.currentTimeMillis();
         int last = Observable.range(1, max)
@@ -277,22 +305,6 @@ public final class OperatorBufferToFileTest {
         Thread.sleep(500);
     }
 
-    private static DataSerializer<Integer> createIntegerSerializer() {
-        DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
-
-            @Override
-            public void serialize(DataOutput output, Integer n) throws IOException {
-                output.writeInt(n);
-            }
-
-            @Override
-            public Integer deserialize(DataInput input, int availableBytes) throws IOException {
-                return input.readInt();
-            }
-        };
-        return serializer;
-    }
-
     private DataSerializer<Integer> createLargeMessageSerializer() {
         DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
 
@@ -335,21 +347,6 @@ public final class OperatorBufferToFileTest {
             }
         };
         return serializer;
-    }
-
-    private static DataSerializer<String> createStringSerializer() {
-        return new DataSerializer<String>() {
-
-            @Override
-            public void serialize(DataOutput output, String s) throws IOException {
-                output.writeUTF(s);
-            }
-
-            @Override
-            public String deserialize(DataInput input, int availableBytes) throws IOException {
-                return input.readUTF();
-            }
-        };
     }
 
 }

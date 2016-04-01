@@ -261,7 +261,7 @@ source1.compose(Transformers.orderedMergeWith(source2, comparator));
 
 Transformers.onBackpressureBufferToFile
 ----------------------------------------
-As of 0.7.1-RC1, if you add a dependency for MapDB you can offload an observable chain to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
+As of 0.7.1-RC1, if you add a dependency for [MapDB](http://www.mapdb.org) you can offload an observable chain to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
 
 ```xml
  <dependency>
@@ -317,11 +317,20 @@ Observable
   ...
 ```
 
+To use defaults (emits on `Schedulers.computation`):
+
+```java
+Observable
+  .just("a", "b", "c")
+  .compose(
+    Transformers.onBackpressureBufferToFile(serializer);
+```
+
 `Options.fileFactory(Func0<File>)` specifies the method used to create the root temporary file used by the queue storage mechanism (MapDB). The default is a factory that calls `Files.createTempFile("bufferToFileDB`, "")`.
 
 Caching options include `SOFT_REF`, `WEAK_REF`, `HARD_REF`, `LEAST_RECENTLY_USED`, and `NO_CACHE`. The default is `NO_CACHE`.
 
-If storage size limit is exceeded then an `IOException` will be emitted by the stream.
+If storage size limit is exceeded then an `IOException` will be emitted by the stream. This is a critical error in that MapDB resources in memory may not be disposed of properly and files associated with the stream may not have been deleted on unsubscription. Don't count on graceful recovery from this scenario!
 
 
 TestingHelper
