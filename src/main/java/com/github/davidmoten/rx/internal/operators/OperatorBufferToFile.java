@@ -188,9 +188,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         private final AtomicInteger drainRequested = new AtomicInteger(0);
         private final Subscriber<? super T> child;
         private final Worker worker;
+        private final boolean delayError;
         private volatile boolean done = false;
         private volatile Throwable error = null;
-        private final boolean delayError;
 
         QueueProducer(Queue<T> queue, Subscriber<? super T> child, Worker worker,
                 boolean delayError) {
