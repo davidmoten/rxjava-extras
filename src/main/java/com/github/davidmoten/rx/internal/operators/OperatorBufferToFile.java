@@ -61,13 +61,14 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         // will determine the names of other files used for storage)
         File file = options.fileFactory().call();
 
-        // create a MapDB database using that file name
+        // create a MapDB database using file
         final DB db = createDb(file, options);
 
         // create the MapDB queue
         final Queue<T> queue = createQueue(db, serializer);
 
-        //hold a reference to the queueProducer which will be set on subscription to `source`
+        // hold a reference to the queueProducer which will be set on
+        // subscription to `source`
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
 
         // emissions will propagate to downstream via this worker
