@@ -67,6 +67,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         // create the MapDB queue
         final Queue<T> queue = createQueue(db, serializer);
 
+        //hold a reference to the queueProducer which will be set on subscription to `source`
         final AtomicReference<QueueProducer<T>> queueProducer = new AtomicReference<QueueProducer<T>>();
 
         // emissions will propagate to downstream via this worker
@@ -366,8 +367,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         }
 
         @Override
-        public T deserialize(final DataInput input, int size) throws IOException {
-            return dataSerializer.deserialize(input, size);
+        public T deserialize(final DataInput input, int availableBytes) throws IOException {
+            return dataSerializer.deserialize(input, availableBytes);
         }
 
         @Override

@@ -593,6 +593,22 @@ public final class Transformers {
             }
         };
     }
+    
+    public static <T> Transformer<T, T> onBackpressureBufferToFile() {
+        return onBackpressureBufferToFile(DataSerializers.<T> javaIO(), Schedulers.computation(),
+                Options.defaultInstance());
+    }
+    
+    public static <T> Transformer<T, T> onBackpressureBufferToFile(
+            final DataSerializer<T> serializer) {
+        return onBackpressureBufferToFile(serializer, Schedulers.computation(),
+                Options.defaultInstance());
+    }
+
+    public static <T> Transformer<T, T> onBackpressureBufferToFile(
+            final DataSerializer<T> serializer, final Scheduler scheduler) {
+        return onBackpressureBufferToFile(serializer, scheduler, Options.defaultInstance());
+    }
 
     public static <T> Transformer<T, T> onBackpressureBufferToFile(
             final DataSerializer<T> serializer, final Scheduler scheduler, final Options options) {
@@ -604,21 +620,7 @@ public final class Transformers {
         };
     }
 
-    public static <T> Transformer<T, T> onBackpressureBufferToFile(
-            final DataSerializer<T> serializer) {
-        return onBackpressureBufferToFile(serializer, Schedulers.computation(),
-                Options.defaultInstance());
-    }
-
-    public static <T> Transformer<T, T> onBackpressureBufferToFile() {
-        return onBackpressureBufferToFile(DataSerializers.<T> javaIO(), Schedulers.computation(),
-                Options.defaultInstance());
-    }
-
-    public static <T> Transformer<T, T> onBackpressureBufferToFile(
-            final DataSerializer<T> serializer, final Scheduler scheduler) {
-        return onBackpressureBufferToFile(serializer, scheduler, Options.defaultInstance());
-    }
+   
 
     public static <T> Transformer<T, T> windowMin(final int windowSize,
             final Comparator<? super T> comparator) {
