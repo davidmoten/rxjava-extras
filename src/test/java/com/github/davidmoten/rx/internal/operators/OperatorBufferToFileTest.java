@@ -253,7 +253,7 @@ public final class OperatorBufferToFileTest {
     @Test
     public void checkRateForSmallMessages() {
         DataSerializer<Integer> serializer = DataSerializers.integer();
-        int max = 300000;
+        int max = 10000;
         long t = System.currentTimeMillis();
         int last = Observable.range(1, max)
                 //
