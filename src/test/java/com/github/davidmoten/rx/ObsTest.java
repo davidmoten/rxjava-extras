@@ -111,6 +111,8 @@ public class ObsTest {
 
     @Test
     public void testPermutations() {
-        Obs.permutations(Observable.range(0,4).toList().toBlocking().single()).forEach(Actions.println());
+        assertEquals(24,
+                (int) Obs.permutations(Observable.range(0, 4).toList().toBlocking().single())
+                        .count().toBlocking().single());
     }
 }
