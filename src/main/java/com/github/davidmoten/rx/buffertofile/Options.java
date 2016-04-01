@@ -10,6 +10,8 @@ import rx.functions.Func0;
 
 public final class Options {
 
+    public static final String DEFAULT_FILE_PREFIX = "bufferToFileDb";
+
     private final Func0<File> fileFactory;
     private final CacheType cacheType;
     private final Optional<Integer> cacheSizeItems;
@@ -22,9 +24,8 @@ public final class Options {
         Preconditions.checkNotNull(cacheType);
         Preconditions.checkArgument(!cacheSizeItems.isPresent() || cacheSizeItems.get() > 0,
                 "cacheSizeItems cannot be negative or zero");
-        Preconditions.checkArgument(
-                !storageSizeLimitMB.isPresent() || storageSizeLimitMB.get() > 0,
-                "storageSizeLimitBytes cannot be negative or zero");
+        Preconditions.checkArgument(!storageSizeLimitMB.isPresent() || storageSizeLimitMB.get() > 0,
+                "storageSizeLimitMB cannot be negative or zero");
         this.fileFactory = filefactory;
         this.cacheType = cacheType;
         this.cacheSizeItems = cacheSizeItems;
@@ -82,7 +83,7 @@ public final class Options {
     public static Builder delayError(boolean delayError) {
         return builder().delayError(delayError);
     }
-    
+
     public static Options defaultInstance() {
         return builder().build();
     }
@@ -155,11 +156,12 @@ public final class Options {
     }
 
     private static class FileFactoryHolder {
+
         private static final Func0<File> INSTANCE = new Func0<File>() {
             @Override
             public File call() {
                 try {
-                    return File.createTempFile("bufferToFileDb", "");
+                    return File.createTempFile(DEFAULT_FILE_PREFIX, "");
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

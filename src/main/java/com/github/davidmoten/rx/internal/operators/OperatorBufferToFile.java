@@ -202,13 +202,18 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         }
 
         void onNext(T t) {
-            queue.offer(t);
-            drain();
+            if (!queue.offer(t)) {
+                onError(new RuntimeException(
+                        "could not place item on queue (queue.offer(item) returned false), item= " + t));
+                return;
+            } else {
+                drain();
+            }
         }
 
         void onError(Throwable e) {
             // must assign error before assign done = true to avoid race
-            // condition
+            // condition in finished()
             error = e;
             done = true;
             drain();
@@ -246,7 +251,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
             } catch (IOError e) {
                 if (e.getCause() != null) {
                     // unwrap IOError(IOException: no free space to expand
-                    // Volume)
+                    // Volume) because API indicates that IOException will be
+                    // emitted in the case of storage overflow
                     child.onError(e.getCause());
                 } else {
                     child.onError(e);
