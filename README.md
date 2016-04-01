@@ -261,7 +261,7 @@ source1.compose(Transformers.orderedMergeWith(source2, comparator));
 
 Transformers.onBackpressureBufferToFile
 ----------------------------------------
-As of 0.7.1-RC1, if you add a dependency for [MapDB](http://www.mapdb.org) you can offload an observable chain to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
+As of 0.7.1-RC1, if you add a dependency for [MapDB](http://www.mapdb.org) you can offload an observables emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
 
 ```xml
  <dependency>
@@ -270,7 +270,35 @@ As of 0.7.1-RC1, if you add a dependency for [MapDB](http://www.mapdb.org) you c
     <version>1.0.9</version>
 </dependency>
 ```
+
+Note that new file(s) for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription).
+
 Here's an example:
+
+```java
+// write the source strings to a 
+// disk-backed queue on the subscription
+// thread and emit the items read from 
+// the queue on the computation() scheduler.
+Observable<String> source = 
+  Observable
+    .just("a", "b", "c")
+    .compose(
+      Transformers.onBackpressureBufferToFile(
+          DataSerializers.string(),
+          Schedulers.computation()));
+```
+
+This example does the same as above but more concisely and uses standard java IO serialization (normally it will be more efficient to write your own `DataSerializer`):
+
+```java
+Observable<String> source = 
+  Observable
+    .just("a", "b", "c")
+    .compose(Transformers.<String>onBackpressureBufferToFile());
+```
+
+An example with a custom serializer:
 
 ```java
 // define how the items in the source stream would be serialized
