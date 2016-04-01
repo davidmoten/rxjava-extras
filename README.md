@@ -352,10 +352,10 @@ If storage size limit is exceeded then an `IOException` will be emitted by the s
 
 There are some inbuilt `DataSerializer` implementations:
 
-*`DataSerializers.string()`
-*`DataSerializers.integer()`
-*`DataSerializers.byteArray()`
-*`DataSerializers.javaIO()` - uses standard java serialization (`ObjectOutputStream` and such)
+* `DataSerializers.string()`
+* `DataSerializers.integer()`
+* `DataSerializers.byteArray()`
+* `DataSerializers.javaIO()` - uses standard java serialization (`ObjectOutputStream` and such)
 
 For example you can buffer array lists of integers to a file like so:
 
