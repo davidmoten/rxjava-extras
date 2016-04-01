@@ -338,15 +338,25 @@ There are some inbuilt `DataSerializer` implementations:
 *`DataSerializers.byteArray()`
 *`DataSerializers.javaIO()` - uses standard java serialization (`ObjectOutputStream` and such)
 
-Thus for example you buffer array lists of integers to a file like so:
+For example you can buffer array lists of integers to a file like so:
 
 ```java
 Observable.just(1, 2, 3, 4)
+    //accumulate into sublists of length 2
     .buffer(2)
     .compose(
       Transformers.<List<Integer>>onBackpressureBufferToFile());
 ```
 
+In the above example it's fortunate that `.buffer` emits `ArrayList<Integer>` instances which are serializable. To be strict you might want to `.map` the returned list to a data type you know is serializable:
+
+```java
+Observable.just(1, 2, 3, 4)
+    .buffer(2)
+    .map(list -> new ArrayList<Integer>(list))
+    .compose(
+      Transformers.<List<Integer>>onBackpressureBufferToFile());
+```
 
 TestingHelper
 -----------------
