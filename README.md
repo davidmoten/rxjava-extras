@@ -350,17 +350,8 @@ Caching options include `SOFT_REF`, `WEAK_REF`, `HARD_REF`, `LEAST_RECENTLY_USED
 
 If storage size limit is exceeded then an `IOException` will be emitted by the stream. This is a critical error in that MapDB resources in memory may not be disposed of properly and files associated with the stream may not have been deleted on unsubscription. Don't count on graceful recovery from this scenario!
 
-```
-To use defaults (emits on `Schedulers.computation`):
-
-```java
-Observable
-  .just("a", "b", "c")
-  .compose(
-    Transformers.onBackpressureBufferToFile(serializer);
-```
-
 There are some inbuilt `DataSerializer` implementations:
+
 *`DataSerializers.string()`
 *`DataSerializers.integer()`
 *`DataSerializers.byteArray()`
