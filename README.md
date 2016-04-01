@@ -315,8 +315,14 @@ Observable
           .delayError(false)
           .build()))
   ...
-```
 
+`Options.fileFactory(Func0<File>)` specifies the method used to create the root temporary file used by the queue storage mechanism (MapDB). The default is a factory that calls `Files.createTempFile("bufferToFileDB`, "")`.
+
+Caching options include `SOFT_REF`, `WEAK_REF`, `HARD_REF`, `LEAST_RECENTLY_USED`, and `NO_CACHE`. The default is `NO_CACHE`.
+
+If storage size limit is exceeded then an `IOException` will be emitted by the stream. This is a critical error in that MapDB resources in memory may not be disposed of properly and files associated with the stream may not have been deleted on unsubscription. Don't count on graceful recovery from this scenario!
+
+```
 To use defaults (emits on `Schedulers.computation`):
 
 ```java
@@ -326,11 +332,20 @@ Observable
     Transformers.onBackpressureBufferToFile(serializer);
 ```
 
-`Options.fileFactory(Func0<File>)` specifies the method used to create the root temporary file used by the queue storage mechanism (MapDB). The default is a factory that calls `Files.createTempFile("bufferToFileDB`, "")`.
+There are some inbuilt `DataSerializer` implementations:
+*`DataSerializers.string()`
+*`DataSerializers.integer()`
+*`DataSerializers.byteArray()`
+*`DataSerializers.javaIO()` - uses standard java serialization (`ObjectOutputStream` and such)
 
-Caching options include `SOFT_REF`, `WEAK_REF`, `HARD_REF`, `LEAST_RECENTLY_USED`, and `NO_CACHE`. The default is `NO_CACHE`.
+Thus for example you buffer array lists of integers to a file like so:
 
-If storage size limit is exceeded then an `IOException` will be emitted by the stream. This is a critical error in that MapDB resources in memory may not be disposed of properly and files associated with the stream may not have been deleted on unsubscription. Don't count on graceful recovery from this scenario!
+```java
+Observable.just(1, 2, 3, 4)
+    .buffer(2)
+    .compose(
+      Transformers.<List<Integer>>onBackpressureBufferToFile());
+```
 
 
 TestingHelper

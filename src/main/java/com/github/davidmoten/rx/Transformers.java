@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
+import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferEmissions;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
@@ -606,6 +607,11 @@ public final class Transformers {
     public static <T> Transformer<T, T> onBackpressureBufferToFile(
             final DataSerializer<T> serializer) {
         return onBackpressureBufferToFile(serializer, Schedulers.computation(),
+                Options.defaultInstance());
+    }
+
+    public static <T> Transformer<T, T> onBackpressureBufferToFile() {
+        return onBackpressureBufferToFile(DataSerializers.<T> javaIO(), Schedulers.computation(),
                 Options.defaultInstance());
     }
 

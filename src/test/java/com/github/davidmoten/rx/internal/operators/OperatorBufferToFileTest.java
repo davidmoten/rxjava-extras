@@ -349,4 +349,12 @@ public final class OperatorBufferToFileTest {
         return serializer;
     }
 
+    @Test
+    public void serializesListsUsingJavaIO() {
+        List<Integer> list = Observable.just(1, 2, 3, 4).buffer(2)
+                .compose(Transformers.<List<Integer>> onBackpressureBufferToFile()).last()
+                .toBlocking().single();
+        assertEquals(Arrays.asList(3, 4), list);
+    }
+
 }
