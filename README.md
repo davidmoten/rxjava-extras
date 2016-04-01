@@ -352,7 +352,7 @@ There are some inbuilt `DataSerializer` implementations:
 * `DataSerializers.byteArray()`
 * `DataSerializers.javaIO()` - uses standard java serialization (`ObjectOutputStream` and such)
 
-For example you can buffer array lists of integers to a file like so:
+Using default java serialization you can buffer array lists of integers to a file like so:
 
 ```java
 Observable.just(1, 2, 3, 4)
