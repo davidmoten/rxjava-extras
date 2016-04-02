@@ -25,7 +25,8 @@ import rx.functions.Func0;
  * MapDB has the facility to reuse space (at significant speed cost) but to
  * shrink allocated space (due to a surge in queue size) requires a non-trivial
  * blocking operation ({@code DB.compact()}) so it seems better to avoid
- * blocking and incur regular small new DB instance creation costs.
+ * blocking and incur regular small new DB instance creation costs (or even
+ * create the next queue in advance on another thread).
  * 
  * <p>
  * RollingQueue is partially thread-safe. It is designed to support
@@ -87,8 +88,7 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 	@Override
 	public boolean offer(T t) {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
-		// not offer
-		// and offer)
+		// not offer and offer)
 		if (closed.get()) {
 			return true;
 		} else {
