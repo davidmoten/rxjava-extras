@@ -10,12 +10,12 @@ import rx.functions.Func0;
 
 /**
  * This abstraction around multiple queues exists because to reclaim file system
- * space taken by MapDB databases the selected algorithm was to use a double
- * ended queue of database+queue combinations. As the number of entries added to
- * a queue (regardless of how many are read) meets a threshold another queue is
- * created on the end of the deque and new entries added to that. As entries are
- * read from a queue that is not the last queue, it is deleted when empty and
- * its file resources recovered (deleted).
+ * space taken by MapDB databases the selected strategy is to use a double ended
+ * queue of queue (each queue in a separate database). As the number of entries
+ * added to a queue (regardless of how many are read) meets a threshold another
+ * queue is created on the end of the deque and new entries then are added to
+ * that. As entries are read from a queue that is not the last queue, it is
+ * deleted when empty and its file resources recovered (deleted).
  * 
  * MapDB has the facility to reuse space (at significant speed cost) but to
  * shrink allocated space (due to a surge in queue size) requires a non-trivial
