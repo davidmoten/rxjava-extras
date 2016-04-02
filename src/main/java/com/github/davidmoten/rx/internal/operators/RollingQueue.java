@@ -135,10 +135,10 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public boolean isEmpty() {
+		// thread-safe
 		if (closed.get()) {
 			return true;
 		} else {
-			// thread-safe
 			Queue2<T> first = queues.peekFirst();
 			if (first == null) {
 				return true;
