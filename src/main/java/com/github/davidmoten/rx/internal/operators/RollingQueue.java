@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import rx.functions.Func0;
@@ -42,6 +43,7 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 	private final Func0<Queue2<T>> queueFactory;
 	private final long maxItemsPerQueue;
 	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
+	private final AtomicBoolean closed = new AtomicBoolean(false);
 
 	private final AtomicLong count = new AtomicLong(0);
 
@@ -52,13 +54,10 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public void close() {
-		// thread-safe and idempotent
-		while (true) {
-			Queue2<T> q = queues.pollFirst();
-			if (q != null) {
+		if (closed.compareAndSet(false, true)) {
+			// thread-safe and idempotent
+			for (Queue2<T> q : queues) {
 				q.dispose();
-			} else {
-				return;
 			}
 		}
 	}
@@ -67,6 +66,9 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 	public boolean offer(T t) {
 		// limited thread safety (offer and poll concurrent but not offer
 		// and offer)
+		if (closed.get()) {
+			return true;
+		}
 		long c = count.incrementAndGet();
 		if (c == 1 || c == maxItemsPerQueue) {
 			count.set(1);
@@ -79,7 +81,9 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 	public T poll() {
 		// limited thread safety (offer and poll concurrent but not poll
 		// and poll)
-		if (queues.isEmpty())
+		if (closed.get()) {
+			return null;
+		} else if (queues.isEmpty())
 			return null;
 		else {
 			while (true) {
@@ -102,19 +106,27 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 	@Override
 	public T peek() {
 		// thread-safe
-		return queues.peekFirst().peek();
+		if (closed.get()) {
+			return null;
+		} else {
+			return queues.peekFirst().peek();
+		}
 	}
 
 	@Override
 	public boolean isEmpty() {
-		// thread-safe
-		Queue2<T> first = queues.peekFirst();
-		if (first == null) {
-			return true;
-		} else if (queues.peekLast() == first && first.isEmpty()) {
+		if (closed.get()) {
 			return true;
 		} else {
-			return false;
+			// thread-safe
+			Queue2<T> first = queues.peekFirst();
+			if (first == null) {
+				return true;
+			} else if (queues.peekLast() == first && first.isEmpty()) {
+				return true;
+			} else {
+				return false;
+			}
 		}
 	}
 

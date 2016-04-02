@@ -7,6 +7,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -96,6 +97,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private final DB db;
 		private final Queue<T> queue;
+		private final AtomicBoolean closed = new AtomicBoolean(false);
 
 		public Q2(DB db, Queue<T> queue) {
 			this.db = db;
@@ -104,27 +106,45 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		@Override
 		public T peek() {
-			return queue.peek();
+			if (closed.get()) {
+				return null;
+			} else {
+				return queue.peek();
+			}
 		}
 
 		@Override
 		public T poll() {
-			return queue.poll();
+			if (closed.get()) {
+				return null;
+			} else {
+				return queue.poll();
+			}
 		}
 
 		@Override
 		public boolean offer(T t) {
-			return queue.offer(t);
+			if (closed.get()) {
+				return true;
+			} else {
+				return queue.offer(t);
+			}
 		}
 
 		@Override
 		public void dispose() {
-			db.close();
+			if (closed.compareAndSet(false, true)) {
+				db.close();
+			}
 		}
 
 		@Override
 		public boolean isEmpty() {
-			return queue.isEmpty();
+			if (closed.get()) {
+				return true;
+			} else {
+				return queue.isEmpty();
+			}
 		}
 
 	}
