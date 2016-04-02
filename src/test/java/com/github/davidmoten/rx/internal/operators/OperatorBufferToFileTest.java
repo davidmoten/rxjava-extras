@@ -250,7 +250,7 @@ public final class OperatorBufferToFileTest {
 				}).last().toBlocking().single();
 		assertEquals(max, last);
 	}
-	
+
 	@Test
 	public void rolloverWorks() throws InterruptedException {
 		DataSerializer<Integer> serializer = DataSerializers.integer();
@@ -262,18 +262,18 @@ public final class OperatorBufferToFileTest {
 						Options.cacheType(CacheType.NO_CACHE).rolloverEvery(10).build()))
 				.last().toBlocking().single();
 		assertEquals(max, last);
-		//wait for all scheduled work to complete (unsubscription)
+		// wait for all scheduled work to complete (unsubscription)
 		waitUntilWorkCompleted(scheduler, 10, TimeUnit.SECONDS);
 	}
 
-	private static void waitUntilWorkCompleted(Scheduler scheduler, long duration, TimeUnit unit)  {
+	private static void waitUntilWorkCompleted(Scheduler scheduler, long duration, TimeUnit unit) {
 		final CountDownLatch latch = new CountDownLatch(1);
 		scheduler.createWorker().schedule(Actions.countDown(latch));
 		try {
 			if (!latch.await(duration, unit)) {
 				throw new RuntimeException("did not complete");
 			}
-		} catch (InterruptedException e) {	
+		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
 	}

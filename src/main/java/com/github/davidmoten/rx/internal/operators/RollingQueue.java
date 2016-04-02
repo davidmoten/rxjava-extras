@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicLong;
 
 import rx.functions.Func0;
 
@@ -25,8 +26,7 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 	private final long maxItemsPerQueue;
 	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
 
-	// guarded by `queues`
-	private long count = 0;
+	private final AtomicLong count = new AtomicLong(0);
 
 	public RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
 		this.queueFactory = queueFactory;
@@ -45,34 +45,34 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public boolean offer(T t) {
-		synchronized (queues) {
-			count++;
-			if (count == 1 || count == maxItemsPerQueue) {
-				count = 1;
-				queues.add(queueFactory.call());
-			}
-			return queues.peekLast().offer(t);
+		// limited thread safety (offer and poll concurrent but not offer
+		// and offer)
+		long c = count.incrementAndGet();
+		if (c == 1 || c == maxItemsPerQueue) {
+			count.set(1);
+			queues.add(queueFactory.call());
 		}
+		return queues.peekLast().offer(t);
 	}
 
 	@Override
 	public T poll() {
-		synchronized (queues) {
-			if (queues.isEmpty())
-				return null;
-			else {
-				while (true) {
-					T value = queues.peekFirst().poll();
-					if (value == null) {
-						if (queues.size() <= 1) {
-							return null;
-						} else {
-							Queue2<T> removed = queues.pollFirst();
-							removed.dispose();
-						}
+		// limited thread safety (offer and poll concurrent but not poll
+		// and poll)
+		if (queues.isEmpty())
+			return null;
+		else {
+			while (true) {
+				T value = queues.peekFirst().poll();
+				if (value == null) {
+					if (queues.size() <= 1) {
+						return null;
 					} else {
-						return value;
+						Queue2<T> removed = queues.pollFirst();
+						removed.dispose();
 					}
+				} else {
+					return value;
 				}
 			}
 		}
@@ -80,9 +80,7 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public T peek() {
-		synchronized (queues) {
-			return queues.peekFirst().peek();
-		}
+		return queues.peekFirst().peek();
 	}
 
 	@Override
