@@ -142,7 +142,11 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 				final DB db = createDb(file, options);
 
 				// create the queue
-				Queue<T> q = db.createQueue(QUEUE_NAME, serializer, false);
+
+				// setting useLocks to false means that we don't reuse file
+				// system space in the queue but operations are faster
+				boolean useLocks = false;
+				Queue<T> q = db.createQueue(QUEUE_NAME, serializer, useLocks);
 
 				return new Q2<T>(db, q);
 			}
