@@ -7,10 +7,13 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.github.davidmoten.util.Preconditions;
+
 import rx.functions.Func0;
 
 /**
- * <p>This abstraction around multiple queues exists because to reclaim file system
+ * <p>
+ * This abstraction around multiple queues exists because to reclaim file system
  * space taken by MapDB databases the selected strategy is to use a double ended
  * queue of queue (each queue in a separate database). As the number of entries
  * added to a queue (regardless of how many are read) meets a threshold another
@@ -18,7 +21,8 @@ import rx.functions.Func0;
  * that. As entries are read from a queue that is not the last queue, it is
  * deleted when empty and its file resources recovered (deleted).
  * 
- * <p>MapDB has the facility to reuse space (at significant speed cost) but to
+ * <p>
+ * MapDB has the facility to reuse space (at significant speed cost) but to
  * shrink allocated space (due to a surge in queue size) requires a non-trivial
  * blocking operation ({@code DB.compact()}) so it seems better to avoid
  * blocking and incur regular small new DB instance creation costs.
@@ -45,9 +49,12 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 
+	// counter used to determine when to rollover to another queue
 	private final AtomicLong count = new AtomicLong(0);
 
-	public RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
+	RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
+		Preconditions.checkNotNull(queueFactory);
+		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
 		this.queueFactory = queueFactory;
 		this.maxItemsPerQueue = maxItemsPerQueue;
 	}
