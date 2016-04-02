@@ -119,9 +119,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		@Override
 		public void dispose() {
-			System.out.println("disposing " + db);
 			db.close();
-			System.out.println("disposed");
 		}
 
 		@Override
@@ -135,7 +133,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		final Func0<Queue2<T>> queueFactory = new Func0<Queue2<T>>() {
 			@Override
 			public Queue2<T> call() {
-				System.out.println("creating new queue");
 				// create the file to be used for queue storage (and whose file
 				// name will determine the names of other files used for
 				// storage)

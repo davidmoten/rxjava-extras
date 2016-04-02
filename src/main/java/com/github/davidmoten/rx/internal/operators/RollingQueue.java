@@ -35,10 +35,13 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public void close() {
-		//ensure thread safety with itself
-		synchronized (queues) {
-			while (!queues.isEmpty()) {
-				queues.pollFirst().dispose();
+		// thread-safe
+		while (true) {
+			Queue2<T> q = queues.pollFirst();
+			if (q != null) {
+				q.dispose();
+			} else {
+				return;
 			}
 		}
 	}
@@ -80,6 +83,7 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public T peek() {
+		// thread-safe
 		return queues.peekFirst().peek();
 	}
 
@@ -88,7 +92,7 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 		synchronized (queues) {
 			if (queues.isEmpty()) {
 				return true;
-			} else if (queues.size() == 1 && queues.peekFirst().isEmpty()) {
+			} else if (queues.peekLast() == queues.peekFirst() && queues.peekFirst().isEmpty()) {
 				return true;
 			} else
 				return false;
