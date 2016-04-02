@@ -52,7 +52,7 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public void close() {
-		// thread-safe
+		// thread-safe and idempotent
 		while (true) {
 			Queue2<T> q = queues.pollFirst();
 			if (q != null) {
@@ -83,9 +83,10 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 			return null;
 		else {
 			while (true) {
-				T value = queues.peekFirst().poll();
+				Queue2<T> first = queues.peekFirst();
+				T value = first.poll();
 				if (value == null) {
-					if (queues.size() <= 1) {
+					if (first == queues.peekLast()) {
 						return null;
 					} else {
 						Queue2<T> removed = queues.pollFirst();
