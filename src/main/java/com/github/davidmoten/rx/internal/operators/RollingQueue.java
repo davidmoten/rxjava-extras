@@ -8,6 +8,23 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import rx.functions.Func0;
 
+/**
+ * This abstraction around multiple queues exists because to reclaim file system
+ * space taken by MapDB databases the selected algorithm was to use a double
+ * ended queue of database+queue combinations. As the number of entries added to
+ * a queue (regardless of how many are read) meets a threshold another queue is
+ * created on the end of the deque and new entries added to that. As entries are
+ * read from a queue that is not the last queue, it is deleted when empty and
+ * its file resources recovered (deleted).
+ * 
+ * MapDB has the facility to reuse space (at significant speed cost) but to
+ * shrink allocated space (due to a surge in queue size) requires a non-trivial
+ * blocking operation ({@code DB.compact()}) so it seems better to avoid
+ * blocking and incur regular small new DB instance creation costs.
+ * 
+ * @param <T>
+ *            type of item being queued
+ */
 public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	public interface Queue2<T> {
@@ -89,13 +106,14 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public boolean isEmpty() {
-		synchronized (queues) {
-			if (queues.isEmpty()) {
-				return true;
-			} else if (queues.peekLast() == queues.peekFirst() && queues.peekFirst().isEmpty()) {
-				return true;
-			} else
-				return false;
+		// thread-safe
+		Queue2<T> first = queues.peekFirst();
+		if (first == null) {
+			return true;
+		} else if (queues.peekLast() == first && first.isEmpty()) {
+			return true;
+		} else {
+			return false;
 		}
 	}
 
