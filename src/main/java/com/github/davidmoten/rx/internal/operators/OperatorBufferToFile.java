@@ -164,7 +164,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 				// create the queue
 
 				// setting useLocks to false means that we don't reuse file
-				// system space in the queue but operations are faster
+				// system space in the queue but operations are faster.
+				// Reclaiming space is handled by RollingQueue so we opt for
+				// faster operations.
 				boolean useLocks = false;
 				Queue<T> q = db.createQueue(QUEUE_NAME, serializer, useLocks);
 
