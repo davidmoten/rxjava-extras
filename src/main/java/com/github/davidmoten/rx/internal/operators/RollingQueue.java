@@ -3,7 +3,7 @@ package com.github.davidmoten.rx.internal.operators;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import rx.functions.Func0;
 
@@ -23,7 +23,7 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	private final Func0<Queue2<T>> queueFactory;
 	private final long maxItemsPerQueue;
-	private final Deque<Queue2<T>> queues = new ConcurrentLinkedDeque<Queue2<T>>();
+	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
 
 	// guarded by `queues`
 	private long count = 0;

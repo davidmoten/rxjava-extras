@@ -419,8 +419,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 					queue.close();
 				} catch (Throwable e) {
 					// there is no facility to report unsubscription
-					// failures in
-					// the observable chain so write to stderr
+					// failures in the observable chain so write to stderr
 					e.printStackTrace();
 				}
 			}
