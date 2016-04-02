@@ -261,7 +261,7 @@ source1.compose(Transformers.orderedMergeWith(source2, comparator));
 
 Transformers.onBackpressureBufferToFile
 ----------------------------------------
-As of 0.7.1-RC2, if you add a dependency for [MapDB](http://www.mapdb.org) you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
+As of 0.7.1-RC3, if you add a dependency for [MapDB](http://www.mapdb.org) you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
 
 ```xml
  <dependency>
