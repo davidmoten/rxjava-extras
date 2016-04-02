@@ -13,9 +13,9 @@ import rx.functions.Func0;
 
 /**
  * <p>
- * This abstraction around multiple queues exists because to reclaim file system
- * space taken by MapDB databases the selected strategy is to use a double ended
- * queue of queue (each queue in a separate database). As the number of entries
+ * This abstraction around multiple queues exists as a strategy to reclaim file
+ * system space taken by MapDB databases. The strategy is to use a double ended
+ * queue of queues (each queue in a separate database). As the number of entries
  * added to a queue (regardless of how many are read) meets a threshold another
  * queue is created on the end of the deque and new entries then are added to
  * that. As entries are read from a queue that is not the last queue, it is
@@ -26,6 +26,14 @@ import rx.functions.Func0;
  * shrink allocated space (due to a surge in queue size) requires a non-trivial
  * blocking operation ({@code DB.compact()}) so it seems better to avoid
  * blocking and incur regular small new DB instance creation costs.
+ * 
+ * <p>
+ * RollingQueue is partially thread-safe. It is designed to support
+ * {@code OperatorBufferToFile} and expects calls to {@code offer()} to be
+ * strongly ordered mutually (a happens-before relationship), and calls to
+ * {@code poll()} to be strongly ordered mutually. Calls to {@code offer()},
+ * {@code poll()}, {@code isEmpty()}, {@code peek()},{@code close()} may happen
+ * concurrently.
  * 
  * @param <T>
  *            type of item being queued
@@ -75,7 +83,7 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public boolean offer(T t) {
-		// limited thread safety (offer/poll/close concurrent but not offer
+		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but not offer
 		// and offer)
 		if (closed.get()) {
 			return true;
@@ -91,7 +99,7 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public T poll() {
-		// limited thread safety (offer/close/poll concurrent but not poll
+		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but not poll
 		// and poll)
 		if (closed.get()) {
 			return null;
