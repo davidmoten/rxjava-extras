@@ -30,10 +30,9 @@ import rx.functions.Func0;
  * <p>
  * RollingQueue is partially thread-safe. It is designed to support
  * {@code OperatorBufferToFile} and expects calls to {@code offer()} to be
- * strongly ordered mutually (a happens-before relationship), and calls to
- * {@code poll()} to be strongly ordered mutually. Calls to {@code offer()},
- * {@code poll()}, {@code isEmpty()}, {@code peek()},{@code close()} may happen
- * concurrently.
+ * sequential (a happens-before relationship), and calls to {@code poll()} to be
+ * sequential. Calls to {@code offer()}, {@code poll()}, {@code isEmpty()},
+ * {@code peek()},{@code close()} may happen concurrently.
  * 
  * @param <T>
  *            type of item being queued
@@ -41,14 +40,18 @@ import rx.functions.Func0;
 final class RollingQueue<T> implements CloseableQueue<T> {
 
 	interface Queue2<T> {
+		// returns null if closed
 		T peek();
 
+		// returns null if closed
 		T poll();
 
+		// returns true if closed
 		boolean offer(T t);
 
 		void dispose();
 
+		// returns true if closed
 		boolean isEmpty();
 	}
 
@@ -83,7 +86,8 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public boolean offer(T t) {
-		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but not offer
+		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
+		// not offer
 		// and offer)
 		if (closed.get()) {
 			return true;
@@ -99,8 +103,8 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public T poll() {
-		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but not poll
-		// and poll)
+		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
+		// not poll and poll)
 		if (closed.get()) {
 			return null;
 		} else if (queues.isEmpty())
