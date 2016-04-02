@@ -60,26 +60,30 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 				q.dispose();
 			}
 		}
+		// Would be nice to clear `queues` at this point to release for gc
+		// but would have to wait for an outstanding offer/poll/peek/isEmpty.
+		// This could make things a bit more complex and add overhead.
 	}
 
 	@Override
 	public boolean offer(T t) {
-		// limited thread safety (offer and poll concurrent but not offer
+		// limited thread safety (offer/poll/close concurrent but not offer
 		// and offer)
 		if (closed.get()) {
 			return true;
+		} else {
+			long c = count.incrementAndGet();
+			if (c == 1 || c == maxItemsPerQueue) {
+				count.addAndGet(1 - c);
+				queues.add(queueFactory.call());
+			}
+			return queues.peekLast().offer(t);
 		}
-		long c = count.incrementAndGet();
-		if (c == 1 || c == maxItemsPerQueue) {
-			count.set(1);
-			queues.add(queueFactory.call());
-		}
-		return queues.peekLast().offer(t);
 	}
 
 	@Override
 	public T poll() {
-		// limited thread safety (offer and poll concurrent but not poll
+		// limited thread safety (offer/close/poll concurrent but not poll
 		// and poll)
 		if (closed.get()) {
 			return null;
