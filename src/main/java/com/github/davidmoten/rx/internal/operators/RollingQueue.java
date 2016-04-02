@@ -1,14 +1,13 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import rx.functions.Func0;
 
-public final class RollingQueue<T> implements Queue<T> {
+public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	public interface Queue2<T> {
 		T peek();
@@ -24,7 +23,7 @@ public final class RollingQueue<T> implements Queue<T> {
 
 	private final Func0<Queue2<T>> queueFactory;
 	private final long maxItemsPerQueue;
-	private final Deque<Queue2<T>> queues = new ArrayDeque<Queue2<T>>();
+	private final Deque<Queue2<T>> queues = new ConcurrentLinkedDeque<Queue2<T>>();
 
 	// guarded by `queues`
 	private long count = 0;
@@ -32,6 +31,16 @@ public final class RollingQueue<T> implements Queue<T> {
 	public RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
 		this.queueFactory = queueFactory;
 		this.maxItemsPerQueue = maxItemsPerQueue;
+	}
+
+	@Override
+	public void close() {
+		synchronized (queues) {
+			while (!queues.isEmpty()) {
+				Queue2<T> q = queues.pollFirst();
+				q.dispose();
+			}
+		}
 	}
 
 	@Override
@@ -77,16 +86,6 @@ public final class RollingQueue<T> implements Queue<T> {
 	}
 
 	@Override
-	public void clear() {
-		synchronized (queues) {
-			while (!queues.isEmpty()) {
-				Queue2<T> q = queues.pollFirst();
-				q.dispose();
-			}
-		}
-	}
-
-	@Override
 	public boolean isEmpty() {
 		synchronized (queues) {
 			if (queues.isEmpty()) {
@@ -96,6 +95,11 @@ public final class RollingQueue<T> implements Queue<T> {
 			} else
 				return false;
 		}
+	}
+
+	@Override
+	public void clear() {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

@@ -59,7 +59,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	public Subscriber<? super T> call(Subscriber<? super T> child) {
 
 		// create the MapDB queue
-		final Queue<T> queue = createQueue(serializer, options);
+		final CloseableQueue<T> queue = createQueue(serializer, options);
 
 		// hold a reference to the queueProducer which will be set on
 		// subscription to `source`
@@ -119,7 +119,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		@Override
 		public void dispose() {
-			System.out.println("disposing "+ db);
+			System.out.println("disposing " + db);
 			db.close();
 			System.out.println("disposed");
 		}
@@ -131,7 +131,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 	}
 
-	private static <T> Queue<T> createQueue(final Serializer<T> serializer, final Options options) {
+	private static <T> CloseableQueue<T> createQueue(final Serializer<T> serializer, final Options options) {
 		final Func0<Queue2<T>> queueFactory = new Func0<Queue2<T>>() {
 			@Override
 			public Queue2<T> call() {
@@ -182,11 +182,11 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	private static final class OnSubscribeFromQueue<T> implements OnSubscribe<T> {
 
 		private final AtomicReference<QueueProducer<T>> queueProducer;
-		private final Queue<T> queue;
+		private final CloseableQueue<T> queue;
 		private final Worker worker;
 		private final Options options;
 
-		OnSubscribeFromQueue(AtomicReference<QueueProducer<T>> queueProducer, Queue<T> queue, Worker worker,
+		OnSubscribeFromQueue(AtomicReference<QueueProducer<T>> queueProducer, CloseableQueue<T> queue, Worker worker,
 				Options options) {
 			this.queueProducer = queueProducer;
 			this.queue = queue;
@@ -235,7 +235,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	private static final class QueueProducer<T> extends AtomicLong implements Producer, Action0 {
 
 		private static final long serialVersionUID = 2521533710633950102L;
-		private final Queue<T> queue;
+		private final CloseableQueue<T> queue;
 		private final AtomicInteger drainRequested = new AtomicInteger(0);
 		private final Subscriber<? super T> child;
 		private final Worker worker;
@@ -243,7 +243,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		private volatile boolean done = false;
 		private volatile Throwable error = null;
 
-		QueueProducer(Queue<T> queue, Subscriber<? super T> child, Worker worker, boolean delayError) {
+		QueueProducer(CloseableQueue<T> queue, Subscriber<? super T> child, Worker worker, boolean delayError) {
 			super();
 			this.queue = queue;
 			this.child = child;
@@ -354,31 +354,45 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private boolean finished(boolean isQueueEmpty) {
 			if (done) {
+				// assign volatile to a temp variable so we don't
+				// read it more than once
 				Throwable t = error;
 				if (isQueueEmpty) {
-					// assign volatile to a temp variable so we don't
-					// read it twice
-					if (t != null) {
-						child.onError(t);
-					} else {
-						child.onCompleted();
+					try {
+						// first close the queue (which in this case though
+						// empty also disposes of its resources)
+						queue.close();
+
+						if (t != null) {
+							child.onError(t);
+						} else {
+							child.onCompleted();
+						}
+						// leave drainRequested > 0 so that further drain
+						// requests are ignored
+						return true;
+					} finally {
+						worker.unsubscribe();
 					}
-					// leave drainRequested > 0 so that further drain
-					// requests are ignored
-					return true;
+
 				} else if (t != null && !delayError) {
-					// queue is not empty but we are going to shortcut
-					// that because delayError is false
+					try {
+						// queue is not empty but we are going to shortcut
+						// that because delayError is false
 
-					// first clear the queue
-					queue.clear();
+						// first close the queue (which in this case also
+						// disposes of its resources)
+						queue.close();
 
-					// now report the error
-					child.onError(t);
+						// now report the error
+						child.onError(t);
 
-					// leave drainRequested > 0 so that further drain
-					// requests are ignored
-					return true;
+						// leave drainRequested > 0 so that further drain
+						// requests are ignored
+						return true;
+					} finally {
+						worker.unsubscribe();
+					}
 				} else {
 					// otherwise we need to wait for all items waiting
 					// on the queue to be requested and delivered
@@ -391,7 +405,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 	}
 
-	private static <T> Subscription disposer(final Queue<T> queue) {
+	private static <T> Subscription disposer(final CloseableQueue<T> queue) {
 		return new Subscription() {
 
 			private volatile boolean isUnsubscribed = false;
@@ -402,9 +416,10 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 				try {
 					// note that db is configured to attempt to delete files
 					// after close
-					queue.clear();
+					queue.close();
 				} catch (Throwable e) {
-					// there is no facility to report unsubscription failures in
+					// there is no facility to report unsubscription
+					// failures in
 					// the observable chain so write to stderr
 					e.printStackTrace();
 				}

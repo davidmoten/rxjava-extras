@@ -282,12 +282,12 @@ public final class OperatorBufferToFileTest {
 	public void checkRateForSmallMessages() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
 		DataSerializer<Integer> serializer = DataSerializers.integer();
-		int max = 100000;
+		int max = 1000;
 		long t = System.currentTimeMillis();
 		int last = Observable.range(1, max)
 				//
 				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-						Options.cacheType(CacheType.NO_CACHE).rolloverEvery(1000).build()))
+						Options.cacheType(CacheType.NO_CACHE).rolloverEvery(100).build()))
 				// log
 				.lift(Logging.<Integer> logger().every(1000).showMemory().log()).last().toBlocking().single();
 		t = System.currentTimeMillis() - t;
