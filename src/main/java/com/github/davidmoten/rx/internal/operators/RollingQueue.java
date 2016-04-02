@@ -35,10 +35,10 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 
 	@Override
 	public void close() {
+		//ensure thread safety with itself
 		synchronized (queues) {
 			while (!queues.isEmpty()) {
-				Queue2<T> q = queues.pollFirst();
-				q.dispose();
+				queues.pollFirst().dispose();
 			}
 		}
 	}
