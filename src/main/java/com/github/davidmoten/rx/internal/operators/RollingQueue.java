@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import rx.functions.Func0;
 
 /**
- * This abstraction around multiple queues exists because to reclaim file system
+ * <p>This abstraction around multiple queues exists because to reclaim file system
  * space taken by MapDB databases the selected strategy is to use a double ended
  * queue of queue (each queue in a separate database). As the number of entries
  * added to a queue (regardless of how many are read) meets a threshold another
@@ -18,7 +18,7 @@ import rx.functions.Func0;
  * that. As entries are read from a queue that is not the last queue, it is
  * deleted when empty and its file resources recovered (deleted).
  * 
- * MapDB has the facility to reuse space (at significant speed cost) but to
+ * <p>MapDB has the facility to reuse space (at significant speed cost) but to
  * shrink allocated space (due to a surge in queue size) requires a non-trivial
  * blocking operation ({@code DB.compact()}) so it seems better to avoid
  * blocking and incur regular small new DB instance creation costs.
@@ -26,9 +26,9 @@ import rx.functions.Func0;
  * @param <T>
  *            type of item being queued
  */
-public final class RollingQueue<T> implements CloseableQueue<T> {
+final class RollingQueue<T> implements CloseableQueue<T> {
 
-	public interface Queue2<T> {
+	interface Queue2<T> {
 		T peek();
 
 		T poll();
@@ -60,9 +60,10 @@ public final class RollingQueue<T> implements CloseableQueue<T> {
 				q.dispose();
 			}
 		}
-		// Would be nice to clear `queues` at this point to release for gc
-		// but would have to wait for an outstanding offer/poll/peek/isEmpty.
-		// This could make things a bit more complex and add overhead.
+		// Would be nice to clear `queues` at this point to release queues and
+		// their associated MapDB DB objects for gc but would have to wait for
+		// an outstanding offer/poll/peek/isEmpty. This could make things a bit
+		// more complex and add overhead.
 	}
 
 	@Override
