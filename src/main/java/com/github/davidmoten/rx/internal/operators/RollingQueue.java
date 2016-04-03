@@ -38,7 +38,9 @@ import rx.functions.Func0;
  * @param <T>
  *            type of item being queued
  */
-final class RollingQueue<T> implements CloseableQueue<T> {
+final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
+	
+	//inherited boolean represents the closed status of the RollingQueue
 
 	interface Queue2<T> {
 		// returns null if closed
@@ -59,7 +61,6 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 	private final Func0<Queue2<T>> queueFactory;
 	private final long maxItemsPerQueue;
 	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
-	private final AtomicBoolean closed = new AtomicBoolean(false);
 
 	// counter used to determine when to rollover to another queue
 	private final AtomicLong count = new AtomicLong(0);
@@ -69,11 +70,12 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
 		this.queueFactory = queueFactory;
 		this.maxItemsPerQueue = maxItemsPerQueue;
+		lazySet(false);
 	}
 
 	@Override
 	public void close() {
-		if (closed.compareAndSet(false, true)) {
+		if (compareAndSet(false, true)) {
 			// thread-safe and idempotent
 			for (Queue2<T> q : queues) {
 				q.close();
@@ -89,7 +91,7 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 	public boolean offer(T t) {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
 		// not offer and offer)
-		if (closed.get()) {
+		if (get()) {
 			return true;
 		} else {
 			long c = count.incrementAndGet();
@@ -105,7 +107,7 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 	public T poll() {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
 		// not poll and poll)
-		if (closed.get()) {
+		if (get()) {
 			return null;
 		} else if (queues.isEmpty())
 			return null;
@@ -130,7 +132,7 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 	@Override
 	public T peek() {
 		// thread-safe (will just return null if queue has been closed)
-		if (closed.get()) {
+		if (get()) {
 			return null;
 		} else {
 			return queues.peekFirst().peek();
@@ -140,7 +142,7 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 	@Override
 	public boolean isEmpty() {
 		// thread-safe (will just return true if queue has been closed)
-		if (closed.get()) {
+		if (get()) {
 			return true;
 		} else {
 			Queue2<T> first = queues.peekFirst();
