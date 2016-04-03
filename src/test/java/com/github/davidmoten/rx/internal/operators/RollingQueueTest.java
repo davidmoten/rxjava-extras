@@ -7,6 +7,7 @@ import java.util.Queue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.github.davidmoten.rx.internal.operators.RollingQueue.Queue2;
@@ -27,6 +28,7 @@ public class RollingQueueTest {
 
 	private volatile RollingQueue<Integer> q;
 
+	@Ignore
 	@Test
 	public void testPushAndPollUsingThreadWeaver() {
 		// Create an AnnotatedTestRunner that wisll run the threaded tests
