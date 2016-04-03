@@ -97,10 +97,11 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private final DB db;
 		private final Queue<T> queue;
-		private final AtomicBoolean closing = new AtomicBoolean(false);
+		private volatile boolean closing = false;
 		private final AtomicBoolean closed = new AtomicBoolean(false);
 
-		// ensures db.close() doesn't occur until outstanding peek(),offer(), poll(),
+		// ensures db.close() doesn't occur until outstanding peek(),offer(),
+		// poll(),
 		// isEmpty() calls have finished
 		private final AtomicInteger currentCalls = new AtomicInteger(0);
 
@@ -113,7 +114,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		public T peek() {
 			try {
 				currentCalls.incrementAndGet();
-				if (closing.get()) {
+				if (closing) {
 					return null;
 				} else {
 					return queue.peek();
@@ -128,7 +129,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		public T poll() {
 			try {
 				currentCalls.incrementAndGet();
-				if (closing.get()) {
+				if (closing) {
 					return null;
 				} else {
 					return queue.poll();
@@ -143,7 +144,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		public boolean offer(T t) {
 			try {
 				currentCalls.incrementAndGet();
-				if (closing.get()) {
+				if (closing) {
 					return true;
 				} else {
 					return queue.offer(t);
@@ -158,7 +159,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		public boolean isEmpty() {
 			try {
 				currentCalls.incrementAndGet();
-				if (closing.get()) {
+				if (closing) {
 					return true;
 				} else {
 					return queue.isEmpty();
@@ -171,13 +172,12 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		@Override
 		public void close() {
-			if (closing.compareAndSet(false, true)) {
-				checkClosed();
-			}
+			closing = true;
+			checkClosed();
 		}
 
 		private void checkClosed() {
-			if (closing.get() && currentCalls.get() == 0 && closed.compareAndSet(false, true)) {
+			if (closing && currentCalls.get() == 0 && closed.compareAndSet(false, true)) {
 				db.close();
 			}
 		}
