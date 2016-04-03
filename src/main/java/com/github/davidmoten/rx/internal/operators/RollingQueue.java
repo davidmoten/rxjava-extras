@@ -80,9 +80,9 @@ final class RollingQueue<T> implements CloseableQueue<T> {
 			}
 		}
 		// Would be nice to clear `queues` at this point to release queues and
-		// their associated MapDB DB objects for gc but would have to wait for
-		// an outstanding offer/poll/peek/isEmpty. This could make things a bit
-		// more complex and add overhead.
+		// their associated MapDB DB objects for gc early but would have to wait
+		// for an outstanding offer/poll/peek/isEmpty. This could make things a
+		// bit more complex and add overhead.
 	}
 
 	@Override
