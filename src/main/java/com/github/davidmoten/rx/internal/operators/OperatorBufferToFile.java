@@ -97,12 +97,12 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private final DB db;
 		private final Queue<T> queue;
-		private volatile boolean closing = false;
+		// guarded by currentCalls and this
+		private boolean closing = false;
 		private final AtomicBoolean closed = new AtomicBoolean(false);
 
 		// ensures db.close() doesn't occur until outstanding peek(),offer(),
-		// poll(),
-		// isEmpty() calls have finished
+		// poll(), isEmpty() calls have finished
 		private final AtomicInteger currentCalls = new AtomicInteger(0);
 
 		Q2(DB db, Queue<T> queue) {
@@ -172,7 +172,11 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		@Override
 		public void close() {
-			closing = true;
+			synchronized (this) {
+				// ensure this change is seen by all threads by enclosing in
+				// synchronized block
+				closing = true;
+			}
 			checkClosed();
 		}
 
