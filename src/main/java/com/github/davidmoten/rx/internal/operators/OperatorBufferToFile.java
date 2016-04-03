@@ -93,6 +93,12 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		return parentSubscriber;
 	}
 
+	/**
+	 * Wraps a Queue (like MapDB Queue) to provide concurrency guarantees around
+	 * calls to the close() method.
+	 * 
+	 * @param <T> type of item on queue
+	 */
 	private static class Q2<T> implements Queue2<T> {
 
 		private final DB db;
