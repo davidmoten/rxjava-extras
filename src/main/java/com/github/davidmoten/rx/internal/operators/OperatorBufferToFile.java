@@ -98,9 +98,12 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		private final DB db;
 		private final Queue<T> queue;
 		private final AtomicBoolean closed = new AtomicBoolean(false);
+
+		// ensures close doesn't occur until outstanding peek(),offer(), poll(),
+		// isEmpty() calls have finished
 		private final AtomicInteger currentCalls = new AtomicInteger(0);
 
-		public Q2(DB db, Queue<T> queue) {
+		Q2(DB db, Queue<T> queue) {
 			this.db = db;
 			this.queue = queue;
 		}
@@ -170,6 +173,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						db.close();
 						return;
 					}
+					//TODO investigate if should sleep here
 				}
 			}
 		}
