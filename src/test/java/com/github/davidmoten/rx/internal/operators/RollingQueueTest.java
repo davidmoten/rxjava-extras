@@ -19,93 +19,97 @@ import com.google.testing.threadtester.ThreadedSecondary;
 
 import rx.functions.Func0;
 
+/**
+ * Uses thread-weaver to test concurrent calls of poll and offer using
+ * interleaving. Not sure if is comprehensive!
+ */
 public class RollingQueueTest {
 
-    private volatile RollingQueue<Integer> q;
+	private volatile RollingQueue<Integer> q;
 
-    @Test
-    public void testConcurrently() {
-        // Create an AnnotatedTestRunner that will run the threaded tests
-        // defined in this class.
-        AnnotatedTestRunner runner = new AnnotatedTestRunner();
-        HashSet<String> methods = new HashSet<String>();
-        runner.setMethodOption(MethodOption.ALL_METHODS, methods);
-        runner.setDebug(true);
-        runner.runTests(this.getClass(), RollingQueue.class);
-    }
+	@Test
+	public void testPushAndPollUsingThreadWeaver() {
+		// Create an AnnotatedTestRunner that wisll run the threaded tests
+		// defined in this class.
+		AnnotatedTestRunner runner = new AnnotatedTestRunner();
+		HashSet<String> methods = new HashSet<String>();
+		runner.setMethodOption(MethodOption.ALL_METHODS, methods);
+		runner.setDebug(true);
+		runner.runTests(this.getClass(), RollingQueue.class);
+	}
 
-    @ThreadedBefore
-    public void before() {
-        q = new RollingQueue<Integer>(queueFactory, 3);
-        q.offer(1);
-    }
+	@ThreadedBefore
+	public void before() {
+		q = new RollingQueue<Integer>(queueFactory, 3);
+		q.offer(1);
+	}
 
-    @ThreadedMain
-    public void main() {
-        q.offer(2);
-    }
+	@ThreadedMain
+	public void main() {
+		q.offer(2);
+	}
 
-    @ThreadedSecondary
-    public void secondary() {
-        q.poll();
-    }
+	@ThreadedSecondary
+	public void secondary() {
+		q.poll();
+	}
 
-    @ThreadedAfter
-    public void after() {
-        Integer first = q.poll();
-        Integer second = q.poll();
-        assertTrue(first == 1 && second == null || first == 2 && second == null);
-    }
+	@ThreadedAfter
+	public void after() {
+		Integer first = q.poll();
+		Integer second = q.poll();
+		assertTrue(first == 1 && second == null || first == 2 && second == null);
+	}
 
-    private static final Func0<Queue2<Integer>> queueFactory = new Func0<Queue2<Integer>>() {
+	private static final Func0<Queue2<Integer>> queueFactory = new Func0<Queue2<Integer>>() {
 
-        @Override
-        public Queue2<Integer> call() {
-            return new Queue2<Integer>() {
+		@Override
+		public Queue2<Integer> call() {
+			return new Queue2<Integer>() {
 
-                final Queue<Integer> queue = new LinkedBlockingDeque<Integer>();
-                final AtomicBoolean closed = new AtomicBoolean(false);
+				final Queue<Integer> queue = new LinkedBlockingDeque<Integer>();
+				final AtomicBoolean closed = new AtomicBoolean(false);
 
-                @Override
-                public Integer peek() {
-                    if (closed.get()) {
-                        return null;
-                    } else {
-                        return queue.peek();
-                    }
-                }
+				@Override
+				public Integer peek() {
+					if (closed.get()) {
+						return null;
+					} else {
+						return queue.peek();
+					}
+				}
 
-                @Override
-                public Integer poll() {
-                    if (closed.get()) {
-                        return null;
-                    } else {
-                        return queue.poll();
-                    }
-                }
+				@Override
+				public Integer poll() {
+					if (closed.get()) {
+						return null;
+					} else {
+						return queue.poll();
+					}
+				}
 
-                @Override
-                public boolean offer(Integer t) {
-                    if (closed.get()) {
-                        return true;
-                    } else {
-                        return queue.offer(t);
-                    }
-                }
+				@Override
+				public boolean offer(Integer t) {
+					if (closed.get()) {
+						return true;
+					} else {
+						return queue.offer(t);
+					}
+				}
 
-                @Override
-                public void dispose() {
-                    if (closed.compareAndSet(false, true)) {
-                        queue.clear();
-                    }
-                }
+				@Override
+				public void dispose() {
+					if (closed.compareAndSet(false, true)) {
+						queue.clear();
+					}
+				}
 
-                @Override
-                public boolean isEmpty() {
-                    return queue.isEmpty();
-                }
-            };
-        }
-    };
+				@Override
+				public boolean isEmpty() {
+					return queue.isEmpty();
+				}
+			};
+		}
+	};
 
 }
