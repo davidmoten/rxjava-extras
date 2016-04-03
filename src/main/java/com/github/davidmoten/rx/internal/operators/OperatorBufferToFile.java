@@ -339,7 +339,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		private void drain() {
 			// only schedule a drain if current drain has finished
 			// otherwise the drainRequested counter will be incremented
-			// and the drain loop will ensure that another drain cyle occurs if
+			// and the drain loop will ensure that another drain cycle occurs if
 			// required
 			if (drainRequested.getAndIncrement() == 0) {
 				worker.schedule(this);

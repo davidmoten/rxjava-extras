@@ -287,6 +287,7 @@ public final class OperatorBufferToFileTest {
 	public void handlesTenSecondLoopOfMidStreamUnsubscribe() {
 		// run for ten seconds
 		long t = System.currentTimeMillis();
+		long count = 0;
 		while ((System.currentTimeMillis() - t < TimeUnit.SECONDS.toMillis(9))) {
 			Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
 			DataSerializer<Integer> serializer = DataSerializers.integer();
@@ -294,7 +295,7 @@ public final class OperatorBufferToFileTest {
 			final CountDownLatch latch = new CountDownLatch(1);
 			final AtomicInteger last = new AtomicInteger(-1);
 			final AtomicBoolean error = new AtomicBoolean(false);
-			final int unsubscribeAfter = 801;
+			final int unsubscribeAfter = max/2+1;
 			final List<Integer> list = new ArrayList<Integer>();
 			Subscriber<Integer> subscriber = new Subscriber<Integer>() {
 				int count = 0;
@@ -332,7 +333,9 @@ public final class OperatorBufferToFileTest {
 			}
 			assertEquals(expected, list);
 			waitUntilWorkCompleted(scheduler, 100, TimeUnit.SECONDS);
+			count++;
 		}
+		System.out.println(count + " cycles passed");
 	}
 
 	@Test
