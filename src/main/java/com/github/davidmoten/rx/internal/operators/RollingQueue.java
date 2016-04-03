@@ -38,7 +38,7 @@ import rx.functions.Func0;
  * @param <T>
  *            type of item being queued
  */
-public class RollingQueue<T> implements CloseableQueue<T> {
+final class RollingQueue<T> implements CloseableQueue<T> {
 
     interface Queue2<T> {
         // returns null if closed
@@ -64,7 +64,7 @@ public class RollingQueue<T> implements CloseableQueue<T> {
     // counter used to determine when to rollover to another queue
     private final AtomicLong count = new AtomicLong(0);
 
-    public RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
+    RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
         Preconditions.checkNotNull(queueFactory);
         Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
         this.queueFactory = queueFactory;
