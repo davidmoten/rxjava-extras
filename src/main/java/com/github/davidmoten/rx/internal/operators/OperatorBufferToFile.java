@@ -97,9 +97,10 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private final DB db;
 		private final Queue<T> queue;
+		private final AtomicBoolean closing = new AtomicBoolean(false);
 		private final AtomicBoolean closed = new AtomicBoolean(false);
 
-		// ensures close doesn't occur until outstanding peek(),offer(), poll(),
+		// ensures db.close() doesn't occur until outstanding peek(),offer(), poll(),
 		// isEmpty() calls have finished
 		private final AtomicInteger currentCalls = new AtomicInteger(0);
 
@@ -112,13 +113,14 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		public T peek() {
 			try {
 				currentCalls.incrementAndGet();
-				if (closed.get()) {
+				if (closing.get()) {
 					return null;
 				} else {
 					return queue.peek();
 				}
 			} finally {
 				currentCalls.decrementAndGet();
+				checkClosed();
 			}
 		}
 
@@ -126,13 +128,14 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		public T poll() {
 			try {
 				currentCalls.incrementAndGet();
-				if (closed.get()) {
+				if (closing.get()) {
 					return null;
 				} else {
 					return queue.poll();
 				}
 			} finally {
 				currentCalls.decrementAndGet();
+				checkClosed();
 			}
 		}
 
@@ -140,13 +143,14 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		public boolean offer(T t) {
 			try {
 				currentCalls.incrementAndGet();
-				if (closed.get()) {
+				if (closing.get()) {
 					return true;
 				} else {
 					return queue.offer(t);
 				}
 			} finally {
 				currentCalls.decrementAndGet();
+				checkClosed();
 			}
 		}
 
@@ -154,27 +158,27 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		public boolean isEmpty() {
 			try {
 				currentCalls.incrementAndGet();
-				if (closed.get()) {
+				if (closing.get()) {
 					return true;
 				} else {
 					return queue.isEmpty();
 				}
 			} finally {
 				currentCalls.decrementAndGet();
+				checkClosed();
 			}
 		}
 
 		@Override
 		public void close() {
-			if (closed.compareAndSet(false, true)) {
-				while (true) {
-					// spins to find chance to close
-					if (currentCalls.get() == 0) {
-						db.close();
-						return;
-					}
-					//TODO investigate if should sleep here
-				}
+			if (closing.compareAndSet(false, true)) {
+				checkClosed();
+			}
+		}
+
+		private void checkClosed() {
+			if (closing.get() && currentCalls.get() == 0 && closed.compareAndSet(false, true)) {
+				db.close();
 			}
 		}
 
