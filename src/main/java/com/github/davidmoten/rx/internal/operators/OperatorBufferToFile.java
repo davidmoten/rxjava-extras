@@ -95,17 +95,20 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 	/**
 	 * Wraps a Queue (like MapDB Queue) to provide concurrency guarantees around
-	 * calls to the close() method.
+	 * calls to the close() method. Extends AtomicBoolean to save allocation.
+	 * The AtomicBoolean represents the closed status of the queue.
 	 * 
-	 * @param <T> type of item on queue
+	 * @param <T>
+	 *            type of item on queue
 	 */
-	private static class Q2<T> implements Queue2<T> {
+	private static class Q2<T> extends AtomicBoolean implements Queue2<T> {
+
+		private static final long serialVersionUID = -950306777716863302L;
 
 		private final DB db;
 		private final Queue<T> queue;
 		// guarded by currentCalls and this
 		private boolean closing = false;
-		private final AtomicBoolean closed = new AtomicBoolean(false);
 
 		// ensures db.close() doesn't occur until outstanding peek(),offer(),
 		// poll(), isEmpty() calls have finished
@@ -114,6 +117,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		Q2(DB db, Queue<T> queue) {
 			this.db = db;
 			this.queue = queue;
+			// store-store barrier
+			lazySet(false);
 		}
 
 		@Override
@@ -187,7 +192,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		private void checkClosed() {
-			if (closing && currentCalls.get() == 0 && closed.compareAndSet(false, true)) {
+			if (closing && currentCalls.get() == 0 && compareAndSet(false, true)) {
 				db.close();
 			}
 		}
