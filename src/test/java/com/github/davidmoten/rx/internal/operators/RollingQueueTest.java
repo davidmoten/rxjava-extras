@@ -98,7 +98,7 @@ public class RollingQueueTest {
 				}
 
 				@Override
-				public void dispose() {
+				public void close() {
 					if (closed.compareAndSet(false, true)) {
 						queue.clear();
 					}

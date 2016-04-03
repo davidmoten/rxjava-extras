@@ -98,6 +98,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		private final DB db;
 		private final Queue<T> queue;
 		private final AtomicBoolean closed = new AtomicBoolean(false);
+		private final AtomicInteger currentCalls = new AtomicInteger(0);
 
 		public Q2(DB db, Queue<T> queue) {
 			this.db = db;
@@ -106,44 +107,70 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		@Override
 		public T peek() {
-			if (closed.get()) {
-				return null;
-			} else {
-				return queue.peek();
+			try {
+				currentCalls.incrementAndGet();
+				if (closed.get()) {
+					return null;
+				} else {
+					return queue.peek();
+				}
+			} finally {
+				currentCalls.decrementAndGet();
 			}
 		}
 
 		@Override
 		public T poll() {
-			if (closed.get()) {
-				return null;
-			} else {
-				return queue.poll();
+			try {
+				currentCalls.incrementAndGet();
+				if (closed.get()) {
+					return null;
+				} else {
+					return queue.poll();
+				}
+			} finally {
+				currentCalls.decrementAndGet();
 			}
 		}
 
 		@Override
 		public boolean offer(T t) {
-			if (closed.get()) {
-				return true;
-			} else {
-				return queue.offer(t);
-			}
-		}
-
-		@Override
-		public void dispose() {
-			if (closed.compareAndSet(false, true)) {
-				db.close();
+			try {
+				currentCalls.incrementAndGet();
+				if (closed.get()) {
+					return true;
+				} else {
+					return queue.offer(t);
+				}
+			} finally {
+				currentCalls.decrementAndGet();
 			}
 		}
 
 		@Override
 		public boolean isEmpty() {
-			if (closed.get()) {
-				return true;
-			} else {
-				return queue.isEmpty();
+			try {
+				currentCalls.incrementAndGet();
+				if (closed.get()) {
+					return true;
+				} else {
+					return queue.isEmpty();
+				}
+			} finally {
+				currentCalls.decrementAndGet();
+			}
+		}
+
+		@Override
+		public void close() {
+			if (closed.compareAndSet(false, true)) {
+				while (true) {
+					// spins to find chance to close
+					if (currentCalls.get() == 0) {
+						db.close();
+						return;
+					}
+				}
 			}
 		}
 

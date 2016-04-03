@@ -1,15 +1,19 @@
 package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -25,6 +29,7 @@ import com.github.davidmoten.rx.slf4j.Logging;
 
 import rx.Observable;
 import rx.Scheduler;
+import rx.Subscriber;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
@@ -279,17 +284,70 @@ public final class OperatorBufferToFileTest {
 	}
 
 	@Test
+	public void handlesTenSecondLoopOfMidStreamUnsubscribe() {
+		// run for ten seconds
+		long t = System.currentTimeMillis();
+		while ((System.currentTimeMillis() - t < TimeUnit.SECONDS.toMillis(9))) {
+			Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
+			DataSerializer<Integer> serializer = DataSerializers.integer();
+			int max = 1000;
+			final CountDownLatch latch = new CountDownLatch(1);
+			final AtomicInteger last = new AtomicInteger(-1);
+			final AtomicBoolean error = new AtomicBoolean(false);
+			final int unsubscribeAfter = 801;
+			final List<Integer> list = new ArrayList<Integer>();
+			Subscriber<Integer> subscriber = new Subscriber<Integer>() {
+				int count = 0;
+
+				@Override
+				public void onCompleted() {
+					latch.countDown();
+				}
+
+				@Override
+				public void onError(Throwable e) {
+					error.set(true);
+				}
+
+				@Override
+				public void onNext(Integer t) {
+					count++;
+					list.add(t);
+					if (count == unsubscribeAfter) {
+						unsubscribe();
+						last.set(count);
+						latch.countDown();
+					}
+				}
+			};
+			Observable.range(1, max)
+					//
+					.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
+							Options.cacheType(CacheType.NO_CACHE).rolloverEvery(max / 10).build()))
+					.subscribe(subscriber);
+			assertFalse(error.get());
+			List<Integer> expected = new ArrayList<Integer>();
+			for (int i = 1; i <= unsubscribeAfter; i++) {
+				expected.add(i);
+			}
+			assertEquals(expected, list);
+			waitUntilWorkCompleted(scheduler, 100, TimeUnit.SECONDS);
+		}
+	}
+
+	@Test
 	public void checkRateForSmallMessages() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
 		DataSerializer<Integer> serializer = DataSerializers.integer();
-		int max = 1000;
+		int max = 100000;
 		long t = System.currentTimeMillis();
 		int last = Observable.range(1, max)
 				//
 				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-						Options.cacheType(CacheType.NO_CACHE).rolloverEvery(100).build()))
+						Options.cacheType(CacheType.NO_CACHE).rolloverEvery(max / 10).build()))
 				// log
-				.lift(Logging.<Integer> logger().every(1000).showMemory().log()).last().toBlocking().single();
+				.lift(Logging.<Integer> logger().showCount().every(1000).showMemory().log()).last().toBlocking()
+				.single();
 		t = System.currentTimeMillis() - t;
 		assertEquals(max, last);
 		System.out.println("rate = " + (double) max / (t) * 1000);
