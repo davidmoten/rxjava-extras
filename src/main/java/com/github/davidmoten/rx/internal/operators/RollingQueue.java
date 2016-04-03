@@ -38,190 +38,190 @@ import rx.functions.Func0;
  * @param <T>
  *            type of item being queued
  */
-final class RollingQueue<T> implements CloseableQueue<T> {
+public class RollingQueue<T> implements CloseableQueue<T> {
 
-	interface Queue2<T> {
-		// returns null if closed
-		T peek();
+    interface Queue2<T> {
+        // returns null if closed
+        T peek();
 
-		// returns null if closed
-		T poll();
+        // returns null if closed
+        T poll();
 
-		// returns true if closed
-		boolean offer(T t);
+        // returns true if closed
+        boolean offer(T t);
 
-		void dispose();
+        void dispose();
 
-		// returns true if closed
-		boolean isEmpty();
-	}
+        // returns true if closed
+        boolean isEmpty();
+    }
 
-	private final Func0<Queue2<T>> queueFactory;
-	private final long maxItemsPerQueue;
-	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
-	private final AtomicBoolean closed = new AtomicBoolean(false);
+    private final Func0<Queue2<T>> queueFactory;
+    private final long maxItemsPerQueue;
+    private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
-	// counter used to determine when to rollover to another queue
-	private final AtomicLong count = new AtomicLong(0);
+    // counter used to determine when to rollover to another queue
+    private final AtomicLong count = new AtomicLong(0);
 
-	RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
-		Preconditions.checkNotNull(queueFactory);
-		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
-		this.queueFactory = queueFactory;
-		this.maxItemsPerQueue = maxItemsPerQueue;
-	}
+    public RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
+        Preconditions.checkNotNull(queueFactory);
+        Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
+        this.queueFactory = queueFactory;
+        this.maxItemsPerQueue = maxItemsPerQueue;
+    }
 
-	@Override
-	public void close() {
-		if (closed.compareAndSet(false, true)) {
-			// thread-safe and idempotent
-			for (Queue2<T> q : queues) {
-				q.dispose();
-			}
-		}
-		// Would be nice to clear `queues` at this point to release queues and
-		// their associated MapDB DB objects for gc but would have to wait for
-		// an outstanding offer/poll/peek/isEmpty. This could make things a bit
-		// more complex and add overhead.
-	}
+    @Override
+    public void close() {
+        if (closed.compareAndSet(false, true)) {
+            // thread-safe and idempotent
+            for (Queue2<T> q : queues) {
+                q.dispose();
+            }
+        }
+        // Would be nice to clear `queues` at this point to release queues and
+        // their associated MapDB DB objects for gc but would have to wait for
+        // an outstanding offer/poll/peek/isEmpty. This could make things a bit
+        // more complex and add overhead.
+    }
 
-	@Override
-	public boolean offer(T t) {
-		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
-		// not offer and offer)
-		if (closed.get()) {
-			return true;
-		} else {
-			long c = count.incrementAndGet();
-			if (c == 1 || c == maxItemsPerQueue) {
-				count.addAndGet(1 - c);
-				queues.add(queueFactory.call());
-			}
-			return queues.peekLast().offer(t);
-		}
-	}
+    @Override
+    public boolean offer(T t) {
+        // limited thread safety (offer/poll/close/peek/isEmpty concurrent but
+        // not offer and offer)
+        if (closed.get()) {
+            return true;
+        } else {
+            long c = count.incrementAndGet();
+            if (c == 1 || c == maxItemsPerQueue) {
+                count.addAndGet(1 - c);
+                queues.add(queueFactory.call());
+            }
+            return queues.peekLast().offer(t);
+        }
+    }
 
-	@Override
-	public T poll() {
-		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
-		// not poll and poll)
-		if (closed.get()) {
-			return null;
-		} else if (queues.isEmpty())
-			return null;
-		else {
-			while (true) {
-				Queue2<T> first = queues.peekFirst();
-				T value = first.poll();
-				if (value == null) {
-					if (first == queues.peekLast()) {
-						return null;
-					} else {
-						Queue2<T> removed = queues.pollFirst();
-						removed.dispose();
-					}
-				} else {
-					return value;
-				}
-			}
-		}
-	}
+    @Override
+    public T poll() {
+        // limited thread safety (offer/poll/close/peek/isEmpty concurrent but
+        // not poll and poll)
+        if (closed.get()) {
+            return null;
+        } else if (queues.isEmpty())
+            return null;
+        else {
+            while (true) {
+                Queue2<T> first = queues.peekFirst();
+                T value = first.poll();
+                if (value == null) {
+                    if (first == queues.peekLast()) {
+                        return null;
+                    } else {
+                        Queue2<T> removed = queues.pollFirst();
+                        removed.dispose();
+                    }
+                } else {
+                    return value;
+                }
+            }
+        }
+    }
 
-	@Override
-	public T peek() {
-		// thread-safe
-		if (closed.get()) {
-			return null;
-		} else {
-			return queues.peekFirst().peek();
-		}
-	}
+    @Override
+    public T peek() {
+        // thread-safe
+        if (closed.get()) {
+            return null;
+        } else {
+            return queues.peekFirst().peek();
+        }
+    }
 
-	@Override
-	public boolean isEmpty() {
-		// thread-safe
-		if (closed.get()) {
-			return true;
-		} else {
-			Queue2<T> first = queues.peekFirst();
-			if (first == null) {
-				return true;
-			} else if (queues.peekLast() == first && first.isEmpty()) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-	}
+    @Override
+    public boolean isEmpty() {
+        // thread-safe
+        if (closed.get()) {
+            return true;
+        } else {
+            Queue2<T> first = queues.peekFirst();
+            if (first == null) {
+                return true;
+            } else if (queues.peekLast() == first && first.isEmpty()) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
 
-	@Override
-	public void clear() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public void clear() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public int size() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public int size() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean contains(Object o) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean contains(Object o) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Iterator<T> iterator() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Iterator<T> iterator() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Object[] toArray() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Object[] toArray() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public <T> T[] toArray(T[] a) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public <T> T[] toArray(T[] a) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean remove(Object o) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean remove(Object o) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean containsAll(Collection<?> c) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean addAll(Collection<? extends T> c) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean addAll(Collection<? extends T> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean removeAll(Collection<?> c) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean retainAll(Collection<?> c) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean add(T e) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean add(T e) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public T remove() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public T remove() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public T element() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public T element() {
+        throw new UnsupportedOperationException();
+    }
 
 }
