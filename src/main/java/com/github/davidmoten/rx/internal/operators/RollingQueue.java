@@ -1,7 +1,5 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import static org.junit.Assert.assertNotNull;
-
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
@@ -91,9 +89,9 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 			}
 		}
 		// Would be nice to clear `queues` at this point to release Queue2
-		// references and their associated MapDB DB objects for gc early but
-		// would have to wait for an outstanding offer/poll/peek/isEmpty. This
-		// could make things a bit more complex and add overhead.
+		// references for gc early but would have to wait for an outstanding
+		// offer/poll/peek/isEmpty. This could make things a bit more complex
+		// and add overhead.
 	}
 
 	@Override
