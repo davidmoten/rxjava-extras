@@ -5,11 +5,11 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.davidmoten.util.Preconditions;
 
 import rx.functions.Func0;
+import rx.plugins.RxJavaPlugins;
 
 /**
  * <p>
@@ -65,7 +65,8 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
 
 	// counter used to determine when to rollover to another queue
-	// guarded by this and the fact that calls to offer are happens-before sequential
+	// guarded by the fact that calls to offer are happens-before
+	// sequential
 	private long count;
 
 	RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
@@ -85,10 +86,30 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 				q.close();
 			}
 		}
-		// Would be nice to clear `queues` at this point to release queues and
-		// their associated MapDB DB objects for gc early but would have to wait
-		// for an outstanding offer/poll/peek/isEmpty. This could make things a
-		// bit more complex and add overhead.
+		// Would be nice to clear `queues` at this point to release Queue2
+		// references and their associated MapDB DB objects for gc early but
+		// would have to wait for an outstanding offer/poll/peek/isEmpty. This
+		// could make things a bit more complex and add overhead.
+	}
+	
+	@Override
+	public boolean isUnsubscribed() {
+		return get();
+	}
+	
+	@Override
+	public void unsubscribe() {
+		try {
+			// note that db is configured to attempt to delete files
+			// after close
+			close();
+		} catch (RuntimeException e) {
+			RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+			throw e;
+		} catch (Error e) {
+			RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+			throw e;
+		}
 	}
 
 	@Override

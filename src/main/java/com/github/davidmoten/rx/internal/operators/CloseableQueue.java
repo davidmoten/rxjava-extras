@@ -2,7 +2,9 @@ package com.github.davidmoten.rx.internal.operators;
 
 import java.util.Queue;
 
-interface CloseableQueue<T> extends Queue<T> {
+import rx.Subscription;
+
+interface CloseableQueue<T> extends Queue<T>, Subscription {
 
 	/**
 	 * <p>

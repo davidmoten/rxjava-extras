@@ -82,7 +82,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		child.add(parentSubscriber);
 
 		// close and delete database on unsubscription
-		child.add(disposer(queue));
+		child.add(queue);
 
 		// ensure onStart not called twice
 		Subscriber<T> wrappedChild = Subscribers.wrap(child);
@@ -311,13 +311,17 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	private static final class QueueProducer<T> extends AtomicLong implements Producer, Action0 {
 
 		private static final long serialVersionUID = 2521533710633950102L;
+		
 		private final CloseableQueue<T> queue;
 		private final AtomicInteger drainRequested = new AtomicInteger(0);
 		private final Subscriber<? super T> child;
 		private final Worker worker;
 		private final boolean delayError;
 		private volatile boolean done = false;
-		private volatile Throwable error = null;
+
+		// Is set just before the volatile `done` is set and read just after
+		// `done` is read. Thus doesn't need to be volatile.
+		private Throwable error = null;
 
 		QueueProducer(CloseableQueue<T> queue, Subscriber<? super T> child, Worker worker, boolean delayError) {
 			super();
@@ -421,17 +425,14 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private boolean finished(boolean isQueueEmpty) {
 			if (done) {
-				// assign volatile to a temp variable so we don't
-				// read it more than once
-				Throwable t = error;
 				if (isQueueEmpty) {
 					try {
 						// first close the queue (which in this case though
 						// empty also disposes of its resources)
 						queue.close();
 
-						if (t != null) {
-							child.onError(t);
+						if (error != null) {
+							child.onError(error);
 						} else {
 							child.onCompleted();
 						}
@@ -442,7 +443,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						worker.unsubscribe();
 					}
 
-				} else if (t != null && !delayError) {
+				} else if (error != null && !delayError) {
 					try {
 						// queue is not empty but we are going to shortcut
 						// that because delayError is false
@@ -452,7 +453,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						queue.close();
 
 						// now report the error
-						child.onError(t);
+						child.onError(error);
 
 						// leave drainRequested > 0 so that further drain
 						// requests are ignored
@@ -470,34 +471,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 				return drainRequested.compareAndSet(1, 0);
 			}
 		}
-	}
-
-	private static <T> Subscription disposer(final CloseableQueue<T> queue) {
-		return new Subscription() {
-
-			private volatile boolean isUnsubscribed = false;
-
-			@Override
-			public void unsubscribe() {
-				isUnsubscribed = true;
-				try {
-					// note that db is configured to attempt to delete files
-					// after close
-					queue.close();
-				} catch (RuntimeException e) {
-					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
-					throw e;
-				} catch (Error e) {
-					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
-					throw e;
-				}
-			}
-
-			@Override
-			public boolean isUnsubscribed() {
-				return isUnsubscribed;
-			}
-		};
 	}
 
 	private static final class MapDbSerializer<T> implements Serializer<T>, Serializable {
