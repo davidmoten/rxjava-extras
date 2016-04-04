@@ -106,7 +106,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		private final DB db;
 		private final Queue<T> queue;
 
-		// guarded by currentCalls and this
+		// currentCalls and this used to manage visibility
 		private boolean closing;
 
 		// ensures db.close() doesn't occur until outstanding peek(),offer(),
@@ -308,8 +308,10 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 	private static final class QueueProducer<T> extends AtomicLong implements Producer, Action0 {
 
+		// inherits from AtomicLong to represent the oustanding requests count
+
 		private static final long serialVersionUID = 2521533710633950102L;
-		
+
 		private final CloseableQueue<T> queue;
 		private final AtomicInteger drainRequested = new AtomicInteger(0);
 		private final Subscriber<? super T> child;
@@ -423,14 +425,15 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private boolean finished(boolean isQueueEmpty) {
 			if (done) {
+				Throwable t = error;
 				if (isQueueEmpty) {
 					try {
 						// first close the queue (which in this case though
 						// empty also disposes of its resources)
 						queue.close();
 
-						if (error != null) {
-							child.onError(error);
+						if (t != null) {
+							child.onError(t);
 						} else {
 							child.onCompleted();
 						}
@@ -441,7 +444,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						worker.unsubscribe();
 					}
 
-				} else if (error != null && !delayError) {
+				} else if (t != null && !delayError) {
 					try {
 						// queue is not empty but we are going to shortcut
 						// that because delayError is false
@@ -451,7 +454,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						queue.close();
 
 						// now report the error
-						child.onError(error);
+						child.onError(t);
 
 						// leave drainRequested > 0 so that further drain
 						// requests are ignored
@@ -474,6 +477,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	private static final class MapDbSerializer<T> implements Serializer<T>, Serializable {
 
 		private static final long serialVersionUID = -4992031045087289671L;
+		private static final int VARIABLE_SIZE = -1;
 		private transient final DataSerializer<T> dataSerializer;
 
 		MapDbSerializer(DataSerializer<T> dataSerializer) {
@@ -487,7 +491,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		@Override
 		public int fixedSize() {
-			return -1;
+			return VARIABLE_SIZE;
 		}
 
 		@Override

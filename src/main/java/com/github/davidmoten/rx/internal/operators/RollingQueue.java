@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
@@ -66,7 +68,7 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
 
 	// counter used to determine when to rollover to another queue
-	// guarded by the fact that calls to offer are happens-before
+	// visibility managed by the fact that calls to offer are happens-before
 	// sequential
 	private long count;
 
@@ -75,7 +77,8 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
 		this.queueFactory = queueFactory;
 		this.maxItemsPerQueue = maxItemsPerQueue;
-		count = 0;
+		this.count = 0;
+		// store-store barrier
 		lazySet(false);
 	}
 
@@ -92,12 +95,12 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 		// would have to wait for an outstanding offer/poll/peek/isEmpty. This
 		// could make things a bit more complex and add overhead.
 	}
-	
+
 	@Override
 	public boolean isUnsubscribed() {
 		return get();
 	}
-	
+
 	@Override
 	public void unsubscribe() {
 		try {
@@ -161,7 +164,12 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 		if (get()) {
 			return null;
 		} else {
-			return queues.peekFirst().peek();
+			Queue2<T> first = queues.peekFirst();
+			if (first == null) {
+				return null;
+			} else {
+				return first.peek();
+			}
 		}
 	}
 
