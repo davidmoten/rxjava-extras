@@ -42,6 +42,8 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 	
 	//inherited boolean represents the closed status of the RollingQueue
 
+	private static final long serialVersionUID = 6212213475110919831L;
+
 	interface Queue2<T> {
 		// returns null if closed
 		T peek();
@@ -70,7 +72,6 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
 		this.queueFactory = queueFactory;
 		this.maxItemsPerQueue = maxItemsPerQueue;
-		lazySet(false);
 	}
 
 	@Override
@@ -181,6 +182,7 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 		throw new UnsupportedOperationException();
 	}
 
+	@SuppressWarnings("hiding")
 	@Override
 	public <T> T[] toArray(T[] a) {
 		throw new UnsupportedOperationException();

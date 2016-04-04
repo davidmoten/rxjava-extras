@@ -344,7 +344,7 @@ Observable
 
 Caching options include `SOFT_REF`, `WEAK_REF`, `HARD_REF`, `LEAST_RECENTLY_USED`, and `NO_CACHE`. The default is `NO_CACHE`.
 
-If storage size limit is exceeded then an `IOException` will be emitted by the stream. This is a critical error in that MapDB resources in memory may not be disposed of properly and files associated with the stream may not have been deleted on unsubscription. Don't count on graceful recovery from this scenario!
+If storage size limit is exceeded then an `IOError` will be emitted by the stream. This is a critical error in that MapDB resources in memory may not be disposed of properly and files associated with the stream may not have been deleted on unsubscription. Don't count on graceful recovery from this scenario!
 
 `Options.rolloverEvery(long)` is an important option for long running/infinite streams. When a MapDB queue increases in size MapDB has configurable options to reuse space but shrinking the space requires a non-trivial blocking operation (`DB.compact()`). The strategy used to reclaim disk space is to create a new DB instance (and queue) every N emissions. Writing will occur to the latest created queue and reading will be occuring on the earliest non-closed queue. Once a queue instance is read fully and it is not the last queue it is closed and its file resources deleted. The abstraction used internally to handle these operations is [`RollingQueue`](src/main/java/com/github/davidmoten/rx/internal/operators/RollingQueue.java).
 

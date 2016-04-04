@@ -2,10 +2,13 @@ package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.DataInput;
 import java.io.DataOutput;
+import java.io.IOError;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,7 +17,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
@@ -32,10 +38,27 @@ import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
+import rx.plugins.RxJavaErrorHandler;
+import rx.plugins.RxJavaPlugins;
 import rx.schedulers.Schedulers;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public final class OperatorBufferToFileTest {
+	
+	@Before
+    @After
+    public void resetBefore() {
+        RxJavaPlugins ps = RxJavaPlugins.getInstance();
+        
+        try {
+            Method m = ps.getClass().getDeclaredMethod("reset");
+            m.setAccessible(true);
+            m.invoke(ps);
+        } catch (Throwable ex) {
+            ex.printStackTrace();
+        }
+    }
+
 
 	@Test
 	public void handlesEmpty() {
@@ -295,7 +318,7 @@ public final class OperatorBufferToFileTest {
 			final CountDownLatch latch = new CountDownLatch(1);
 			final AtomicInteger last = new AtomicInteger(-1);
 			final AtomicBoolean error = new AtomicBoolean(false);
-			final int unsubscribeAfter = max/2+1;
+			final int unsubscribeAfter = max / 2 + 1;
 			final List<Integer> list = new ArrayList<Integer>();
 			Subscriber<Integer> subscriber = new Subscriber<Integer>() {
 				int count = 0;
@@ -381,18 +404,28 @@ public final class OperatorBufferToFileTest {
 
 	@Test
 	public void testOverflow() throws InterruptedException {
+		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
+		final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
+		RxJavaErrorHandler handler = new RxJavaErrorHandler() {
+
+			public void handleError(Throwable t) {
+				error.set(t);
+			}
+		};
+		RxJavaPlugins.getInstance().registerErrorHandler(handler);
 		TestSubscriber<Integer> ts = TestSubscriber.create();
 		DataSerializer<Integer> serializer = createLargeMessageSerializer();
 		int max = 100;
 		Observable.range(1, max)
 				//
-				.compose(Transformers.onBackpressureBufferToFile(serializer, Schedulers.computation(),
+				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
 						Options.cacheType(CacheType.NO_CACHE).storageSizeLimitMB(1).build()))
 				.delay(50, TimeUnit.MILLISECONDS, Schedulers.immediate()).last().subscribe(ts);
 		ts.awaitTerminalEvent();
-		ts.assertError(IOException.class);
+		ts.assertError(IOError.class);
+		assertTrue(error.get() != null && error.get() instanceof IOError);
 		// wait for unsubscribe
-		Thread.sleep(500);
+		waitUntilWorkCompleted(scheduler, 5, TimeUnit.SECONDS);
 	}
 
 	private DataSerializer<Integer> createLargeMessageSerializer() {

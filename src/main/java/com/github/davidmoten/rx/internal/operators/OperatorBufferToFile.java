@@ -34,6 +34,7 @@ import rx.functions.Action0;
 import rx.functions.Func0;
 import rx.internal.operators.BackpressureUtils;
 import rx.observers.Subscribers;
+import rx.plugins.RxJavaPlugins;
 
 public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
@@ -107,16 +108,19 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private final DB db;
 		private final Queue<T> queue;
+
 		// guarded by currentCalls and this
-		private boolean closing = false;
+		private boolean closing;
 
 		// ensures db.close() doesn't occur until outstanding peek(),offer(),
-		// poll(), isEmpty() calls have finished
+		// poll(), isEmpty() calls have finished. When currentCalls is zero a
+		// close request can be actioned.
 		private final AtomicInteger currentCalls = new AtomicInteger(0);
 
 		Q2(DB db, Queue<T> queue) {
 			this.db = db;
 			this.queue = queue;
+			this.closing = false;
 			// store-store barrier
 			lazySet(false);
 		}
@@ -371,17 +375,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 			// catch exceptions related to MapDB usage in drainNow()
 			try {
 				drainNow();
-			} catch (IOError e) {
-				if (e.getCause() != null) {
-					// unwrap IOError(IOException: no free space to expand
-					// Volume) because API indicates that IOException will be
-					// emitted in the case of storage overflow
-					child.onError(e.getCause());
-				} else {
-					child.onError(e);
-				}
-			} catch (Throwable t) {
-				child.onError(t);
+			} catch (Throwable e) {
+				child.onError(e);
 			}
 		}
 
@@ -490,10 +485,12 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 					// note that db is configured to attempt to delete files
 					// after close
 					queue.close();
-				} catch (Throwable e) {
-					// there is no facility to report unsubscription
-					// failures in the observable chain so write to stderr
-					e.printStackTrace();
+				} catch (RuntimeException e) {
+					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+					throw e;
+				} catch (Error e) {
+					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+					throw e;
 				}
 			}
 
