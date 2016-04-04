@@ -26,7 +26,7 @@ public class MathsTest {
         assertEquals(Math.pow(9, 0.33333333333333), x, 0.000001);
     }
 
-    @Test(timeout = 1000)
+    @Test
     public void testScan() {
         Observable.range(1, Integer.MAX_VALUE)
                 //
