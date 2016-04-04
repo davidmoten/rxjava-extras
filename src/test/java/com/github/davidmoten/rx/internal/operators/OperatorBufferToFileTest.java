@@ -44,21 +44,20 @@ import rx.schedulers.Schedulers;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public final class OperatorBufferToFileTest {
-	
-	@Before
-    @After
-    public void resetBefore() {
-        RxJavaPlugins ps = RxJavaPlugins.getInstance();
-        
-        try {
-            Method m = ps.getClass().getDeclaredMethod("reset");
-            m.setAccessible(true);
-            m.invoke(ps);
-        } catch (Throwable ex) {
-            ex.printStackTrace();
-        }
-    }
 
+	@Before
+	@After
+	public void resetBefore() {
+		RxJavaPlugins ps = RxJavaPlugins.getInstance();
+
+		try {
+			Method m = ps.getClass().getDeclaredMethod("reset");
+			m.setAccessible(true);
+			m.invoke(ps);
+		} catch (Throwable ex) {
+			ex.printStackTrace();
+		}
+	}
 
 	@Test
 	public void handlesEmpty() {
@@ -257,7 +256,7 @@ public final class OperatorBufferToFileTest {
 				//
 				.compose(Transformers.onBackpressureBufferToFile(serializer, Schedulers.computation(), createOptions()))
 				// log
-				.lift(Logging.<Integer> logger().showMemory().log())
+				// .lift(Logging.<Integer> logger().showMemory().log())
 				// delay emissions
 				.doOnNext(new Action1<Object>() {
 					int count = 0;
@@ -268,7 +267,7 @@ public final class OperatorBufferToFileTest {
 						count++;
 						if (count < 3) {
 							try {
-								System.out.println(t);
+								// System.out.println(t);
 								Thread.sleep(1000);
 							} catch (InterruptedException e) {
 								//
@@ -365,15 +364,16 @@ public final class OperatorBufferToFileTest {
 	public void checkRateForSmallMessages() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
 		DataSerializer<Integer> serializer = DataSerializers.integer();
-		int max = 1000;
+		int max = 3000;
 		long t = System.currentTimeMillis();
 		int last = Observable.range(1, max)
 				//
 				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-						Options.cacheType(CacheType.NO_CACHE).rolloverEvery(max / 10).build()))
+						Options.cacheType(CacheType.NO_CACHE).build()))
 				// log
-				.lift(Logging.<Integer> logger().showCount().every(1000).showMemory().log()).last().toBlocking()
-				.single();
+				// .lift(Logging.<Integer>
+				// logger().showCount().every(1000).showMemory().log())
+				.last().toBlocking().single();
 		t = System.currentTimeMillis() - t;
 		assertEquals(max, last);
 		System.out.println("rate = " + (double) max / (t) * 1000);
@@ -448,7 +448,7 @@ public final class OperatorBufferToFileTest {
 						toWrite = 0;
 					}
 				}
-				System.out.println("written " + n);
+				// System.out.println("written " + n);
 			}
 
 			@Override
@@ -465,7 +465,7 @@ public final class OperatorBufferToFileTest {
 						bytesRead = dummyArraySize;
 					}
 				}
-				System.out.println("read " + value);
+				// System.out.println("read " + value);
 				return value;
 			}
 		};
