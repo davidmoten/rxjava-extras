@@ -88,7 +88,10 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 			// Would be nice to clear `queues` at this point to release Queue2
 			// references for gc early but would have to wait for an outstanding
 			// offer/poll/peek/isEmpty. This could make things a bit more
-			// complex and add overhead.
+			// complex and add overhead. Note that Queue2 instances after
+			// closing release their references to DB and Queue instances so
+			// going further to release Queue2 objects themselves is not really
+			// worth it.
 		}
 	}
 
@@ -145,6 +148,8 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 						return null;
 					} else {
 						Queue2<T> removed = queues.pollFirst();
+						// don't have concurrent poll/poll so don't have to
+						// do null check on removed
 						removed.close();
 					}
 				} else {
