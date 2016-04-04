@@ -99,7 +99,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	 * @param <T>
 	 *            type of item on queue
 	 */
-	private static class Q2<T> extends AtomicBoolean implements Queue2<T> {
+	private static final class Q2<T> extends AtomicBoolean implements Queue2<T> {
 
 		private static final long serialVersionUID = -950306777716863302L;
 
@@ -306,7 +306,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		private final Subscriber<? super T> child;
 		private final Worker worker;
 		private final boolean delayError;
-		private volatile boolean done = false;
+		private volatile boolean done;
 
 		// Is set just before the volatile `done` is set and read just after
 		// `done` is read. Thus doesn't need to be volatile.
@@ -318,6 +318,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 			this.child = child;
 			this.worker = worker;
 			this.delayError = delayError;
+			this.done = false;
 		}
 
 		void onNext(T t) {
