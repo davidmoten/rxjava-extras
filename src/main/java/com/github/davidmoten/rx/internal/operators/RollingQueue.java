@@ -65,7 +65,7 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
 
 	// counter used to determine when to rollover to another queue
-	// guarded by this and that calls to offer are happens-before sequential
+	// guarded by this and the fact that calls to offer are happens-before sequential
 	private long count;
 
 	RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
