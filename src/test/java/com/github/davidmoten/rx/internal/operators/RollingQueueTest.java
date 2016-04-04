@@ -73,15 +73,6 @@ public class RollingQueueTest {
 				final AtomicBoolean closed = new AtomicBoolean(false);
 
 				@Override
-				public Integer peek() {
-					if (closed.get()) {
-						return null;
-					} else {
-						return queue.peek();
-					}
-				}
-
-				@Override
 				public Integer poll() {
 					if (closed.get()) {
 						return null;

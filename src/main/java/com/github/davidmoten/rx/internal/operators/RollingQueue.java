@@ -30,7 +30,7 @@ import rx.plugins.RxJavaPlugins;
  * create the next queue in advance on another thread).
  * 
  * <p>
- * RollingQueue is partially thread-safe. It is designed to support
+ * {@code RollingQueue} is partially thread-safe. It is designed to support
  * {@code OperatorBufferToFile} and expects calls to {@code offer()} to be
  * sequential (a happens-before relationship), and calls to {@code poll()} to be
  * sequential. Calls to {@code offer()}, {@code poll()}, {@code isEmpty()},
@@ -46,8 +46,6 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 	private static final long serialVersionUID = 6212213475110919831L;
 
 	interface Queue2<T> {
-		// returns null if closed
-		T peek();
 
 		// returns null if closed
 		T poll();
@@ -87,11 +85,11 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 			for (Queue2<T> q : queues) {
 				q.close();
 			}
+			// Would be nice to clear `queues` at this point to release Queue2
+			// references for gc early but would have to wait for an outstanding
+			// offer/poll/peek/isEmpty. This could make things a bit more
+			// complex and add overhead.
 		}
-		// Would be nice to clear `queues` at this point to release Queue2
-		// references for gc early but would have to wait for an outstanding
-		// offer/poll/peek/isEmpty. This could make things a bit more complex
-		// and add overhead.
 	}
 
 	@Override
@@ -157,21 +155,6 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 	}
 
 	@Override
-	public T peek() {
-		// thread-safe (will just return null if queue has been closed)
-		if (get()) {
-			return null;
-		} else {
-			Queue2<T> first = queues.peekFirst();
-			if (first == null) {
-				return null;
-			} else {
-				return first.peek();
-			}
-		}
-	}
-
-	@Override
 	public boolean isEmpty() {
 		// thread-safe (will just return true if queue has been closed)
 		if (get()) {
@@ -195,6 +178,11 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 
 	@Override
 	public int size() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public T peek() {
 		throw new UnsupportedOperationException();
 	}
 

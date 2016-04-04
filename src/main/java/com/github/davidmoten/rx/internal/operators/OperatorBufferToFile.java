@@ -124,21 +124,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		@Override
-		public T peek() {
-			try {
-				currentCalls.incrementAndGet();
-				if (closing) {
-					return null;
-				} else {
-					return queue.peek();
-				}
-			} finally {
-				currentCalls.decrementAndGet();
-				checkClosed();
-			}
-		}
-
-		@Override
 		public T poll() {
 			try {
 				currentCalls.incrementAndGet();
