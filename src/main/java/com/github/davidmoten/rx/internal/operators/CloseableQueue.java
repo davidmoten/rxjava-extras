@@ -4,7 +4,7 @@ import java.util.Queue;
 
 import rx.Subscription;
 
-interface CloseableQueue<T> extends Queue<T>, Subscription {
+interface CloseableQueue<T> extends Queue<T> {
 
 	/**
 	 * <p>

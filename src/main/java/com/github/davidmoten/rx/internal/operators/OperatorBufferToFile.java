@@ -28,12 +28,10 @@ import rx.Producer;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
-import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Func0;
 import rx.internal.operators.BackpressureUtils;
 import rx.observers.Subscribers;
-import rx.plugins.RxJavaPlugins;
 
 public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
@@ -60,7 +58,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	public Subscriber<? super T> call(Subscriber<? super T> child) {
 
 		// create the MapDB queue
-		final CloseableQueue<T> queue = createQueue(serializer, options);
+		final RollingQueue<T> queue = createQueue(serializer, options);
 
 		// hold a reference to the queueProducer which will be set on
 		// subscription to `source`
@@ -202,7 +200,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 	}
 
-	private static <T> CloseableQueue<T> createQueue(final Serializer<T> serializer, final Options options) {
+	private static <T> RollingQueue<T> createQueue(final Serializer<T> serializer, final Options options) {
 		final Func0<Queue2<T>> queueFactory = new Func0<Queue2<T>>() {
 			@Override
 			public Queue2<T> call() {

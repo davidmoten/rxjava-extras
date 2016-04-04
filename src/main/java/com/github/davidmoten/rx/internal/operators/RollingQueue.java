@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.davidmoten.util.Preconditions;
 
+import rx.Subscription;
 import rx.functions.Func0;
 import rx.plugins.RxJavaPlugins;
 
@@ -38,7 +39,7 @@ import rx.plugins.RxJavaPlugins;
  * @param <T>
  *            type of item being queued
  */
-final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
+final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, Subscription {
 
 	// inherited boolean represents the closed status of the RollingQueue
 
