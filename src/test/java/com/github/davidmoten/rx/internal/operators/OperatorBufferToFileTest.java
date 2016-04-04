@@ -423,9 +423,9 @@ public final class OperatorBufferToFileTest {
 				.delay(50, TimeUnit.MILLISECONDS, Schedulers.immediate()).last().subscribe(ts);
 		ts.awaitTerminalEvent();
 		ts.assertError(IOError.class);
-		assertTrue(error.get() != null && error.get() instanceof IOError);
 		// wait for unsubscribe
 		waitUntilWorkCompleted(scheduler, 5, TimeUnit.SECONDS);
+		assertTrue(error.get() != null && error.get() instanceof IllegalStateException);
 	}
 
 	private DataSerializer<Integer> createLargeMessageSerializer() {
