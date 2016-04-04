@@ -103,8 +103,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private static final long serialVersionUID = -950306777716863302L;
 
-		private final DB db;
-		private final Queue<T> queue;
+		// non-final so we can clear references on close for early gc
+		private DB db;
+		private Queue<T> queue;
 
 		// currentCalls and this used to manage visibility
 		private boolean closing;
@@ -195,6 +196,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		private void checkClosed() {
 			if (closing && currentCalls.get() == 0 && compareAndSet(false, true)) {
 				db.close();
+				//clear references so will be gc'd early
+				db = null;
+				queue = null;
 			}
 		}
 
@@ -343,7 +347,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		void onError(Throwable e) {
 			// must assign error before assign done = true to avoid race
-			// condition in finished()
+			// condition in finished() and also so appropriate memory barrier in
+			// place given error is non-volatile
 			error = e;
 			done = true;
 			drain();
