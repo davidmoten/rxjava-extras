@@ -364,7 +364,8 @@ public final class OperatorBufferToFileTest {
 	public void checkRateForSmallMessages() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
 		DataSerializer<Integer> serializer = DataSerializers.integer();
-		int max = 3000;
+
+		int max = Integer.parseInt(System.getProperty("max.small", "3000"));
 		long t = System.currentTimeMillis();
 		int last = Observable.range(1, max)
 				//
