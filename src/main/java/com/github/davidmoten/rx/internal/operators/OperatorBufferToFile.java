@@ -3,7 +3,6 @@ package com.github.davidmoten.rx.internal.operators;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
-import java.io.IOError;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Queue;

@@ -39,8 +39,8 @@ import rx.functions.Func0;
  *            type of item being queued
  */
 final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
-	
-	//inherited boolean represents the closed status of the RollingQueue
+
+	// inherited boolean represents the closed status of the RollingQueue
 
 	private static final long serialVersionUID = 6212213475110919831L;
 
@@ -65,13 +65,16 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
 
 	// counter used to determine when to rollover to another queue
-	private final AtomicLong count = new AtomicLong(0);
+	// guarded by this and that calls to offer are happens-before sequential
+	private long count;
 
 	RollingQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
 		Preconditions.checkNotNull(queueFactory);
 		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
 		this.queueFactory = queueFactory;
 		this.maxItemsPerQueue = maxItemsPerQueue;
+		count = 0;
+		lazySet(false);
 	}
 
 	@Override
@@ -95,9 +98,9 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 		if (get()) {
 			return true;
 		} else {
-			long c = count.incrementAndGet();
-			if (c == 1 || c == maxItemsPerQueue) {
-				count.set(1);
+			count++;
+			if (count == 1 || count == maxItemsPerQueue) {
+				count = 1;
 				queues.add(queueFactory.call());
 			}
 			return queues.peekLast().offer(t);
