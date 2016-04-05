@@ -1,6 +1,7 @@
 package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.File;
 
@@ -15,6 +16,7 @@ public class PersistentQueueTest {
         PersistentQueue<Integer> q = createQueue();
         q.offer(1);
         assertEquals(1, (int) q.poll());
+        assertNull(q.poll());
     }
     
     @Test
@@ -24,6 +26,7 @@ public class PersistentQueueTest {
         q.offer(2);
         assertEquals(1, (int) q.poll());
         assertEquals(2, (int) q.poll());
+        assertNull(q.poll());
     }
 
     private static PersistentQueue<Integer> createQueue() {
