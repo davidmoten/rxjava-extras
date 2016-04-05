@@ -28,6 +28,19 @@ public class PersistentQueueTest {
         assertEquals(2, (int) q.poll());
         assertNull(q.poll());
     }
+    
+    @Test
+    public void test3() {
+        PersistentQueue<Integer> q = createQueue();
+        assertNull(q.poll());
+        q.offer(1);
+        q.offer(2);
+        assertEquals(1, (int) q.poll());
+        q.offer(3);
+        assertEquals(2, (int) q.poll());
+        assertEquals(3, (int) q.poll());
+        assertNull(q.poll());
+    }
 
     private static PersistentQueue<Integer> createQueue() {
         File file = new File("target/pq");

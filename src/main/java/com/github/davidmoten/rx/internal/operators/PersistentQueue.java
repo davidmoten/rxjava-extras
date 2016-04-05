@@ -1,6 +1,5 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.io.BufferedReader;
 import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
@@ -15,7 +14,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.util.Preconditions;
