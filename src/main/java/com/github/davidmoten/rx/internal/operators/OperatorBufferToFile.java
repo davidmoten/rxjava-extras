@@ -58,7 +58,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	public Subscriber<? super T> call(Subscriber<? super T> child) {
 
 		// create the MapDB queue
-		final RollingQueue<T> queue = createQueue(serializer, options);
+		final CloseableQueue<T> queue = createQueue(serializer, options);
 
 		// hold a reference to the queueProducer which will be set on
 		// subscription to `source`
@@ -421,7 +421,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 					try {
 						// first close the queue (which in this case though
 						// empty also disposes of its resources)
-						queue.close();
+						queue.unsubscribe();
 
 						if (t != null) {
 							child.onError(t);
@@ -442,7 +442,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 						// first close the queue (which in this case also
 						// disposes of its resources)
-						queue.close();
+						queue.unsubscribe();
 
 						// now report the error
 						child.onError(t);

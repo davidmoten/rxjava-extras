@@ -39,7 +39,7 @@ import rx.plugins.RxJavaPlugins;
  * @param <T>
  *            type of item being queued
  */
-final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, Subscription {
+final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 
 	// inherited boolean represents the closed status of the RollingQueue
 
@@ -79,11 +79,19 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 	}
 
 	@Override
-	public void close() {
+	public void unsubscribe() {
 		if (compareAndSet(false, true)) {
-			// thread-safe and idempotent
-			for (Queue2<T> q : queues) {
-				q.close();
+			try {
+				// thread-safe and idempotent
+				for (Queue2<T> q : queues) {
+					q.close();
+				}
+			} catch (RuntimeException e) {
+				RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+				throw e;
+			} catch (Error e) {
+				RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+				throw e;
 			}
 			// Would be nice to clear `queues` at this point to release Queue2
 			// references for gc early but would have to wait for an outstanding
@@ -98,21 +106,6 @@ final class RollingQueue<T> extends AtomicBoolean implements CloseableQueue<T>, 
 	@Override
 	public boolean isUnsubscribed() {
 		return get();
-	}
-
-	@Override
-	public void unsubscribe() {
-		try {
-			// note that db is configured to attempt to delete files
-			// after close
-			close();
-		} catch (RuntimeException e) {
-			RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
-			throw e;
-		} catch (Error e) {
-			RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
-			throw e;
-		}
 	}
 
 	@Override

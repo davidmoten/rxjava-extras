@@ -163,7 +163,7 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 	}
 
 	@Override
-	public void close() {
+	public void unsubscribe() {
 		try {
 			f.getChannel().close();
 			if (!file.delete()) {
@@ -277,6 +277,11 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 	@Override
 	public void clear() {
 		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean isUnsubscribed() {
+		return !f.getChannel().isOpen();
 	}
 
 }
