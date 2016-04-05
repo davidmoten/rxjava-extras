@@ -37,28 +37,27 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 	private static final String QUEUE_NAME = "q";
 
-	private final Serializer<T> serializer;
+	private static final boolean useMapDb = true;
+	private final DataSerializer<T> dataSerializer;
 	private final Scheduler scheduler;
 	private final Options options;
+
 
 	public OperatorBufferToFile(DataSerializer<T> dataSerializer, Scheduler scheduler, Options options) {
 		Preconditions.checkNotNull(dataSerializer);
 		Preconditions.checkNotNull(scheduler);
 		Preconditions.checkNotNull(options);
 		this.scheduler = scheduler;
-		this.serializer = createSerializer(dataSerializer);
+		this.dataSerializer = dataSerializer;
 		this.options = options;
 	}
 
-	private static <T> Serializer<T> createSerializer(DataSerializer<T> dataSerializer) {
-		return new MapDbSerializer<T>(dataSerializer);
-	}
 
 	@Override
 	public Subscriber<? super T> call(Subscriber<? super T> child) {
 
 		// create the MapDB queue
-		final CloseableQueue<T> queue = createQueue(serializer, options);
+		final CloseableQueue<T> queue = createRollingQueue(dataSerializer, options);
 
 		// hold a reference to the queueProducer which will be set on
 		// subscription to `source`
@@ -104,8 +103,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		private static final long serialVersionUID = -950306777716863302L;
 
 		// non-final so we can clear references on close for early gc
-		private DB db;
-		private Queue<T> queue;
+		private CloseableQueue<T> queue;
 
 		// currentCalls and this used to manage visibility
 		private boolean closing;
@@ -115,8 +113,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		// close request can be actioned.
 		private final AtomicInteger currentCalls = new AtomicInteger(0);
 
-		Q2(DB db, Queue<T> queue) {
-			this.db = db;
+		Q2(CloseableQueue<T> queue) {
 			this.queue = queue;
 			this.closing = false;
 			// store-store barrier
@@ -180,16 +177,15 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private void checkClosed() {
 			if (closing && currentCalls.get() == 0 && compareAndSet(false, true)) {
-				db.close();
-				//clear references so will be gc'd early
-				db = null;
+				queue.unsubscribe();
+				// clear references so will be gc'd early
 				queue = null;
 			}
 		}
 
 	}
 
-	private static <T> RollingQueue<T> createQueue(final Serializer<T> serializer, final Options options) {
+	private static <T> CloseableQueue<T> createRollingQueue(final DataSerializer<T> dataSerializer, final Options options) {
 		final Func0<Queue2<T>> queueFactory = new Func0<Queue2<T>>() {
 			@Override
 			public Queue2<T> call() {
@@ -198,19 +194,37 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 				// storage)
 				File file = options.fileFactory().call();
 
-				// create a MapDB database using file
-				final DB db = createDb(file, options);
+				
+				if (useMapDb) {
+					// create a MapDB database using file
+					final DB db = createDb(file, options);
 
-				// create the queue
+					// create the queue
 
-				// setting useLocks to false means that we don't reuse file
-				// system space in the queue but operations are faster.
-				// Reclaiming space is handled by RollingQueue so we opt for
-				// faster operations.
-				boolean useLocks = false;
-				Queue<T> q = db.createQueue(QUEUE_NAME, serializer, useLocks);
+					// setting useLocks to false means that we don't reuse file
+					// system space in the queue but operations are faster.
+					// Reclaiming space is handled by RollingQueue so we opt for
+					// faster operations.
+					boolean useLocks = false;
+					Serializer<T> serializer = new MapDbSerializer<T>(dataSerializer);
+					Queue<T> q = db.createQueue(QUEUE_NAME, serializer, useLocks);
+					CloseableQueue<T> cq = new AbstractCloseableQueue<T>(q) {
 
-				return new Q2<T>(db, q);
+						@Override
+						public void unsubscribe() {
+							db.close();
+						}
+
+						@Override
+						public boolean isUnsubscribed() {
+							return db.isClosed();
+						}
+
+					};
+					return new Q2<T>(cq);
+				} else {
+					return new Q2<T>(new PersistentQueue<T>(2048, file, dataSerializer));
+				}
 			}
 		};
 		return new RollingQueue<T>(queueFactory, options.rolloverEvery());
