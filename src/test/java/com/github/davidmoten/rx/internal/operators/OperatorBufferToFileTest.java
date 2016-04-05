@@ -483,7 +483,7 @@ public final class OperatorBufferToFileTest {
 	public static void main(String[] args) throws InterruptedException {
 		Observable.range(1, Integer.MAX_VALUE)
 				//
-				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation()))
+				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation(), Options.rolloverEvery(500000).build()))
 				//
 				.lift(Logging.<Integer> logger().showCount().every(10000).showMemory().log())
 				//
