@@ -12,11 +12,11 @@ import org.junit.Test;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 
-public class PersistentQueueTest {
+public class PersistentSPSCQueueTest {
 
 	@Test
 	public void test() {
-		PersistentQueue<Integer> q = createQueue();
+		PersistentSPSCQueue<Integer> q = createQueue();
 		q.offer(1);
 		assertEquals(1, (int) q.poll());
 		assertNull(q.poll());
@@ -24,7 +24,7 @@ public class PersistentQueueTest {
 
 	@Test
 	public void test2() {
-		PersistentQueue<Integer> q = createQueue();
+		PersistentSPSCQueue<Integer> q = createQueue();
 		q.offer(1);
 		q.offer(2);
 		assertEquals(1, (int) q.poll());
@@ -34,7 +34,7 @@ public class PersistentQueueTest {
 
 	@Test
 	public void test3() {
-		PersistentQueue<Integer> q = createQueue();
+		PersistentSPSCQueue<Integer> q = createQueue();
 		assertNull(q.poll());
 		q.offer(1);
 		q.offer(2);
@@ -49,7 +49,7 @@ public class PersistentQueueTest {
 	public void testConcurrent() throws InterruptedException, ExecutionException {
 		File file = new File("target/pq2");
 		file.delete();
-		final PersistentQueue<Integer> queue = new PersistentQueue<Integer>(1024, file, DataSerializers.integer());
+		final PersistentSPSCQueue<Integer> queue = new PersistentSPSCQueue<Integer>(1024, file, DataSerializers.integer());
 		final int max = 10000000;
 		long t = System.currentTimeMillis();
 		final AtomicBoolean failed = new AtomicBoolean(false);
@@ -87,10 +87,10 @@ public class PersistentQueueTest {
 		assertFalse(failed.get());
 	}
 
-	private static PersistentQueue<Integer> createQueue() {
+	private static PersistentSPSCQueue<Integer> createQueue() {
 		File file = new File("target/pq");
 		file.delete();
-		PersistentQueue<Integer> q = new PersistentQueue<Integer>(5, file, DataSerializers.integer());
+		PersistentSPSCQueue<Integer> q = new PersistentSPSCQueue<Integer>(5, file, DataSerializers.integer());
 		return q;
 	}
 

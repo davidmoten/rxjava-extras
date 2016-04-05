@@ -223,7 +223,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 					};
 					return new Q2<T>(cq);
 				} else {
-					return new Q2<T>(new PersistentQueue<T>(2048, file, dataSerializer));
+					return new Q2<T>(new PersistentSPSCQueue<T>(2048, file, dataSerializer));
 				}
 			}
 		};

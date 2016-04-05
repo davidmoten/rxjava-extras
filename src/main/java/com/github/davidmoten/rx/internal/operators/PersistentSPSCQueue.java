@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.util.Preconditions;
 
-class PersistentQueue<T> implements CloseableQueue<T> {
+class PersistentSPSCQueue<T> implements CloseableQueue<T> {
 
 	private static final boolean debug = false;
 
@@ -38,7 +38,7 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 	private final Object fileLock = new Object();
 	private final Object writePositionLock = new Object();
 
-	public PersistentQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
+	public PersistentSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
 		Preconditions.checkArgument(bufferSizeBytes > 0, "bufferSizeBytes must be greater than zero");
 		Preconditions.checkNotNull(file);
 		Preconditions.checkNotNull(serializer);
@@ -60,9 +60,9 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 
 	private static class QueueWriter extends OutputStream {
 
-		private final PersistentQueue<?> q;
+		private final PersistentSPSCQueue<?> q;
 
-		QueueWriter(PersistentQueue<?> queue) {
+		QueueWriter(PersistentSPSCQueue<?> queue) {
 			this.q = queue;
 		}
 
@@ -97,9 +97,9 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 
 	private static class QueueReader extends InputStream {
 
-		private final PersistentQueue<?> q;
+		private final PersistentSPSCQueue<?> q;
 
-		QueueReader(PersistentQueue<?> queue) {
+		QueueReader(PersistentSPSCQueue<?> queue) {
 			this.q = queue;
 		}
 
@@ -175,7 +175,7 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 	}
 
 	@Override
-	public boolean offer(T t) {
+	public synchronized boolean offer(T t) {
 		try {
 			serializer.serialize(output, t);
 			size.incrementAndGet();
@@ -186,7 +186,7 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 	}
 
 	@Override
-	public T poll() {
+	public synchronized  T poll() {
 		try {
 			T t = serializer.deserialize(input, Integer.MAX_VALUE);
 			size.decrementAndGet();
