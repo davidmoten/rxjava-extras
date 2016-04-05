@@ -140,7 +140,6 @@ class PersistentQueue<T> implements CloseableQueue<T> {
     @Override
     public void close() {
         try {
-            BufferedReader r = null;
             f.getChannel().close();
             if (!file.delete()) {
                 throw new RuntimeException("could not delete file " + file);
