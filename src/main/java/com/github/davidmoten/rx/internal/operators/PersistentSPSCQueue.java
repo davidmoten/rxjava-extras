@@ -54,38 +54,32 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
             throw new RuntimeException(e);
         }
         this.serializer = serializer;
-        this.output = new DataOutputStream(new QueueWriter(this));
-        this.input = new DataInputStream(new QueueReader(this));
+        this.output = new DataOutputStream(new QueueWriter());
+        this.input = new DataInputStream(new QueueReader());
         this.size = new AtomicLong(0);
     }
 
-    private static class QueueWriter extends OutputStream {
-
-        private final PersistentSPSCQueue<?> q;
-
-        QueueWriter(PersistentSPSCQueue<?> queue) {
-            this.q = queue;
-        }
+    private final class QueueWriter extends OutputStream {
 
         @Override
         public void write(int b) throws IOException {
-            if (q.writeBufferPosition < q.writeBuffer.length) {
+            if (writeBufferPosition < writeBuffer.length) {
                 if (debug)
-                    log("writeBuffer[" + q.writeBufferPosition + "]=" + b);
-                q.writeBuffer[q.writeBufferPosition] = (byte) b;
-                q.writeBufferPosition++;
+                    log("writeBuffer[" + writeBufferPosition + "]=" + b);
+                writeBuffer[writeBufferPosition] = (byte) b;
+                writeBufferPosition++;
             } else {
-                synchronized (q.writePositionLock) {
-                    synchronized (q.fileLock) {
-                        q.f.seek(q.writePosition);
-                        q.f.write(q.writeBuffer);
+                synchronized (writePositionLock) {
+                    synchronized (fileLock) {
+                        f.seek(writePosition);
+                        f.write(writeBuffer);
                         if (debug)
-                            log("wrote buffer " + Arrays.toString(q.writeBuffer));
+                            log("wrote buffer " + Arrays.toString(writeBuffer));
                     }
 
-                    q.writeBuffer[0] = (byte) b;
-                    q.writeBufferPosition = 1;
-                    q.writePosition += q.writeBuffer.length;
+                    writeBuffer[0] = (byte) b;
+                    writeBufferPosition = 1;
+                    writePosition += writeBuffer.length;
                 }
             }
         }
@@ -96,58 +90,52 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
         System.out.println(string);
     }
 
-    private static class QueueReader extends InputStream {
-
-        private final PersistentSPSCQueue<?> q;
-
-        QueueReader(PersistentSPSCQueue<?> queue) {
-            this.q = queue;
-        }
+    private final class QueueReader extends InputStream {
 
         @Override
         public int read() throws IOException {
-            if (q.size.get() == 0) {
+            if (size.get() == 0) {
                 throw new EOFException();
             } else {
-                if (q.readBufferPosition < q.readBufferLength) {
-                    byte b = q.readBuffer[q.readBufferPosition];
+                if (readBufferPosition < readBufferLength) {
+                    byte b = readBuffer[readBufferPosition];
                     if (debug)
-                        log("returned from readBuffer[" + q.readBufferPosition + "]=" + b);
-                    q.readBufferPosition++;
+                        log("returned from readBuffer[" + readBufferPosition + "]=" + b);
+                    readBufferPosition++;
                     return toUnsignedInteger(b);
                 } else {
                     // before reading more we see if we can emit directly from
-                    // the writeBuffer by checking the if the read position is past the write position
+                    // the writeBuffer by checking if the read position is past the write position
                     while (true) {
                         int wp;
                         int wbp;
-                        synchronized (q.writePositionLock) {
-                            wp = q.writePosition;
-                            wbp = q.writeBufferPosition;
+                        synchronized (writePositionLock) {
+                            wp = writePosition;
+                            wbp = writeBufferPosition;
                         }
-                        int over = wp - q.readPosition;
+                        int over = wp - readPosition;
                         if (over > 0) {
-                            synchronized (q.fileLock) {
-                                q.f.seek(q.readPosition);
-                                q.readBufferLength = Math.min(q.readBuffer.length, over);
-                                q.f.read(q.readBuffer, 0, q.readBufferLength);
+                            synchronized (fileLock) {
+                                f.seek(readPosition);
+                                readBufferLength = Math.min(readBuffer.length, over);
+                                f.read(readBuffer, 0, readBufferLength);
                             }
                             if (debug)
-                                log("read buffer " + Arrays.toString(q.readBuffer));
-                            q.readPosition += q.readBufferLength;
-                            q.readBufferPosition = 1;
+                                log("read buffer " + Arrays.toString(readBuffer));
+                            readPosition += readBufferLength;
+                            readBufferPosition = 1;
                             if (debug)
-                                log("returned from readBuffer[0]=" + q.readBuffer[0]);
-                            return toUnsignedInteger(q.readBuffer[0]);
+                                log("returned from readBuffer[0]=" + readBuffer[0]);
+                            return toUnsignedInteger(readBuffer[0]);
                         } else {
                             int index = -over;
-                            if (index >= q.writeBuffer.length) {
+                            if (index >= writeBuffer.length) {
                                 throw new EOFException();
                             } else {
                                 int b;
-                                b = toUnsignedInteger(q.writeBuffer[-over]);
-                                if (wp == q.writePosition && wbp == q.writeBufferPosition) {
-                                    q.readPosition++;
+                                b = toUnsignedInteger(writeBuffer[-over]);
+                                if (wp == writePosition && wbp == writeBufferPosition) {
+                                    readPosition++;
                                     if (debug)
                                         log("returned from writeBuffer[" + index + "]=" + b);
                                     return b;
