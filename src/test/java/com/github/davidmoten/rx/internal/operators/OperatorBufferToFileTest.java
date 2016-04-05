@@ -25,6 +25,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
@@ -415,6 +416,7 @@ public final class OperatorBufferToFileTest {
 		assertEquals(Arrays.asList("a", "b", "c"), list);
 	}
 
+	@Ignore
 	@Test
 	public void testOverflow() throws InterruptedException {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));

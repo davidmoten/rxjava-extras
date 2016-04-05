@@ -75,7 +75,7 @@ public class PersistentSPSCQueueTest {
 							System.out.println("failed for i = " + i);
 						}
 						i++;
-					}
+					} 
 				}
 			}
 		});
