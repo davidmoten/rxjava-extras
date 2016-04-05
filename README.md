@@ -271,7 +271,7 @@ As of 0.7.1-RC3, if you add a dependency for [MapDB](http://www.mapdb.org) you c
 </dependency>
 ```
 
-Note that new files (there may be multiple for indexes and whatnot) for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription).
+Note that new files for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription). MapDB creates multiple files for one database. Those files will have the same filename for one database up to the extension.
 
 Here's an example:
 
@@ -346,7 +346,9 @@ Caching options include `SOFT_REF`, `WEAK_REF`, `HARD_REF`, `LEAST_RECENTLY_USED
 
 If storage size limit is exceeded then an `IOError` will be emitted by the stream. This is a critical error in that MapDB resources in memory may not be disposed of properly and files associated with the stream may not have been deleted on unsubscription. Don't count on graceful recovery from this scenario!
 
-`Options.rolloverEvery(long)` is an important option for long running/infinite streams. When a MapDB queue increases in size MapDB has configurable options to reuse space but shrinking the space requires a non-trivial blocking operation (`DB.compact()`). The strategy used to reclaim disk space is to create a new DB instance (and queue) every N emissions. Writing will occur to the latest created queue and reading will be occuring on the earliest non-closed queue. Once a queue instance is read fully and it is not the last queue it is closed and its file resources deleted. The abstraction used internally to handle these operations is [`RollingQueue`](src/main/java/com/github/davidmoten/rx/internal/operators/RollingQueue.java).
+`Options.rolloverEvery(long)` is an important option for long running/infinite streams. When a MapDB queue increases in size MapDB has configurable options to reuse space but shrinking the space requires a non-trivial blocking operation (`DB.compact()`). The strategy used to reclaim disk space is to create a new DB instance (and queue) every N emissions. Writing will occur to the latest created queue and reading will be occuring on the earliest non-closed queue. Once a queue instance is read fully and it is not the last queue it is closed and its file resources deleted. The abstraction used internally to handle these operations is [`RollingQueue`](src/main/java/com/github/davidmoten/rx/internal/operators/RollingQueue.java). 
+
+* If you have a long running stream (or just a lot of data going through in terms of MB) then **be sure to specify a value for `rolloverEvery`**
 
 There are some inbuilt `DataSerializer` implementations:
 
