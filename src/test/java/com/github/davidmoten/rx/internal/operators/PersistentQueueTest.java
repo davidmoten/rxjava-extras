@@ -1,10 +1,12 @@
 package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 
 import java.io.File;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 
@@ -48,8 +50,9 @@ public class PersistentQueueTest {
 		File file = new File("target/pq2");
 		file.delete();
 		final PersistentQueue<Integer> queue = new PersistentQueue<Integer>(1024, file, DataSerializers.integer());
-		final int max = 1000000;
+		final int max = 10000000;
 		long t = System.currentTimeMillis();
+		final AtomicBoolean failed = new AtomicBoolean(false);
 		Thread t1 = new Thread(new Runnable() {
 
 			@Override
@@ -67,7 +70,10 @@ public class PersistentQueueTest {
 				while (i <= max) {
 					Integer t = queue.poll();
 					if (t != null) {
-						assertEquals(i, (int) t);
+						if (i != t) {
+							failed.set(true);
+							System.out.println("failed for i = " + i);
+						}
 						i++;
 					}
 				}
@@ -78,6 +84,7 @@ public class PersistentQueueTest {
 		t1.join();
 		t2.join();
 		System.out.println(Math.round(max * 1000.0 / (System.currentTimeMillis() - t)) + " per second");
+		assertFalse(failed.get());
 	}
 
 	private static PersistentQueue<Integer> createQueue() {

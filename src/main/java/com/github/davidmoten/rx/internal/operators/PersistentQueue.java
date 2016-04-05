@@ -23,7 +23,7 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 	private static final boolean debug = false;
 
 	int readBufferPosition = 0;
-	volatile int readPosition = 0;
+	int readPosition = 0;
 	final byte[] readBuffer;
 	int readBufferLength = 0;
 	final byte[] writeBuffer;
@@ -59,11 +59,6 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 		this.size = new AtomicLong(0);
 	}
 
-	static void log(String string) {
-		if (debug)
-			System.out.println(string);
-	}
-
 	private static class QueueWriter extends OutputStream {
 
 		private final PersistentQueue<?> q;
@@ -75,22 +70,30 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 		@Override
 		public void write(int b) throws IOException {
 			if (q.writeBufferPosition < q.writeBuffer.length) {
-				log("writeBuffer[" + q.writeBufferPosition + "]=" + b);
+				if (debug)
+					log("writeBuffer[" + q.writeBufferPosition + "]=" + b);
 				q.writeBuffer[q.writeBufferPosition] = (byte) b;
 				q.writeBufferPosition++;
 			} else {
-				synchronized (q.fileLock) {
-					q.f.seek(q.writePosition);
-					q.f.write(q.writeBuffer);
-					log("wrote buffer " + Arrays.toString(q.writeBuffer));
-				}
+				synchronized (q.writePositionLock) {
+					synchronized (q.fileLock) {
+						q.f.seek(q.writePosition);
+						q.f.write(q.writeBuffer);
+						if (debug)
+							log("wrote buffer " + Arrays.toString(q.writeBuffer));
+					}
 
-				q.writeBuffer[0] = (byte) b;
-				q.writeBufferPosition = 1;
-				q.writePosition += q.writeBuffer.length;
+					q.writeBuffer[0] = (byte) b;
+					q.writeBufferPosition = 1;
+					q.writePosition += q.writeBuffer.length;
+				}
 			}
 		}
 
+	}
+
+	private static void log(String string) {
+		System.out.println(string);
 	}
 
 	private static class QueueReader extends InputStream {
@@ -108,46 +111,55 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 			} else {
 				if (q.readBufferPosition < q.readBufferLength) {
 					byte b = q.readBuffer[q.readBufferPosition];
-					log("returned from readBuffer[" + q.readBufferPosition + "]=" + b);
+					if (debug)
+						log("returned from readBuffer[" + q.readBufferPosition + "]=" + b);
 					q.readBufferPosition++;
 					return toUnsignedInteger(b);
 				} else {
-					int wp;
-					int wbp;
-					synchronized (q.writePositionLock) {
-						wp = q.writePosition;
-						wbp = q.writeBufferPosition;
-					}
-					int over = wp - q.readPosition;
-					if (over > 0) {
-						synchronized (q.fileLock) {
-							q.f.seek(q.readPosition);
-							q.readBufferLength = Math.min(q.readBuffer.length, over);
-							q.f.read(q.readBuffer, 0, q.readBufferLength);
+					while (true) {
+						int wp;
+						int wbp;
+						synchronized (q.writePositionLock) {
+							wp = q.writePosition;
+							wbp = q.writeBufferPosition;
 						}
-						log("read buffer " + Arrays.toString(q.readBuffer));
-						q.readPosition += q.readBufferLength;
-						q.readBufferPosition = 1;
-						log("returned from readBuffer[0]=" + q.readBuffer[0]);
-						return toUnsignedInteger(q.readBuffer[0]);
-					} else {
-						int index = -over;
-						if (index >= q.writeBuffer.length) {
-							throw new EOFException();
+						int over = wp - q.readPosition;
+						if (over > 0) {
+							synchronized (q.fileLock) {
+								q.f.seek(q.readPosition);
+								q.readBufferLength = Math.min(q.readBuffer.length, over);
+								q.f.read(q.readBuffer, 0, q.readBufferLength);
+							}
+							if (debug)
+								log("read buffer " + Arrays.toString(q.readBuffer));
+							q.readPosition += q.readBufferLength;
+							q.readBufferPosition = 1;
+							if (debug)
+								log("returned from readBuffer[0]=" + q.readBuffer[0]);
+							return toUnsignedInteger(q.readBuffer[0]);
 						} else {
-							int b = toUnsignedInteger(q.writeBuffer[-over]);
-							q.readPosition++;
-							log("returned from writeBuffer[" + index + "]=" + b);
-							return b;
+							int index = -over;
+							if (index >= q.writeBuffer.length) {
+								throw new EOFException();
+							} else {
+								int b;
+								b = toUnsignedInteger(q.writeBuffer[-over]);
+								if (wp == q.writePosition && wbp == q.writeBufferPosition) {
+									q.readPosition++;
+									if (debug)
+										log("returned from writeBuffer[" + index + "]=" + b);
+									return b;
+								}
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-	
+
 	private static int toUnsignedInteger(byte b) {
-		return (int)b & 0x000000FF;
+		return (int) b & 0x000000FF;
 	}
 
 	@Override
@@ -176,7 +188,7 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 	@Override
 	public T poll() {
 		try {
-			T t = serializer.deserialize(input, -1);
+			T t = serializer.deserialize(input, Integer.MAX_VALUE);
 			size.decrementAndGet();
 			return t;
 		} catch (EOFException e) {
