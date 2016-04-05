@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
@@ -21,29 +22,19 @@ import com.github.davidmoten.util.Preconditions;
 
 class PersistentQueue<T> implements CloseableQueue<T> {
 
-    int startPosition = 0;
+    int readBufferPosition = 0;
     volatile int readPosition = 0;
-    final byte[] startBuffer;
-    int startBufferLength = 0;
-    final byte[] finishBuffer;
+    final byte[] readBuffer;
+    int readBufferLength = 0;
+    final byte[] writeBuffer;
     final RandomAccessFile f;
     final DataSerializer<T> serializer;
     final DataOutput output;
     final DataInput input;
     final File file;
     final AtomicLong size;
-    final AtomicReference<WriteInfo> writeInfo = new AtomicReference<WriteInfo>();
-    WriteInfo lastWriteInfo = null;
-
-    private static final class WriteInfo {
-        final int writePosition;
-        final int finishPosition;
-
-        WriteInfo(int writePosition, int finishPosition) {
-            this.writePosition = writePosition;
-            this.finishPosition = finishPosition;
-        }
-    }
+    volatile int writePosition;
+    volatile int writeBufferPosition;
 
     public PersistentQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
         Preconditions.checkArgument(bufferSizeBytes > 0,
@@ -51,8 +42,8 @@ class PersistentQueue<T> implements CloseableQueue<T> {
         Preconditions.checkNotNull(file);
         Preconditions.checkArgument(!file.exists(), "file exists already");
         Preconditions.checkNotNull(serializer);
-        this.startBuffer = new byte[bufferSizeBytes];
-        this.finishBuffer = new byte[bufferSizeBytes];
+        this.readBuffer = new byte[bufferSizeBytes];
+        this.writeBuffer = new byte[bufferSizeBytes];
         try {
             file.getParentFile().mkdirs();
             file.createNewFile();
@@ -65,7 +56,6 @@ class PersistentQueue<T> implements CloseableQueue<T> {
         this.output = new DataOutputStream(new QueueWriter(this));
         this.input = new DataInputStream(new QueueReader(this));
         this.size = new AtomicLong(0);
-        this.writeInfo.set(new WriteInfo(0, 0));
     }
 
     private static class QueueWriter extends OutputStream {
@@ -78,16 +68,19 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 
         @Override
         public void write(int b) throws IOException {
-            WriteInfo w = q.writeInfo.get();
-            if (w.finishPosition < q.finishBuffer.length) {
-                q.finishBuffer[w.finishPosition] = (byte) b;
-                q.writeInfo.set(new WriteInfo(w.writePosition, w.finishPosition + 1));
+            if (q.writeBufferPosition < q.writeBuffer.length) {
+                System.out.println("writeBuffer[" + q.writeBufferPosition + "]=" + b);
+                q.writeBuffer[q.writeBufferPosition] = (byte) b;
+                q.writeBufferPosition++;
             } else {
                 synchronized (this) {
-                    q.f.seek(w.writePosition);
-                    q.f.write(q.finishBuffer);
+                    q.f.seek(q.writePosition);
+                    q.f.write(q.writeBuffer);
+                    System.out.println("wrote buffer " + Arrays.toString(q.writeBuffer));
                 }
-                q.writeInfo.set(new WriteInfo(w.writePosition + q.finishBuffer.length, 0));
+                q.writeBuffer[0] = (byte) b;
+                q.writeBufferPosition = 1;
+                q.writePosition += q.writeBuffer.length;
             }
         }
 
@@ -106,26 +99,38 @@ class PersistentQueue<T> implements CloseableQueue<T> {
             if (q.size.get() == 0) {
                 throw new EOFException();
             } else {
-                WriteInfo w = q.writeInfo.get();
-                if (q.startPosition < q.startBufferLength) {
-                    int b = q.startBuffer[q.startPosition];
-                    q.startPosition++;
+                if (q.readBufferPosition < q.readBufferLength) {
+                    int b = q.readBuffer[q.readBufferPosition];
+                    System.out
+                            .println("returned from readBuffer[" + q.readBufferPosition + "]=" + b);
+                    q.readBufferPosition++;
                     return b;
                 } else {
-                    if (q.readPosition + q.startBufferLength > w.writePosition) {
-                        
+                    while (true) {
+                        int wp = q.writePosition;
+                        int wbp = q.writeBufferPosition;
+                        int over = wp - q.readPosition;
+                        if (over > 0) {
+                            synchronized (this) {
+                                q.f.seek(q.readPosition);
+                                q.readBufferLength = Math.min(q.readBuffer.length, over);
+                                q.f.read(q.readBuffer, 0, q.readBufferLength);
+                                System.out.println("read buffer " + Arrays.toString(q.readBuffer));
+                            }
+                            q.readPosition += q.readBufferLength;
+                            q.readBufferPosition = 1;
+                            System.out.println("returned from readBuffer[0]=" + q.readBuffer[0]);
+                            return q.readBuffer[0];
+                        } else {
+                            int b = q.writeBuffer[-over];
+                            if (wp == q.writePosition && wbp == q.writeBufferPosition) {
+                                q.readPosition++;
+                                System.out
+                                        .println("returned from writeBuffer[" + (-over) + "]=" + b);
+                                return b;
+                            }
+                        }
                     }
-                    q.readPosition += q.startBufferLength;
-                    // read a new startBuffer
-                    q.startBufferLength = Math.min(w.writePosition - q.readPosition,
-                            q.startBuffer.length);
-                    synchronized (this) {
-                        q.f.seek(q.readPosition);
-                        int bytesFromFile = w.writePosition - q.startBufferLength;
-                        q.f.read(q.startBuffer, 0, bytesFromFile);
-                    }
-                    q.startPosition = 1;
-                    return q.startBuffer[0];
                 }
             }
         }
