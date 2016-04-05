@@ -122,46 +122,55 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
         @Override
         public T poll() {
-            if (closing) {
-                return null;
-            } else {
-                try {
-                    currentCalls.incrementAndGet();
-                    return queue.poll();
-                } finally {
-                    currentCalls.decrementAndGet();
-                    checkClosed();
+            try {
+                if (closing) {
+                    return null;
+                } else {
+                    try {
+                        currentCalls.incrementAndGet();
+                        return queue.poll();
+                    } finally {
+                        currentCalls.decrementAndGet();
+                    }
                 }
+            } finally {
+                checkClosed();
             }
         }
 
         @Override
         public boolean offer(T t) {
-            if (closing) {
-                return true;
-            } else {
-                try {
-                    currentCalls.incrementAndGet();
-                    return queue.offer(t);
-                } finally {
-                    currentCalls.decrementAndGet();
-                    checkClosed();
+            try {
+                if (closing) {
+                    return true;
+                } else {
+                    try {
+                        currentCalls.incrementAndGet();
+                        return queue.offer(t);
+                    } finally {
+                        currentCalls.decrementAndGet();
+                    }
                 }
+            } finally {
+                checkClosed();
             }
         }
 
         @Override
         public boolean isEmpty() {
-            if (closing) {
-                return true;
-            } else {
-                try {
-                    currentCalls.incrementAndGet();
-                    return queue.isEmpty();
-                } finally {
-                    currentCalls.decrementAndGet();
-                    checkClosed();
+            try {
+                if (closing) {
+                    return true;
+                } else {
+                    try {
+                        currentCalls.incrementAndGet();
+                        return queue.isEmpty();
+                    } finally {
+                        currentCalls.decrementAndGet();
+                    }
                 }
+            } finally {
+                checkClosed();
             }
         }
 
