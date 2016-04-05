@@ -41,7 +41,6 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 	public PersistentQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
 		Preconditions.checkArgument(bufferSizeBytes > 0, "bufferSizeBytes must be greater than zero");
 		Preconditions.checkNotNull(file);
-		Preconditions.checkArgument(!file.exists(), "file exists already");
 		Preconditions.checkNotNull(serializer);
 		this.readBuffer = new byte[bufferSizeBytes];
 		this.writeBuffer = new byte[bufferSizeBytes];
@@ -166,6 +165,7 @@ class PersistentQueue<T> implements CloseableQueue<T> {
 	public void unsubscribe() {
 		try {
 			f.getChannel().close();
+			f.close();
 			if (!file.delete()) {
 				throw new RuntimeException("could not delete file " + file);
 			}

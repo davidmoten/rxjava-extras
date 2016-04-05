@@ -37,7 +37,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 	private static final String QUEUE_NAME = "q";
 
-	private static final boolean useMapDb = true;
+	private static final boolean useMapDb = false;
 	private final DataSerializer<T> dataSerializer;
 	private final Scheduler scheduler;
 	private final Options options;
