@@ -47,8 +47,8 @@ public class PersistentQueueTest {
 	public void testConcurrent() throws InterruptedException, ExecutionException {
 		File file = new File("target/pq2");
 		file.delete();
-		final PersistentQueue<Integer> queue = new PersistentQueue<Integer>(10, file, DataSerializers.integer());
-		final int max = 10000000;
+		final PersistentQueue<Integer> queue = new PersistentQueue<Integer>(1024, file, DataSerializers.integer());
+		final int max = 1000000;
 		long t = System.currentTimeMillis();
 		Thread t1 = new Thread(new Runnable() {
 
