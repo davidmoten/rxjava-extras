@@ -261,20 +261,11 @@ source1.compose(Transformers.orderedMergeWith(source2, comparator));
 
 Transformers.onBackpressureBufferToFile
 ----------------------------------------
+This is work-in-progress still so watch this space for a release.
 
-Hold the bus, I'm writing a custom disk-based queue that is way faster than MapDB for this purpose (many millions a second throughput compared to 30,000 per second). Don't use this yet.
+As of 0.7.1, you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
 
-As of 0.7.1-RC3, if you add a dependency for [MapDB](http://www.mapdb.org) you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
-
-```xml
- <dependency>
-    <groupId>org.mapdb</groupId>
-    <artifactId>mapdb</artifactId>
-    <version>1.0.9</version>
-</dependency>
-```
-
-Note that new files for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription). MapDB creates multiple files for one database. Those files will have the same filename for one database up to the extension.
+Note that new files for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription). The file based queue implementation may create multiple files for one queue. Those files will have the same filename for one database up to the extension.
 
 Here's an example:
 
@@ -335,9 +326,7 @@ Observable
         Schedulers.computation(), 
         Options
           .fileFactory(fileFactory)
-          .cacheType(CacheType.SOFT_REF)
-          .cacheSizeItems(1000)
-          .storageSizeLimitMB(100)
+          .bufferSizeBytes(1024)
           .rolloverEvery(10000)
           .delayError(false)
           .build()))
@@ -345,11 +334,7 @@ Observable
 ```
 `Options.fileFactory(Func0<File>)` specifies the method used to create the root temporary file used by the queue storage mechanism (MapDB). The default is a factory that calls `Files.createTempFile("bufferToFileDB", "")`.
 
-Caching options include `SOFT_REF`, `WEAK_REF`, `HARD_REF`, `LEAST_RECENTLY_USED`, and `NO_CACHE`. The default is `NO_CACHE`.
-
-If storage size limit is exceeded then an `IOError` will be emitted by the stream. This is a critical error in that MapDB resources in memory may not be disposed of properly and files associated with the stream may not have been deleted on unsubscription. Don't count on graceful recovery from this scenario!
-
-`Options.rolloverEvery(long)` is an important option for long running/infinite streams. When a MapDB queue increases in size MapDB has configurable options to reuse space but shrinking the space requires a non-trivial blocking operation (`DB.compact()`). The strategy used to reclaim disk space is to create a new DB instance (and queue) every N emissions. Writing will occur to the latest created queue and reading will be occuring on the earliest non-closed queue. Once a queue instance is read fully and it is not the last queue it is closed and its file resources deleted. The abstraction used internally to handle these operations is [`RollingQueue`](src/main/java/com/github/davidmoten/rx/internal/operators/RollingQueue.java). 
+`Options.rolloverEvery(long)` is an important option for long running/infinite streams.  The strategy used to reclaim disk space is to create a new file based queue every N emissions. Writing will occur to the latest created queue and reading will be occuring on the earliest non-closed queue. Once a queue instance is read fully and it is not the last queue it is closed and its file resources deleted. The abstraction used internally to handle these operations is [`RollingQueue`](src/main/java/com/github/davidmoten/rx/internal/operators/RollingQueue.java). 
 
 * If you have a long running stream (or just a lot of data going through in terms of MB) then **be sure to specify a value for `rolloverEvery`**
 
@@ -381,7 +366,7 @@ Observable.just(1, 2, 3, 4)
 ```
 
 ###Performance
-* about 33,000 integers/second throughput writing to spinning disk on an i7
+* about 2,000,000 integers/second throughput writing to spinning disk on an i7 with `Options.bufferSizeBytes=1024`.
 
 TestingHelper
 -----------------
