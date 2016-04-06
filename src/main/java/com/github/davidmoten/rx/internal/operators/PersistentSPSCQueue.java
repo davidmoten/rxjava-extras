@@ -28,18 +28,16 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
     int readBufferLength = 0;
     final byte[] writeBuffer;
     final File file;
-    RandomAccessFile f;
+    final RandomAccessFile fWrite;
+    final RandomAccessFile fRead;
     final DataSerializer<T> serializer;
     final DataOutput output;
     final DataInput input;
     final AtomicLong size;
     volatile int writePosition;
     volatile int writeBufferPosition;
-    private final Object fileLock = new Object();
     private final Object writePositionLock = new Object();
 
-    private final PersistentSPSCQueue<T>.QueueWriter queueWriter;
-    private final PersistentSPSCQueue<T>.QueueReader queueReader;
 
     public PersistentSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
         Preconditions.checkArgument(bufferSizeBytes > 0,
@@ -52,15 +50,14 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
             file.getParentFile().mkdirs();
             file.createNewFile();
             this.file = file;
-            this.f = new RandomAccessFile(file, "rw");
+            this.fWrite = new RandomAccessFile(file, "rw");
+            this.fRead = new RandomAccessFile(file, "r");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         this.serializer = serializer;
-        this.queueWriter = new QueueWriter();
-        this.queueReader = new QueueReader();
-        this.output = new DataOutputStream(queueWriter);
-        this.input = new DataInputStream(queueReader);
+        this.output = new DataOutputStream(new QueueWriter());
+        this.input = new DataInputStream(new QueueReader());
         this.size = new AtomicLong(0);
     }
 
@@ -75,12 +72,10 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
                 writeBufferPosition++;
             } else {
                 synchronized (writePositionLock) {
-                    synchronized (fileLock) {
-                        f.seek(writePosition);
-                        f.write(writeBuffer);
-                        if (debug)
-                            log("wrote buffer " + Arrays.toString(writeBuffer));
-                    }
+                    fWrite.seek(writePosition);
+                    fWrite.write(writeBuffer);
+                    if (debug)
+                        log("wrote buffer " + Arrays.toString(writeBuffer));
 
                     writeBuffer[0] = (byte) b;
                     writeBufferPosition = 1;
@@ -121,11 +116,9 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
                         }
                         int over = wp - readPosition;
                         if (over > 0) {
-                            synchronized (fileLock) {
-                                f.seek(readPosition);
-                                readBufferLength = Math.min(readBuffer.length, over);
-                                f.read(readBuffer, 0, readBufferLength);
-                            }
+                            fRead.seek(readPosition);
+                            readBufferLength = Math.min(readBuffer.length, over);
+                            fRead.read(readBuffer, 0, readBufferLength);
                             if (debug)
                                 log("read buffer " + Arrays.toString(readBuffer));
                             readPosition += readBufferLength;
@@ -161,16 +154,14 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
     @Override
     public void unsubscribe() {
         try {
-            queueReader.close();
-            queueWriter.close();
-            f.close();
+            fWrite.close();
+            fRead.close();
             if (!file.delete()) {
                 throw new RuntimeException("could not delete file " + file);
             }
             if (debug)
                 log(Thread.currentThread().getName() + "|persistent queue closed " + file
                         + " exists=" + file.exists());
-            f = null;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
