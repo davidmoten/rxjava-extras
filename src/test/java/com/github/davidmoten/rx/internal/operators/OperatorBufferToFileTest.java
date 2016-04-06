@@ -335,6 +335,9 @@ public final class OperatorBufferToFileTest {
 				public void onNext(Integer t) {
 					count++;
 					list.add(t);
+					if (count != t) {
+						onError(new RuntimeException("count=" + count + " but t=" + t));
+					}
 					Thread.currentThread().setName("emission");
 					if (count == unsubscribeAfter) {
 						unsubscribe();
@@ -357,16 +360,17 @@ public final class OperatorBufferToFileTest {
 				Assert.fail();
 			}
 			assertFalse(error.get());
-			List<Integer> expected = new ArrayList<Integer>();
-			for (int i = 1; i <= unsubscribeAfter; i++) {
-				expected.add(i);
-			}
-			if (list.size() < expected.size()) {
+
+			if (list.size() < unsubscribeAfter) {
 				System.out.println("cycle=" + count);
+				List<Integer> expected = new ArrayList<Integer>();
+				for (int i = 1; i <= unsubscribeAfter; i++) {
+					expected.add(i);
+				}
 				System.out.println("expected=" + expected);
 				System.out.println("actual  =" + list);
 			}
-			assertTrue(list.size() >= expected.size());
+			assertTrue(list.size() >= unsubscribeAfter);
 
 			waitUntilWorkCompleted(scheduler);
 			waitUntilWorkCompleted(scheduler2);
@@ -420,7 +424,6 @@ public final class OperatorBufferToFileTest {
 		};
 
 		int max = Integer.parseInt(System.getProperty("max.medium", "3000"));
-		max = 300000;
 		long t = System.currentTimeMillis();
 		int last = Observable.range(1, max)
 				//
