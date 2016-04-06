@@ -20,13 +20,13 @@ public class OperatorBufferToFileHelperTest extends TestCase {
                 // sync
                 .function(BUFFER)
                 //
-                .name("testEmpty").fromEmpty().expectEmpty()
+                .name("testBufferToFileEmpty").fromEmpty().expectEmpty()
                 //
-                .name("testOne").from(1).expect(1)
+                .name("testBufferToFileOne").from(1).expect(1)
                 //
-                .name("testTwo").from(1, 2).expect(1, 2)
+                .name("testBufferToFileTwo").from(1, 2).expect(1, 2)
                 //
-                .name("testError").fromError().expectError()
+                .name("testBufferToFileError").fromError().expectError()
                 //
                 // get test suites
                 .testSuite(OperatorBufferToFileHelperTest.class);
