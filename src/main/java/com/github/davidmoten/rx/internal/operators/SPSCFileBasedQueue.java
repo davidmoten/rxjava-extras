@@ -14,13 +14,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.util.Preconditions;
 
-class PersistentSPSCQueue<T> implements CloseableQueue<T> {
+class SPSCFileBasedQueue<T> implements CloseableQueue<T> {
 
 	public static boolean debug = false;
 
@@ -40,7 +38,7 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
 	volatile int writeBufferPosition;
 	private final Object writeLock = new Object();
 
-	public PersistentSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
+	public SPSCFileBasedQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
 		Preconditions.checkArgument(bufferSizeBytes > 0, "bufferSizeBytes must be greater than zero");
 		Preconditions.checkNotNull(file);
 		Preconditions.checkNotNull(serializer);

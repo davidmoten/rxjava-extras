@@ -12,11 +12,11 @@ import org.junit.Test;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 
-public class PersistentSPSCQueueTest {
+public class SPSCFileBasedQueueTest {
 
 	@Test
 	public void test() {
-		PersistentSPSCQueue<Integer> q = createQueue();
+		SPSCFileBasedQueue<Integer> q = createQueue();
 		q.offer(1);
 		assertEquals(1, (int) q.poll());
 		assertNull(q.poll());
@@ -24,7 +24,7 @@ public class PersistentSPSCQueueTest {
 
 	@Test
 	public void test2() {
-		PersistentSPSCQueue<Integer> q = createQueue();
+		SPSCFileBasedQueue<Integer> q = createQueue();
 		q.offer(1);
 		q.offer(2);
 		assertEquals(1, (int) q.poll());
@@ -34,7 +34,7 @@ public class PersistentSPSCQueueTest {
 
 	@Test
 	public void test3() {
-		PersistentSPSCQueue<Integer> q = createQueue();
+		SPSCFileBasedQueue<Integer> q = createQueue();
 		assertNull(q.poll());
 		q.offer(1);
 		q.offer(2);
@@ -49,7 +49,7 @@ public class PersistentSPSCQueueTest {
 	public void testConcurrent() throws InterruptedException, ExecutionException {
 		File file = new File("target/pq2");
 		file.delete();
-		final PersistentSPSCQueue<Integer> queue = new PersistentSPSCQueue<Integer>(1024, file, DataSerializers.integer());
+		final SPSCFileBasedQueue<Integer> queue = new SPSCFileBasedQueue<Integer>(1024, file, DataSerializers.integer());
 		final int max = 10000000;
 		long t = System.currentTimeMillis();
 		final AtomicBoolean failed = new AtomicBoolean(false);
@@ -87,10 +87,10 @@ public class PersistentSPSCQueueTest {
 		assertFalse(failed.get());
 	}
 
-	private static PersistentSPSCQueue<Integer> createQueue() {
+	private static SPSCFileBasedQueue<Integer> createQueue() {
 		File file = new File("target/pq");
 		file.delete();
-		PersistentSPSCQueue<Integer> q = new PersistentSPSCQueue<Integer>(5, file, DataSerializers.integer());
+		SPSCFileBasedQueue<Integer> q = new SPSCFileBasedQueue<Integer>(5, file, DataSerializers.integer());
 		return q;
 	}
 
