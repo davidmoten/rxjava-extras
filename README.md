@@ -366,7 +366,7 @@ Observable.just(1, 2, 3, 4)
 ```
 
 ###Performance
-* about 2,000,000 integers/second (8MB/s) throughput writing to spinning disk on an i7 with `Options.bufferSizeBytes=1024`. I wouldn't be surprised to see another order of magnitude improvement on this throughput in the medium term.
+* about 2,500,000 integers/second (10MB/s) throughput writing to spinning disk on an i7 with `Options.bufferSizeBytes=1024`. I wouldn't be surprised to see another order of magnitude improvement on this throughput in the medium term.
 
 TestingHelper
 -----------------
