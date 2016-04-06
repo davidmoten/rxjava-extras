@@ -80,7 +80,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
         // close and delete database on unsubscription
         child.add(queue);
-        
+
         // ensure onStart not called twice
         Subscriber<T> wrappedChild = Subscribers.wrap(child);
 
@@ -240,29 +240,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
     }
 
     private static DB createDb(File file, Options options) {
-        DBMaker<?> builder = DBMaker.newFileDB(file);
-        if (options.cacheType() == CacheType.NO_CACHE) {
-            builder = builder.cacheDisable();
-        } else if (options.cacheType() == CacheType.HARD_REF) {
-            builder = builder.cacheHardRefEnable();
-        } else if (options.cacheType() == CacheType.SOFT_REF) {
-            builder = builder.cacheSoftRefEnable();
-        } else if (options.cacheType() == CacheType.WEAK_REF) {
-            builder = builder.cacheWeakRefEnable();
-        } else if (options.cacheType() == CacheType.LEAST_RECENTLY_USED) {
-            builder = builder.cacheLRUEnable();
-        } else {
-            throw new RuntimeException("unknown cacheType " + options.cacheType());
-        }
-        if (options.cacheSizeItems().isPresent()) {
-            builder = builder.cacheSize(options.cacheSizeItems().get());
-        }
-        if (options.storageSizeLimitMB().isPresent()) {
-            // sizeLimit is expected in GB
-            builder = builder.sizeLimit(options.storageSizeLimitMB().get() / 1024);
-        }
-        builder = builder.deleteFilesAfterClose();
-        return builder.transactionDisable().make();
+        return DBMaker.newFileDB(file).cacheDisable().deleteFilesAfterClose().transactionDisable()
+                .make();
     }
 
     private static final class OnSubscribeFromQueue<T> implements OnSubscribe<T> {

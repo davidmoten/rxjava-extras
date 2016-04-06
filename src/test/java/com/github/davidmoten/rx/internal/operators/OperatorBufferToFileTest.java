@@ -6,10 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.IOError;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,19 +19,16 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
 import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Transformers;
-import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
@@ -46,7 +40,6 @@ import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
-import rx.plugins.RxJavaErrorHandler;
 import rx.plugins.RxJavaPlugins;
 import rx.schedulers.Schedulers;
 
@@ -116,34 +109,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesThreeElementsImmediateScheduler() throws InterruptedException {
-        checkHandlesThreeElements(createOptions());
-    }
-
-    @Test
-    public void handlesThreeElementsImmediateSchedulerWeakRef() throws InterruptedException {
-        checkHandlesThreeElements(Options.cacheType(CacheType.WEAK_REF).build());
-    }
-
-    @Test
-    public void handlesThreeElementsImmediateSchedulerSoftRef() throws InterruptedException {
-        checkHandlesThreeElements(Options.cacheType(CacheType.SOFT_REF).build());
-    }
-
-    @Test
-    public void handlesThreeElementsImmediateSchedulerHardRef() throws InterruptedException {
-        checkHandlesThreeElements(Options.cacheType(CacheType.HARD_REF).build());
-    }
-
-    @Test
-    public void handlesThreeElementsImmediateSchedulerLRU() throws InterruptedException {
-        checkHandlesThreeElements(Options.cacheType(CacheType.LEAST_RECENTLY_USED).build());
-    }
-
-    @Test
-    public void handlesThreeElementsImmediateSchedulerWeakWithLimitedCacheAndLimitedStorageSize()
-            throws InterruptedException {
-        checkHandlesThreeElements(Options.cacheType(CacheType.SOFT_REF).cacheSizeItems(1)
-                .storageSizeLimitMB(1).build());
+        checkHandlesThreeElements(Options.defaultInstance());
     }
 
     private void checkHandlesThreeElements(Options options) {
@@ -156,20 +122,6 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test
-    public void handlesThreeElementsImmediateSchedulerSoft() throws InterruptedException {
-        List<String> b = Observable.just("abc", "def", "ghi")
-                //
-                .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
-                        Schedulers.immediate(), Options.cacheType(CacheType.WEAK_REF).build()))
-                .toList().toBlocking().single();
-        assertEquals(Arrays.asList("abc", "def", "ghi"), b);
-    }
-
-    private static Options createOptions() {
-        return Options.cacheType(CacheType.NO_CACHE).build();
-    }
-
-    @Test
     public void handlesThreeElementsWithBackpressureAndEnsureCompletionEventArrivesWhenThreeRequested()
             throws InterruptedException {
         Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
@@ -177,7 +129,7 @@ public final class OperatorBufferToFileTest {
         Observable.just("abc", "def", "ghi")
                 //
                 .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
-                        scheduler, createOptions()))
+                        scheduler, Options.defaultInstance()))
                 .subscribe(ts);
         ts.assertNoValues();
         ts.requestMore(2);
@@ -195,7 +147,7 @@ public final class OperatorBufferToFileTest {
         Observable.<String> error(new IOException("boo"))
                 //
                 .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
-                        scheduler, createOptions()))
+                        scheduler, Options.defaultInstance()))
                 .subscribe(ts);
         ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
         ts.assertError(IOException.class);
@@ -209,7 +161,7 @@ public final class OperatorBufferToFileTest {
         Observable.just("abc", "def").concatWith(Observable.<String> error(new IOException("boo")))
                 //
                 .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
-                        scheduler, Options.cacheType(CacheType.NO_CACHE).delayError(false).build()))
+                        scheduler, Options.delayError(false).build()))
                 .doOnNext(new Action1<String>() {
                     boolean first = true;
 
@@ -237,7 +189,7 @@ public final class OperatorBufferToFileTest {
         Observable.just("abc", "def", "ghi")
                 //
                 .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
-                        scheduler, createOptions()))
+                        scheduler, Options.defaultInstance()))
                 .subscribe(ts);
         ts.requestMore(2);
         TimeUnit.MILLISECONDS.sleep(500);
@@ -254,7 +206,7 @@ public final class OperatorBufferToFileTest {
         Observable.just("abc", "def", "ghi")
                 //
                 .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
-                        scheduler, createOptions()))
+                        scheduler))
                 .doOnNext(new Action1<Object>() {
 
                     @Override
@@ -281,8 +233,7 @@ public final class OperatorBufferToFileTest {
         int max = 100;
         int last = Observable.range(1, max)
                 //
-                .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-                        createOptions()))
+                .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler))
                 // log
                 // .lift(Logging.<Integer> logger().showMemory().log())
                 // delay emissions
@@ -316,7 +267,7 @@ public final class OperatorBufferToFileTest {
         int last = Observable.range(1, max)
                 //
                 .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-                        Options.cacheType(CacheType.NO_CACHE).rolloverEvery(max / 10).build()))
+                        Options.rolloverEvery(max / 10).build()))
                 .last().toBlocking().single();
         assertEquals(max, last);
         // wait for all scheduled work to complete (unsubscription)
@@ -386,6 +337,7 @@ public final class OperatorBufferToFileTest {
                     error.set(true);
                 }
 
+                @SuppressWarnings("unused")
                 @Override
                 public void onNext(Integer t) {
                     count++;
@@ -406,7 +358,7 @@ public final class OperatorBufferToFileTest {
                     .subscribeOn(scheduler2)
                     //
                     .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-                            Options.cacheType(CacheType.NO_CACHE).rolloverEvery(max / 10).build()))
+                            Options.rolloverEvery(max / 10).build()))
                     .subscribe(subscriber);
             if (!latch.await(10, TimeUnit.SECONDS)) {
                 System.out.println("cycle=" + count + ", list.size= " + list.size());
@@ -440,8 +392,7 @@ public final class OperatorBufferToFileTest {
         long t = System.currentTimeMillis();
         int last = Observable.range(1, max)
                 //
-                .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-                        Options.cacheType(CacheType.NO_CACHE).build()))
+                .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler))
                 // log
                 // .lift(Logging.<Integer>
                 // logger().showCount().every(1000).showMemory().log())
@@ -474,33 +425,6 @@ public final class OperatorBufferToFileTest {
                 .toBlocking().single();
         assertEquals(Arrays.asList("a", "b", "c"), list);
         waitUntilWorkCompleted(scheduler);
-    }
-
-    @Ignore
-    @Test
-    public void testOverflow() throws InterruptedException {
-        Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
-        final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-        RxJavaErrorHandler handler = new RxJavaErrorHandler() {
-
-            public void handleError(Throwable t) {
-                error.set(t);
-            }
-        };
-        RxJavaPlugins.getInstance().registerErrorHandler(handler);
-        TestSubscriber<Integer> ts = TestSubscriber.create();
-        DataSerializer<Integer> serializer = createLargeMessageSerializer();
-        int max = 100;
-        Observable.range(1, max)
-                //
-                .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-                        Options.cacheType(CacheType.NO_CACHE).storageSizeLimitMB(1).build()))
-                .delay(50, TimeUnit.MILLISECONDS, Schedulers.immediate()).last().subscribe(ts);
-        ts.awaitTerminalEvent();
-        ts.assertError(IOError.class);
-        // wait for unsubscribe
-        waitUntilWorkCompleted(scheduler);
-        assertTrue(error.get() != null && error.get() instanceof IllegalStateException);
     }
 
     private DataSerializer<Integer> createLargeMessageSerializer() {
