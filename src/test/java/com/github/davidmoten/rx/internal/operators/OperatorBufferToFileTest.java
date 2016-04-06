@@ -17,8 +17,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -288,6 +288,7 @@ public final class OperatorBufferToFileTest {
 
 	@Test
 	public void handlesTenSecondLoopOfMidStreamUnsubscribe() throws InterruptedException {
+		int maxSeconds = Integer.parseInt(System.getProperty("max.seconds", "9"));
 		// run for ten seconds
 		long t = System.currentTimeMillis();
 		long count = 0;
@@ -309,12 +310,12 @@ public final class OperatorBufferToFileTest {
 				return t;
 			}
 		}));
-		while ((System.currentTimeMillis() - t < TimeUnit.SECONDS.toMillis(9))) {
+		while ((System.currentTimeMillis() - t < TimeUnit.SECONDS.toMillis(maxSeconds))) {
 			DataSerializer<Integer> serializer = DataSerializers.integer();
 			int max = 1000;
 			final CountDownLatch latch = new CountDownLatch(1);
 			final AtomicInteger last = new AtomicInteger(-1);
-			final AtomicBoolean error = new AtomicBoolean(false);
+			final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
 			final int unsubscribeAfter = max / 2 + 1;
 			final Queue<Integer> list = new ConcurrentLinkedQueue<Integer>();
 			Subscriber<Integer> subscriber = new Subscriber<Integer>() {
@@ -327,7 +328,7 @@ public final class OperatorBufferToFileTest {
 
 				@Override
 				public void onError(Throwable e) {
-					error.set(true);
+					error.set(e);
 				}
 
 				@SuppressWarnings("unused")
@@ -359,7 +360,8 @@ public final class OperatorBufferToFileTest {
 				System.out.println("cycle=" + count + ", list.size= " + list.size());
 				Assert.fail();
 			}
-			assertFalse(error.get());
+			if (error.get() != null)
+				Assert.fail(error.get().getMessage());
 
 			if (list.size() < unsubscribeAfter) {
 				System.out.println("cycle=" + count);
