@@ -306,12 +306,12 @@ public final class OperatorBufferToFileTest {
     @Test
     public void rolloverWorks() throws InterruptedException {
         DataSerializer<Integer> serializer = DataSerializers.integer();
-        int max = 1000000;
+        int max = 1000;
         Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
         int last = Observable.range(1, max)
                 //
                 .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-                        Options.cacheType(CacheType.NO_CACHE).rolloverEvery(10).build()))
+                        Options.cacheType(CacheType.NO_CACHE).rolloverEvery(max/10).build()))
                 .last().toBlocking().single();
         assertEquals(max, last);
         // wait for all scheduled work to complete (unsubscription)
@@ -381,7 +381,6 @@ public final class OperatorBufferToFileTest {
                 System.out.println("cycle=" + count + ", list.size= " + list.size());
                 Assert.fail();
             }
-            ;
             assertFalse(error.get());
             List<Integer> expected = new ArrayList<Integer>();
             for (int i = 1; i <= unsubscribeAfter; i++) {
