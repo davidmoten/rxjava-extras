@@ -80,7 +80,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
         // close and delete database on unsubscription
         child.add(queue);
-
+        
         // ensure onStart not called twice
         Subscriber<T> wrappedChild = Subscribers.wrap(child);
 

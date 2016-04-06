@@ -27,16 +27,19 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
     final byte[] readBuffer;
     int readBufferLength = 0;
     final byte[] writeBuffer;
-    final RandomAccessFile f;
+    final File file;
+    RandomAccessFile f;
     final DataSerializer<T> serializer;
     final DataOutput output;
     final DataInput input;
-    final File file;
     final AtomicLong size;
     volatile int writePosition;
     volatile int writeBufferPosition;
     private final Object fileLock = new Object();
     private final Object writePositionLock = new Object();
+
+    private final PersistentSPSCQueue<T>.QueueWriter queueWriter;
+    private final PersistentSPSCQueue<T>.QueueReader queueReader;
 
     public PersistentSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
         Preconditions.checkArgument(bufferSizeBytes > 0,
@@ -54,8 +57,10 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
             throw new RuntimeException(e);
         }
         this.serializer = serializer;
-        this.output = new DataOutputStream(new QueueWriter());
-        this.input = new DataInputStream(new QueueReader());
+        this.queueWriter = new QueueWriter();
+        this.queueReader = new QueueReader();
+        this.output = new DataOutputStream(queueWriter);
+        this.input = new DataInputStream(queueReader);
         this.size = new AtomicLong(0);
     }
 
@@ -105,7 +110,8 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
                     return toUnsignedInteger(b);
                 } else {
                     // before reading more we see if we can emit directly from
-                    // the writeBuffer by checking if the read position is past the write position
+                    // the writeBuffer by checking if the read position is past
+                    // the write position
                     while (true) {
                         int wp;
                         int wbp;
@@ -155,17 +161,21 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
     @Override
     public void unsubscribe() {
         try {
+            queueReader.close();
+            queueWriter.close();
             f.close();
             if (!file.delete()) {
                 throw new RuntimeException("could not delete file " + file);
             }
-            if (debug)
-                log("persistent queue closed " + file);
+            if (debug | true)
+                log(Thread.currentThread().getName() + "|persistent queue closed " + file
+                        + " exists=" + file.exists());
+            f = null;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
     @Override
     public boolean isUnsubscribed() {
         throw new UnsupportedOperationException();

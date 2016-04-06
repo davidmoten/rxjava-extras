@@ -8,6 +8,8 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOError;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,6 +18,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -312,7 +315,7 @@ public final class OperatorBufferToFileTest {
         int last = Observable.range(1, max)
                 //
                 .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-                        Options.cacheType(CacheType.NO_CACHE).rolloverEvery(max/10).build()))
+                        Options.cacheType(CacheType.NO_CACHE).rolloverEvery(max / 10).build()))
                 .last().toBlocking().single();
         assertEquals(max, last);
         // wait for all scheduled work to complete (unsubscription)
@@ -341,8 +344,25 @@ public final class OperatorBufferToFileTest {
         // run for ten seconds
         long t = System.currentTimeMillis();
         long count = 0;
+        Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1, new ThreadFactory() {
+
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r);
+                t.setName("scheduler1");
+                return t;
+            }
+        }));
+        Scheduler scheduler2 = Schedulers.from(Executors.newFixedThreadPool(1, new ThreadFactory() {
+
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r);
+                t.setName("scheduler2");
+                return t;
+            }
+        }));
         while ((System.currentTimeMillis() - t < TimeUnit.SECONDS.toMillis(9))) {
-            Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
             DataSerializer<Integer> serializer = DataSerializers.integer();
             int max = 1000;
             final CountDownLatch latch = new CountDownLatch(1);
@@ -367,14 +387,19 @@ public final class OperatorBufferToFileTest {
                 public void onNext(Integer t) {
                     count++;
                     list.add(t);
+                    Thread.currentThread().setName("emission");
                     if (count == unsubscribeAfter) {
                         unsubscribe();
+                        System.out
+                                .println(Thread.currentThread().getName() + "|called unsubscribe");
                         last.set(count);
                         latch.countDown();
                     }
                 }
             };
             Observable.range(1, max)
+                    //
+                    .subscribeOn(scheduler2)
                     //
                     .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
                             Options.cacheType(CacheType.NO_CACHE).rolloverEvery(max / 10).build()))
@@ -394,10 +419,27 @@ public final class OperatorBufferToFileTest {
                 System.out.println("actual  =" + list);
             }
             assertTrue(list.size() >= expected.size());
-            waitUntilWorkCompleted(scheduler, 100, TimeUnit.SECONDS);
+
+            waitUntilWorkCompleted(scheduler);
+            waitUntilWorkCompleted(scheduler2);
+            System.out.println("waited");
+            Thread.sleep(300);
             count++;
+            OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+            if (os instanceof com.sun.management.UnixOperatingSystemMXBean) {
+                System.out.println(
+                        "Number of open fd: " + ((com.sun.management.UnixOperatingSystemMXBean) os)
+                                .getOpenFileDescriptorCount());
+            }
         }
         System.out.println(count + " cycles passed");
+        Thread.sleep(5000);
+        OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
+        if (os instanceof com.sun.management.UnixOperatingSystemMXBean) {
+            System.out.println(
+                    "Number of open fd: " + ((com.sun.management.UnixOperatingSystemMXBean) os)
+                            .getOpenFileDescriptorCount());
+        }
     }
 
     @Test
