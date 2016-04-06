@@ -42,6 +42,7 @@ import com.github.davidmoten.rx.slf4j.Logging;
 
 import rx.Observable;
 import rx.Scheduler;
+import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
@@ -329,7 +330,9 @@ public final class OperatorBufferToFileTest {
 
     private static void waitUntilWorkCompleted(Scheduler scheduler, long duration, TimeUnit unit) {
         final CountDownLatch latch = new CountDownLatch(1);
-        scheduler.createWorker().schedule(Actions.countDown(latch));
+        Worker worker = scheduler.createWorker();
+        worker.schedule(Actions.countDown(latch));
+        worker.schedule(Actions.unsubscribe(worker));
         try {
             if (!latch.await(duration, unit)) {
                 throw new RuntimeException("did not complete");
@@ -390,8 +393,9 @@ public final class OperatorBufferToFileTest {
                     Thread.currentThread().setName("emission");
                     if (count == unsubscribeAfter) {
                         unsubscribe();
-                        System.out
-                                .println(Thread.currentThread().getName() + "|called unsubscribe");
+                        if (false)
+                            System.out.println(
+                                    Thread.currentThread().getName() + "|called unsubscribe");
                         last.set(count);
                         latch.countDown();
                     }
@@ -422,24 +426,9 @@ public final class OperatorBufferToFileTest {
 
             waitUntilWorkCompleted(scheduler);
             waitUntilWorkCompleted(scheduler2);
-            System.out.println("waited");
-            Thread.sleep(300);
             count++;
-            OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-            if (os instanceof com.sun.management.UnixOperatingSystemMXBean) {
-                System.out.println(
-                        "Number of open fd: " + ((com.sun.management.UnixOperatingSystemMXBean) os)
-                                .getOpenFileDescriptorCount());
-            }
         }
         System.out.println(count + " cycles passed");
-        Thread.sleep(5000);
-        OperatingSystemMXBean os = ManagementFactory.getOperatingSystemMXBean();
-        if (os instanceof com.sun.management.UnixOperatingSystemMXBean) {
-            System.out.println(
-                    "Number of open fd: " + ((com.sun.management.UnixOperatingSystemMXBean) os)
-                            .getOpenFileDescriptorCount());
-        }
     }
 
     @Test

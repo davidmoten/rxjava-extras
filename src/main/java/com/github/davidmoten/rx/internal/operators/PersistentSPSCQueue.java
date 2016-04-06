@@ -167,7 +167,7 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
             if (!file.delete()) {
                 throw new RuntimeException("could not delete file " + file);
             }
-            if (debug | true)
+            if (debug)
                 log(Thread.currentThread().getName() + "|persistent queue closed " + file
                         + " exists=" + file.exists());
             f = null;

@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.github.davidmoten.rx.internal.operators.RollingQueue.Queue2;
+import com.github.davidmoten.rx.internal.operators.RollingSPSCQueue.Queue2;
 import com.google.testing.threadtester.AnnotatedTestRunner;
 import com.google.testing.threadtester.MethodOption;
 import com.google.testing.threadtester.ThreadedAfter;
@@ -26,7 +26,7 @@ import rx.functions.Func0;
  */
 public class RollingQueueTest {
 
-	private volatile RollingQueue<Integer> q;
+	private volatile RollingSPSCQueue<Integer> q;
 
 	@Ignore
 	@Test
@@ -37,12 +37,12 @@ public class RollingQueueTest {
 		HashSet<String> methods = new HashSet<String>();
 		runner.setMethodOption(MethodOption.ALL_METHODS, methods);
 		runner.setDebug(true);
-		runner.runTests(this.getClass(), RollingQueue.class);
+		runner.runTests(this.getClass(), RollingSPSCQueue.class);
 	}
 
 	@ThreadedBefore
 	public void before() {
-		q = new RollingQueue<Integer>(queueFactory, 3);
+		q = new RollingSPSCQueue<Integer>(queueFactory, 3);
 		q.offer(1);
 	}
 

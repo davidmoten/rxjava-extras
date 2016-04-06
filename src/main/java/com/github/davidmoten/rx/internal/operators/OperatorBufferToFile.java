@@ -18,7 +18,7 @@ import org.mapdb.Serializer;
 import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.Options;
-import com.github.davidmoten.rx.internal.operators.RollingQueue.Queue2;
+import com.github.davidmoten.rx.internal.operators.RollingSPSCQueue.Queue2;
 import com.github.davidmoten.util.Preconditions;
 
 import rx.Observable;
@@ -236,7 +236,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                 }
             }
         };
-        return new RollingQueue<T>(queueFactory, options.rolloverEvery());
+        return new RollingSPSCQueue<T>(queueFactory, options.rolloverEvery());
     }
 
     private static DB createDb(File file, Options options) {
