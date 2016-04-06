@@ -390,7 +390,8 @@ public final class OperatorBufferToFileTest {
         long t = System.currentTimeMillis();
         int last = Observable.range(1, max)
                 //
-                .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler))
+                .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
+                        Options.rolloverEvery(Long.MAX_VALUE).build()))
                 // log
                 // .lift(Logging.<Integer>
                 // logger().showCount().every(1000).showMemory().log())
@@ -398,6 +399,45 @@ public final class OperatorBufferToFileTest {
         t = System.currentTimeMillis() - t;
         assertEquals(max, last);
         System.out.println("rate = " + (double) max / (t) * 1000);
+        waitUntilWorkCompleted(scheduler);
+        // about 33,000 messages per second on i7 for NO_CACHE
+        // about 46,000 messages per second on i7 for WEAK_REF
+    }
+
+    @Test
+    public void checkRateForOneKMessages() {
+        Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
+        DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
+
+            @Override
+            public void serialize(DataOutput output, Integer value) throws IOException {
+                for (int i = 0; i < 1000 - 4; i++)
+                    output.writeByte(0);
+                output.writeInt(value);
+            }
+
+            @Override
+            public Integer deserialize(DataInput input, int availableBytes) throws IOException {
+                for (int i = 0; i < 1000 - 4; i++) {
+                    input.readByte();
+                }
+                return input.readInt();
+            }
+        };
+
+        int max = Integer.parseInt(System.getProperty("max.medium", "3000"));
+        max = 300000;
+        long t = System.currentTimeMillis();
+        int last = Observable.range(1, max)
+                //
+                .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler))
+                // log
+                // .lift(Logging.<Integer>
+                // logger().showCount().every(1000).showMemory().log())
+                .last().toBlocking().single();
+        t = System.currentTimeMillis() - t;
+        assertEquals(max, last);
+        System.out.println("rate = " + (double) max / (t) + "MB/s");
         waitUntilWorkCompleted(scheduler);
         // about 33,000 messages per second on i7 for NO_CACHE
         // about 46,000 messages per second on i7 for WEAK_REF
