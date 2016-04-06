@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.util.Preconditions;
 
-class SPSCFileBasedQueue<T> implements CloseableQueue<T> {
+class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 
 	public static boolean debug = false;
 
@@ -36,9 +36,9 @@ class SPSCFileBasedQueue<T> implements CloseableQueue<T> {
 	final AtomicLong size;
 	volatile int writePosition;
 	volatile int writeBufferPosition;
-	private final Object writeLock = new Object();
+	final Object writeLock = new Object();
 
-	public SPSCFileBasedQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
+	FileBasedSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
 		Preconditions.checkArgument(bufferSizeBytes > 0, "bufferSizeBytes must be greater than zero");
 		Preconditions.checkNotNull(file);
 		Preconditions.checkNotNull(serializer);

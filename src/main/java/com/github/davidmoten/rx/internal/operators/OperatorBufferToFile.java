@@ -231,7 +231,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                     };
                     return new Q2<T>(cq);
                 } else {
-                    return new Q2<T>(new SPSCFileBasedQueue<T>(options.bufferSizeBytes(), file, dataSerializer));
+                    return new Q2<T>(new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), file, dataSerializer));
                 }
             }
         };
