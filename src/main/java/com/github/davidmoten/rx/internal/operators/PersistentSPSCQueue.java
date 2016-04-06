@@ -155,7 +155,6 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
     @Override
     public void unsubscribe() {
         try {
-            f.getChannel().close();
             f.close();
             if (!file.delete()) {
                 throw new RuntimeException("could not delete file " + file);
@@ -163,6 +162,11 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    @Override
+    public boolean isUnsubscribed() {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -268,11 +272,6 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
     @Override
     public void clear() {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isUnsubscribed() {
-        return !f.getChannel().isOpen();
     }
 
 }
