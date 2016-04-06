@@ -33,219 +33,220 @@ import rx.plugins.RxJavaPlugins;
  */
 final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
 
-    // inherited boolean represents the closed status of the RollingQueue
+	// inherited boolean represents the closed status of the RollingQueue
 
-    private static final long serialVersionUID = 6212213475110919831L;
+	private static final long serialVersionUID = 6212213475110919831L;
 
-    interface Queue2<T> {
+	interface Queue2<T> {
 
-        // returns null if closed
-        T poll();
+		// returns null if closed
+		T poll();
 
-        // returns true if closed
-        boolean offer(T t);
+		// returns true if closed
+		boolean offer(T t);
 
-        void close();
+		void close();
 
-        // returns true if closed
-        boolean isEmpty();
-    }
+		// returns true if closed
+		boolean isEmpty();
+	}
 
-    private final Func0<Queue2<T>> queueFactory;
-    private final long maxItemsPerQueue;
-    private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
+	private final Func0<Queue2<T>> queueFactory;
+	private final long maxItemsPerQueue;
+	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
 
-    // counter used to determine when to rollover to another queue
-    // visibility managed by the fact that calls to offer are happens-before
-    // sequential
-    private long count;
+	// counter used to determine when to rollover to another queue
+	// visibility managed by the fact that calls to offer are happens-before
+	// sequential
+	private long count;
 
-    RollingSPSCQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
-        Preconditions.checkNotNull(queueFactory);
-        Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
-        this.queueFactory = queueFactory;
-        this.maxItemsPerQueue = maxItemsPerQueue;
-        this.count = 0;
-        // store-store barrier
-        lazySet(false);
-    }
+	RollingSPSCQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
+		Preconditions.checkNotNull(queueFactory);
+		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
+		this.queueFactory = queueFactory;
+		this.maxItemsPerQueue = maxItemsPerQueue;
+		this.count = 0;
+		// store-store barrier
+		lazySet(false);
+	}
 
-    @Override
-    public void unsubscribe() {
-        synchronized (queues) {
-            if (compareAndSet(false, true)) {
-                try {
-                    // thread-safe and idempotent
-                    for (Queue2<T> q : queues) {
-                        q.close();
-                    }
-                } catch (RuntimeException e) {
-                    RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
-                    throw e;
-                } catch (Error e) {
-                    RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
-                    throw e;
-                }
-                // Would be nice to clear `queues` at this point to release
-                // Queue2
-                // references for gc early but would have to wait for an
-                // outstanding
-                // offer/poll/peek/isEmpty. This could make things a bit more
-                // complex and add overhead. Note that Queue2 instances after
-                // closing release their references to DB and Queue instances so
-                // going further to release Queue2 objects themselves is not
-                // really
-                // worth it.
-            }
-        }
-    }
+	@Override
+	public void unsubscribe() {
+		synchronized (queues) {
+			if (compareAndSet(false, true)) {
+				try {
+					// thread-safe and idempotent
+					for (Queue2<T> q : queues) {
+						q.close();
+					}
+				} catch (RuntimeException e) {
+					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+					throw e;
+				} catch (Error e) {
+					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+					throw e;
+				}
+				// Would be nice to clear `queues` at this point to release
+				// Queue2 references for gc early but would have to wait for an
+				// outstanding offer/poll/peek/isEmpty. This could make things a
+				// bit more complex and add overhead. Note that Queue2 instances
+				// after closing release their references to thier enclosed Queue
+				// references so going further to release Queue2 objects
+				// themselves is not really worth it.
+			}
+		}
+	}
 
-    @Override
-    public boolean isUnsubscribed() {
-        return get();
-    }
+	@Override
+	public boolean isUnsubscribed() {
+		return get();
+	}
 
-    @Override
-    public boolean offer(T t) {
-        // limited thread safety (offer/poll/close/peek/isEmpty concurrent but
-        // not offer and offer)
-        if (get()) {
-            return true;
-        } else {
-            count++;
-            if (count == 1 || count == maxItemsPerQueue) {
-                count = 1;
-                synchronized (queues) {
-                    // don't want to miss out unsubscribing a queue so using
-                    // synchronization here
-                    if (!get()) {
-                        queues.add(queueFactory.call());
-                    }
-                }
-            }
-            return queues.peekLast().offer(t);
-        }
-    }
+	@Override
+	public boolean offer(T t) {
+		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
+		// not offer and offer)
+		if (closed()) {
+			return true;
+		} else {
+			count++;
+			if (count == 1 || count == maxItemsPerQueue) {
+				count = 1;
+				synchronized (queues) {
+					// don't want to miss out unsubscribing a queue so using
+					// synchronization here
+					if (!closed()) {
+						queues.offerLast(queueFactory.call());
+					}
+				}
+			}
+			return queues.peekLast().offer(t);
+		}
+	}
 
-    @Override
-    public T poll() {
-        // limited thread safety (offer/poll/close/peek/isEmpty concurrent but
-        // not poll and poll)
-        if (get()) {
-            return null;
-        } else if (queues.isEmpty())
-            return null;
-        else {
-            while (true) {
-                Queue2<T> first = queues.peekFirst();
-                T value = first.poll();
-                if (value == null) {
-                    if (first == queues.peekLast()) {
-                        return null;
-                    } else {
-                        Queue2<T> removed = queues.pollFirst();
-                        // don't have concurrent poll/poll so don't have to
-                        // do null check on removed
-                        removed.close();
-                    }
-                } else {
-                    return value;
-                }
-            }
-        }
-    }
+	@Override
+	public T poll() {
+		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
+		// not poll and poll)
+		if (closed()) {
+			return null;
+		} else if (queues.isEmpty())
+			return null;
+		else {
+			while (true) {
+				Queue2<T> first = queues.peekFirst();
+				T value = first.poll();
+				if (value == null) {
+					if (first == queues.peekLast()) {
+						return null;
+					} else {
+						Queue2<T> removed = queues.pollFirst();
+						// don't have concurrent poll/poll so don't have to
+						// do null check on removed
+						removed.close();
+					}
+				} else {
+					return value;
+				}
+			}
+		}
+	}
 
-    @Override
-    public boolean isEmpty() {
-        // thread-safe (will just return true if queue has been closed)
-        if (get()) {
-            return true;
-        } else {
-            Queue2<T> first = queues.peekFirst();
-            if (first == null) {
-                return true;
-            } else if (queues.peekLast() == first && first.isEmpty()) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
+	@Override
+	public boolean isEmpty() {
+		// thread-safe (will just return true if queue has been closed)
+		if (closed()) {
+			return true;
+		} else {
+			Queue2<T> first = queues.peekFirst();
+			if (first == null) {
+				return true;
+			} else if (queues.peekLast() == first && first.isEmpty()) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+	
+	private boolean closed() {
+		return get();
+	}
 
-    @Override
-    public void clear() {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public void clear() {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public int size() {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public int size() {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public T peek() {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public T peek() {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public boolean contains(Object o) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public boolean contains(Object o) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public Iterator<T> iterator() {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public Iterator<T> iterator() {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public Object[] toArray() {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public Object[] toArray() {
+		throw new UnsupportedOperationException();
+	}
 
-    @SuppressWarnings("hiding")
-    @Override
-    public <T> T[] toArray(T[] a) {
-        throw new UnsupportedOperationException();
-    }
+	@SuppressWarnings("hiding")
+	@Override
+	public <T> T[] toArray(T[] a) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public boolean remove(Object o) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public boolean remove(Object o) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public boolean containsAll(Collection<?> c) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public boolean containsAll(Collection<?> c) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public boolean addAll(Collection<? extends T> c) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public boolean addAll(Collection<? extends T> c) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public boolean removeAll(Collection<?> c) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public boolean retainAll(Collection<?> c) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public boolean retainAll(Collection<?> c) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public boolean add(T e) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public boolean add(T e) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public T remove() {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public T remove() {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public T element() {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public T element() {
+		throw new UnsupportedOperationException();
+	}
 
 }
