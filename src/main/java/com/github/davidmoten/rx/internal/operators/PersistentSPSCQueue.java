@@ -14,6 +14,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.util.Preconditions;
@@ -36,8 +38,7 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
     final AtomicLong size;
     volatile int writePosition;
     volatile int writeBufferPosition;
-    private final Object writePositionLock = new Object();
-
+    private final Lock writeLock = new ReentrantLock();
 
     public PersistentSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
         Preconditions.checkArgument(bufferSizeBytes > 0,
@@ -71,7 +72,8 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
                 writeBuffer[writeBufferPosition] = (byte) b;
                 writeBufferPosition++;
             } else {
-                synchronized (writePositionLock) {
+                writeLock.lock();
+                try {
                     fWrite.seek(writePosition);
                     fWrite.write(writeBuffer);
                     if (debug)
@@ -80,6 +82,8 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
                     writeBuffer[0] = (byte) b;
                     writeBufferPosition = 1;
                     writePosition += writeBuffer.length;
+                } finally {
+                    writeLock.unlock();
                 }
             }
         }
@@ -110,9 +114,12 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
                     while (true) {
                         int wp;
                         int wbp;
-                        synchronized (writePositionLock) {
+                        writeLock.lock();
+                        try {
                             wp = writePosition;
                             wbp = writeBufferPosition;
+                        } finally {
+                            writeLock.unlock();
                         }
                         int over = wp - readPosition;
                         if (over > 0) {
