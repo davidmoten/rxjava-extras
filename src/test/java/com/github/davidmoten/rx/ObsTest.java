@@ -2,7 +2,6 @@ package com.github.davidmoten.rx;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;

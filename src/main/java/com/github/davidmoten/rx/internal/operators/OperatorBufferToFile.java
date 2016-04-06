@@ -15,7 +15,6 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Serializer;
 
-import com.github.davidmoten.rx.buffertofile.CacheType;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.Options;
 import com.github.davidmoten.rx.internal.operators.RollingSPSCQueue.Queue2;
