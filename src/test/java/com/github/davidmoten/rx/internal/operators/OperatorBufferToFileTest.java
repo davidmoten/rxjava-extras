@@ -305,8 +305,9 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void rolloverWorks() throws InterruptedException {
+        PersistentSPSCQueue.debug = true;
         DataSerializer<Integer> serializer = DataSerializers.integer();
-        int max = 1000;
+        int max = 100;
         Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
         int last = Observable.range(1, max)
                 //
@@ -316,6 +317,7 @@ public final class OperatorBufferToFileTest {
         assertEquals(max, last);
         // wait for all scheduled work to complete (unsubscription)
         waitUntilWorkCompleted(scheduler, 10, TimeUnit.SECONDS);
+        PersistentSPSCQueue.debug = true;
     }
 
     private static void waitUntilWorkCompleted(Scheduler scheduler) {

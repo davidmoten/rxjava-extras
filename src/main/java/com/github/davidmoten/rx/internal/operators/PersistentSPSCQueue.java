@@ -20,7 +20,7 @@ import com.github.davidmoten.util.Preconditions;
 
 class PersistentSPSCQueue<T> implements CloseableQueue<T> {
 
-    private static final boolean debug = false;
+    public static boolean debug = false;
 
     int readBufferPosition = 0;
     int readPosition = 0;
@@ -159,6 +159,8 @@ class PersistentSPSCQueue<T> implements CloseableQueue<T> {
             if (!file.delete()) {
                 throw new RuntimeException("could not delete file " + file);
             }
+            if (debug)
+                log("persistent queue closed " + file);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
