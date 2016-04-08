@@ -76,7 +76,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		child.add(queue);
 
 		// ensure onStart not called twice
-		Subscriber<T> wrappedChild = wrap(child);
+		Subscriber<T> wrappedChild = Subscribers.wrap(child);
 
 		// ensure worker gets unsubscribed (last)
 		child.add(worker);
@@ -87,30 +87,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		return parentSubscriber;
 	}
 
-	private static <T> Subscriber<T> wrap(final Subscriber<? super T> child) {
-		return new Subscriber<T>(child) {
-
-			@Override
-			public void onCompleted() {
-				if (!isUnsubscribed())
-					child.onCompleted();
-			}
-
-			@Override
-			public void onError(Throwable e) {
-				if (!isUnsubscribed())
-					child.onError(e);
-			}
-
-			@Override
-			public void onNext(T t) {
-				if (!isUnsubscribed()) {
-					child.onNext(t);
-				}
-			}
-
-		};
-	}
 
 	/**
 	 * Wraps a Queue (like MapDB Queue) to provide concurrency guarantees around
@@ -345,6 +321,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		void onNext(T t) {
+			if (child.isUnsubscribed())
+				return;
 			if (!queue.offer(t)) {
 				onError(new RuntimeException(
 						"could not place item on queue (queue.offer(item) returned false), item= " + t));
@@ -355,6 +333,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		void onError(Throwable e) {
+			if (child.isUnsubscribed())
+				return;
 			// must assign error before assign done = true to avoid race
 			// condition in finished() and also so appropriate memory barrier in
 			// place given error is non-volatile
@@ -364,6 +344,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		void onCompleted() {
+			if (child.isUnsubscribed())
+				return;
 			done = true;
 			drain();
 		}
@@ -441,32 +423,32 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 			if (done) {
 				Throwable t = error;
 				if (isQueueEmpty) {
-						// first close the queue (which in this case though
-						// empty also disposes of its resources)
-						queue.unsubscribe();
+					// first close the queue (which in this case though
+					// empty also disposes of its resources)
+					queue.unsubscribe();
 
-						if (t != null) {
-							child.onError(t);
-						} else {
-							child.onCompleted();
-						}
-						// leave drainRequested > 0 so that further drain
-						// requests are ignored
-						return true;
-				} else if (t != null && !delayError) {
-						// queue is not empty but we are going to shortcut
-						// that because delayError is false
-
-						// first close the queue (which in this case also
-						// disposes of its resources)
-						queue.unsubscribe();
-
-						// now report the error
+					if (t != null) {
 						child.onError(t);
+					} else {
+						child.onCompleted();
+					}
+					// leave drainRequested > 0 so that further drain
+					// requests are ignored
+					return true;
+				} else if (t != null && !delayError) {
+					// queue is not empty but we are going to shortcut
+					// that because delayError is false
 
-						// leave drainRequested > 0 so that further drain
-						// requests are ignored
-						return true;
+					// first close the queue (which in this case also
+					// disposes of its resources)
+					queue.unsubscribe();
+
+					// now report the error
+					child.onError(t);
+
+					// leave drainRequested > 0 so that further drain
+					// requests are ignored
+					return true;
 				} else {
 					// otherwise we need to wait for all items waiting
 					// on the queue to be requested and delivered
@@ -477,32 +459,32 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 				return drainRequested.compareAndSet(1, 0);
 			}
 		}
-}
-
-private static final class MapDbSerializer<T> implements Serializer<T>, Serializable {
-
-	private static final long serialVersionUID = -4992031045087289671L;
-	private static final int VARIABLE_SIZE = -1;
-	private transient final DataSerializer<T> dataSerializer;
-
-	MapDbSerializer(DataSerializer<T> dataSerializer) {
-		this.dataSerializer = dataSerializer;
 	}
 
-	@Override
-	public T deserialize(final DataInput input, int availableBytes) throws IOException {
-		return dataSerializer.deserialize(input, availableBytes);
-	}
+	private static final class MapDbSerializer<T> implements Serializer<T>, Serializable {
 
-	@Override
-	public int fixedSize() {
-		return VARIABLE_SIZE;
-	}
+		private static final long serialVersionUID = -4992031045087289671L;
+		private static final int VARIABLE_SIZE = -1;
+		private transient final DataSerializer<T> dataSerializer;
 
-	@Override
-	public void serialize(DataOutput output, T t) throws IOException {
-		dataSerializer.serialize(output, t);
-	}
-};
+		MapDbSerializer(DataSerializer<T> dataSerializer) {
+			this.dataSerializer = dataSerializer;
+		}
+
+		@Override
+		public T deserialize(final DataInput input, int availableBytes) throws IOException {
+			return dataSerializer.deserialize(input, availableBytes);
+		}
+
+		@Override
+		public int fixedSize() {
+			return VARIABLE_SIZE;
+		}
+
+		@Override
+		public void serialize(DataOutput output, T t) throws IOException {
+			dataSerializer.serialize(output, t);
+		}
+	};
 
 }
