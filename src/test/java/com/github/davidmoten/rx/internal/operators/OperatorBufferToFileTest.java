@@ -288,7 +288,7 @@ public final class OperatorBufferToFileTest {
 
 	@Test
 	public void handlesTenSecondLoopOfMidStreamUnsubscribe() throws InterruptedException {
-		int maxSeconds = Integer.parseInt(System.getProperty("max.seconds", "9"));
+		int maxSeconds = Integer.parseInt(System.getProperty("max.seconds", "900000"));
 		// run for ten seconds
 		long t = System.currentTimeMillis();
 		long count = 0;
