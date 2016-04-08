@@ -321,8 +321,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		void onNext(T t) {
-			if (child.isUnsubscribed())
-				return;
 			if (!queue.offer(t)) {
 				onError(new RuntimeException(
 						"could not place item on queue (queue.offer(item) returned false), item= " + t));
@@ -333,8 +331,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		void onError(Throwable e) {
-			if (child.isUnsubscribed())
-				return;
 			// must assign error before assign done = true to avoid race
 			// condition in finished() and also so appropriate memory barrier in
 			// place given error is non-volatile
@@ -344,8 +340,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		void onCompleted() {
-			if (child.isUnsubscribed())
-				return;
 			done = true;
 			drain();
 		}
