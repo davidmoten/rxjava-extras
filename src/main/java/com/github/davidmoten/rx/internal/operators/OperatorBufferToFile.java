@@ -87,7 +87,6 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		return parentSubscriber;
 	}
 
-
 	/**
 	 * Wraps a Queue (like MapDB Queue) to provide concurrency guarantees around
 	 * calls to the close() method. Extends AtomicBoolean to save allocation.
@@ -389,7 +388,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						T item = queue.poll();
 						if (item == null) {
 							// queue is empty
-							if (finished(true)) {
+							if (finished()) {
 								return;
 							} else {
 								// another drain was requested so go
@@ -406,17 +405,21 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						}
 					}
 				}
-				requests = addAndGet(-emitted);
-				if (requests == 0L && finished(queue.isEmpty())) {
+				// try and avoid the addAndGet if possible because it is
+				// more expensive than an emitted comparison
+				if (emitted != 0) {
+					requests = addAndGet(-emitted);
+				}
+				if (requests == 0L && finished()) {
 					return;
 				}
 			}
 		}
 
-		private boolean finished(boolean isQueueEmpty) {
+		private boolean finished() {
 			if (done) {
 				Throwable t = error;
-				if (isQueueEmpty) {
+				if (queue.isEmpty()) {
 					// first close the queue (which in this case though
 					// empty also disposes of its resources)
 					queue.unsubscribe();

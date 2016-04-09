@@ -338,7 +338,6 @@ public final class OperatorBufferToFileTest {
 					if (count != t) {
 						onError(new RuntimeException("count=" + count + " but t=" + t));
 					}
-					Thread.currentThread().setName("emission");
 					if (count == unsubscribeAfter) {
 						unsubscribe();
 						if (false)
@@ -517,17 +516,38 @@ public final class OperatorBufferToFileTest {
 	}
 
 	public static void main(String[] args) throws InterruptedException {
+		final CountDownLatch latch = new CountDownLatch(1);
 		Observable.range(1, Integer.MAX_VALUE)
 				//
 				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation(),
 						Options.rolloverEvery(500000).build()))
 				//
-				.lift(Logging.<Integer> logger().showCount().every(10000).showMemory().log())
+				.lift(Logging.<Integer> logger().showCount().every(1000000).showMemory().log())
 				//
 				// .delay(200, TimeUnit.MILLISECONDS, Schedulers.immediate())
 				//
-				.count().toBlocking().single();
-		Thread.sleep(1000);
+				.count().subscribe(new Subscriber<Integer>() {
+					int count = 0;
+					@Override
+					public void onCompleted() {
+						// TODO Auto-generated method stub
+						
+					}
+
+					@Override
+					public void onError(Throwable e) {
+						latch.countDown();
+					}
+
+					@Override
+					public void onNext(Integer t) {
+						count++;
+						if (t!=count) {
+						    System.out.println(t + " != "+ count);
+						    latch.countDown();
+						}
+					}});
+		latch.await();
 	}
 
 }

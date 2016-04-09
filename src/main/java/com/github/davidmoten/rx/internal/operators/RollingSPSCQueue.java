@@ -90,8 +90,8 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 				// Queue2 references for gc early but would have to wait for an
 				// outstanding offer/poll/peek/isEmpty. This could make things a
 				// bit more complex and add overhead. Note that Queue2 instances
-				// after closing release their references to thier enclosed Queue
-				// references so going further to release Queue2 objects
+				// after closing release their references to thier enclosed
+				// Queue references so going further to release Queue2 objects
 				// themselves is not really worth it.
 			}
 		}
@@ -120,7 +120,9 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 					}
 				}
 			}
-			return queues.peekLast().offer(t);
+			synchronized (queues) {
+				return queues.peekLast().offer(t);
+			}
 		}
 	}
 
@@ -128,22 +130,30 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 	public T poll() {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
 		// not poll and poll)
-		if (closed()) {
-			return null;
-		} else if (queues.isEmpty())
-			return null;
-		else {
-			while (true) {
+		while (true) {
+			if (closed()) {
+				return null;
+			}
+			synchronized (queues) {
 				Queue2<T> first = queues.peekFirst();
-				T value = first.poll();
+				if (first == null) {
+					return null;
+				}
+				T value;
+				value = first.poll();
 				if (value == null) {
 					if (first == queues.peekLast()) {
 						return null;
 					} else {
-						Queue2<T> removed = queues.pollFirst();
-						// don't have concurrent poll/poll so don't have to
+						Queue2<T> removed = null;
+						if (!closed()) {
+							removed = queues.pollFirst();
+						}
+						// don't have concurrent poll/poll so don't have
+						// to
 						// do null check on removed
-						removed.close();
+						if (removed != null)
+							removed.close();
 					}
 				} else {
 					return value;
@@ -158,17 +168,19 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 		if (closed()) {
 			return true;
 		} else {
-			Queue2<T> first = queues.peekFirst();
-			if (first == null) {
-				return true;
-			} else if (queues.peekLast() == first && first.isEmpty()) {
-				return true;
-			} else {
-				return false;
+			synchronized (queues) {
+				Queue2<T> first = queues.peekFirst();
+				if (first == null) {
+					return true;
+				} else if (queues.peekLast() == first && first.isEmpty()) {
+					return true;
+				} else {
+					return false;
+				}
 			}
 		}
 	}
-	
+
 	private boolean closed() {
 		return get();
 	}
