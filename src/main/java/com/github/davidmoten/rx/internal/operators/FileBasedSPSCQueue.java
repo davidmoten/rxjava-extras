@@ -32,10 +32,10 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	volatile int writePosition;
 	volatile int writeBufferPosition;
 	final Object writeLock = new Object();
-	private final FileBasedSPSCQueue<T>.Files files;
+	private FileBasedSPSCQueue<T>.Files files;
+	private final Object filesLock = new Object();
 	private final DataOutputStream output;
 	private final DataInputStream input;
-	
 
 	FileBasedSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
 		Preconditions.checkArgument(bufferSizeBytes > 0, "bufferSizeBytes must be greater than zero");
@@ -56,7 +56,7 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 		this.output = new DataOutputStream(new QueueWriter());
 		this.input = new DataInputStream(new QueueReader());
 	}
-	
+
 	private final class Files {
 		private final RandomAccessFile fWrite;
 		private final RandomAccessFile fRead;
@@ -126,9 +126,14 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 						}
 						int over = wp - readPosition;
 						if (over > 0) {
-							files.fRead.seek(readPosition);
 							readBufferLength = Math.min(readBuffer.length, over);
-							files.fRead.read(readBuffer, 0, readBufferLength);
+							synchronized (filesLock) {
+								if (files == null) {
+									files = new Files(file);
+								}
+								files.fRead.seek(readPosition);
+								files.fRead.read(readBuffer, 0, readBufferLength);
+							}
 							if (debug)
 								log("read buffer " + Arrays.toString(readBuffer));
 							readPosition += readBufferLength;
@@ -292,7 +297,11 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	@Override
 	public void setReadOnly() {
 		try {
-			files.fWrite.close();
+			synchronized (filesLock) {
+				files.fWrite.close();
+				files.fRead.close();
+				files = null;
+			}
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
