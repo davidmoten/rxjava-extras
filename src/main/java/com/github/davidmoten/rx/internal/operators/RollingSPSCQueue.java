@@ -49,6 +49,8 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 
 		// returns true if closed
 		boolean isEmpty();
+		
+		void freeResources();
 	}
 
 	private final Func0<Queue2<T>> queueFactory;
@@ -116,6 +118,10 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 					// don't want to miss out unsubscribing a queue so using
 					// synchronization here
 					if (!closed()) {
+						Queue2<T> last = queues.peekLast();
+						if (last != null) {
+							last.freeResources();
+						}
 						queues.offerLast(queueFactory.call());
 					}
 				}
@@ -262,7 +268,7 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 	}
 
 	@Override
-	public void setReadOnly() {
+	public void freeResources() {
 		//do nothing
 	}
 

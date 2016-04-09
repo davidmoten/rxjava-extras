@@ -172,8 +172,12 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	@Override
 	public void unsubscribe() {
 		try {
-			files.fWrite.close();
-			files.fRead.close();
+			synchronized (filesLock) {
+				if (files != null) {
+					files.fWrite.close();
+					files.fRead.close();
+				}
+			}
 			if (!file.delete()) {
 				throw new RuntimeException("could not delete file " + file);
 			}
@@ -295,7 +299,7 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	}
 
 	@Override
-	public void setReadOnly() {
+	public void freeResources() {
 		try {
 			synchronized (filesLock) {
 				files.fWrite.close();

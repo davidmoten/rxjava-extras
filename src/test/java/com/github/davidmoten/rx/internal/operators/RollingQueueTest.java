@@ -101,6 +101,11 @@ public class RollingQueueTest {
 				public boolean isEmpty() {
 					return queue.isEmpty();
 				}
+
+				@Override
+				public void freeResources() {
+					//do nothing
+				}
 			};
 		}
 	};

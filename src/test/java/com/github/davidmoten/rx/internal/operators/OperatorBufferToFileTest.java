@@ -517,16 +517,16 @@ public final class OperatorBufferToFileTest {
 
 	public static void main(String[] args) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
-		Observable.range(1, Integer.MAX_VALUE)
+		Observable.range(1, 100000000)
 				//
 				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation(),
-						Options.rolloverEvery(500000).build()))
+						Options.rolloverEvery(2000000).build()))
 				//
 				.lift(Logging.<Integer> logger().showCount().every(1000000).showMemory().log())
 				//
 				// .delay(200, TimeUnit.MILLISECONDS, Schedulers.immediate())
 				//
-				.count().subscribe(new Subscriber<Integer>() {
+				.subscribe(new Subscriber<Integer>() {
 					int count = 0;
 					@Override
 					public void onCompleted() {

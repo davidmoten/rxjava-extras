@@ -189,6 +189,11 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 			}
 		}
 
+		@Override
+		public void freeResources() {
+			queue.freeResources();
+		}
+
 	}
 
 	private static <T> CloseableQueue<T> createRollingQueue(final DataSerializer<T> dataSerializer,
@@ -227,8 +232,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						}
 
 						@Override
-						public void setReadOnly() {
+						public void freeResources() {
 							//do nothing
+							
 						}
 
 					};
