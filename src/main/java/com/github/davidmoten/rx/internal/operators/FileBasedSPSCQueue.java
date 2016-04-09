@@ -1,11 +1,10 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.io.DataInput;
 import java.io.DataInputStream;
-import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,15 +27,12 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	int readBufferLength = 0;
 	final byte[] writeBuffer;
 	final File file;
-	final RandomAccessFile fWrite;
-	final RandomAccessFile fRead;
 	final DataSerializer<T> serializer;
-	final DataOutput output;
-	final DataInput input;
 	final AtomicLong size;
 	volatile int writePosition;
 	volatile int writeBufferPosition;
 	final Object writeLock = new Object();
+	private final FileBasedSPSCQueue<T>.Files files;
 
 	FileBasedSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
 		Preconditions.checkArgument(bufferSizeBytes > 0, "bufferSizeBytes must be greater than zero");
@@ -48,15 +44,30 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 			file.getParentFile().mkdirs();
 			file.createNewFile();
 			this.file = file;
-			this.fWrite = new RandomAccessFile(file, "rw");
-			this.fRead = new RandomAccessFile(file, "r");
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+		this.files = new Files(file);
 		this.serializer = serializer;
-		this.output = new DataOutputStream(new QueueWriter());
-		this.input = new DataInputStream(new QueueReader());
 		this.size = new AtomicLong(0);
+	}
+	
+	private final class Files {
+		private final RandomAccessFile fWrite;
+		private final RandomAccessFile fRead;
+		private final DataOutputStream output;
+		private final DataInputStream input;
+
+		Files(File file) {
+			try {
+				this.fWrite = new RandomAccessFile(file, "rw");
+				this.fRead = new RandomAccessFile(file, "r");
+			} catch (FileNotFoundException e) {
+				throw new RuntimeException(e);
+			}
+			this.output = new DataOutputStream(new QueueWriter());
+			this.input = new DataInputStream(new QueueReader());
+		}
 	}
 
 	private final class QueueWriter extends OutputStream {
@@ -70,8 +81,8 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 				writeBufferPosition++;
 			} else {
 				synchronized (writeLock) {
-					fWrite.seek(writePosition);
-					fWrite.write(writeBuffer);
+					files.fWrite.seek(writePosition);
+					files.fWrite.write(writeBuffer);
 					if (debug)
 						log("wrote buffer " + Arrays.toString(writeBuffer));
 
@@ -114,9 +125,9 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 						}
 						int over = wp - readPosition;
 						if (over > 0) {
-							fRead.seek(readPosition);
+							files.fRead.seek(readPosition);
 							readBufferLength = Math.min(readBuffer.length, over);
-							fRead.read(readBuffer, 0, readBufferLength);
+							files.fRead.read(readBuffer, 0, readBufferLength);
 							if (debug)
 								log("read buffer " + Arrays.toString(readBuffer));
 							readPosition += readBufferLength;
@@ -155,8 +166,8 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	@Override
 	public void unsubscribe() {
 		try {
-			fWrite.close();
-			fRead.close();
+			files.fWrite.close();
+			files.fRead.close();
 			if (!file.delete()) {
 				throw new RuntimeException("could not delete file " + file);
 			}
@@ -175,7 +186,7 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	@Override
 	public boolean offer(T t) {
 		try {
-			serializer.serialize(output, t);
+			serializer.serialize(files.output, t);
 			size.incrementAndGet();
 			return true;
 		} catch (IOException e) {
@@ -186,7 +197,7 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	@Override
 	public T poll() {
 		try {
-			T t = serializer.deserialize(input, Integer.MAX_VALUE);
+			T t = serializer.deserialize(files.input, Integer.MAX_VALUE);
 			size.decrementAndGet();
 			return t;
 		} catch (EOFException e) {
