@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.util.Preconditions;
 
-class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
+class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	public static boolean debug = false;
 
@@ -221,6 +221,19 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	public boolean isEmpty() {
 		return size.get() == 0;
 	}
+	
+	@Override
+	public void freeResources() {
+		try {
+			synchronized (filesLock) {
+				files.fWrite.close();
+				files.fRead.close();
+				files = null;
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 	@Override
 	public T element() {
@@ -296,19 +309,6 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 	@Override
 	public void clear() {
 		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void freeResources() {
-		try {
-			synchronized (filesLock) {
-				files.fWrite.close();
-				files.fRead.close();
-				files = null;
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 }

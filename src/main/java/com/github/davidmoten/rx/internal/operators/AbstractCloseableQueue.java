@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Queue;
 
-abstract class AbstractCloseableQueue<T> implements CloseableQueue<T> {
+abstract class AbstractCloseableQueue<T> implements QueueWithResources<T> {
 
 	private final Queue<T> q;
 	

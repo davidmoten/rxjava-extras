@@ -31,7 +31,7 @@ import rx.plugins.RxJavaPlugins;
  * @param <T>
  *            type of item being queued
  */
-final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<T> {
+final class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T> {
 
 	// inherited boolean represents the closed status of the RollingQueue
 
