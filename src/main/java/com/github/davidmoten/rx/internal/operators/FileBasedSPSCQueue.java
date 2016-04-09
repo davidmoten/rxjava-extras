@@ -69,6 +69,15 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 				throw new RuntimeException(e);
 			}
 		}
+
+		public void close() {
+			try {
+				fWrite.close();
+				fRead.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 	private final class QueueWriter extends OutputStream {
@@ -171,11 +180,10 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	@Override
 	public void unsubscribe() {
-		try {
 			synchronized (filesLock) {
 				if (files != null) {
-					files.fWrite.close();
-					files.fRead.close();
+					files.close();
+					files = null;
 				}
 			}
 			if (!file.delete()) {
@@ -183,9 +191,6 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 			}
 			if (debug)
 				log(Thread.currentThread().getName() + "|persistent queue closed " + file + " exists=" + file.exists());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	@Override
@@ -221,17 +226,12 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 	public boolean isEmpty() {
 		return size.get() == 0;
 	}
-	
+
 	@Override
 	public void freeResources() {
-		try {
-			synchronized (filesLock) {
-				files.fWrite.close();
-				files.fRead.close();
-				files = null;
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		synchronized (filesLock) {
+			files.close();
+			files = null;
 		}
 	}
 

@@ -81,6 +81,7 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResour
 					for (Queue2<T> q : queues) {
 						q.close();
 					}
+					queues.clear();
 				} catch (RuntimeException e) {
 					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
 					throw e;
@@ -88,13 +89,6 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResour
 					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
 					throw e;
 				}
-				// Would be nice to clear `queues` at this point to release
-				// Queue2 references for gc early but would have to wait for an
-				// outstanding offer/poll/peek/isEmpty. This could make things a
-				// bit more complex and add overhead. Note that Queue2 instances
-				// after closing release their references to thier enclosed
-				// Queue references so going further to release Queue2 objects
-				// themselves is not really worth it.
 			}
 		}
 	}
