@@ -261,4 +261,9 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
+	public void setReadOnly() {
+		//do nothing
+	}
+
 }

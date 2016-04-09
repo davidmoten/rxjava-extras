@@ -288,4 +288,13 @@ class FileBasedSPSCQueue<T> implements CloseableQueue<T> {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
+	public void setReadOnly() {
+		try {
+			files.fWrite.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 }

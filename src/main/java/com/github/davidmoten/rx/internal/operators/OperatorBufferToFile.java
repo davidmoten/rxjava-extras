@@ -226,6 +226,11 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 							return db.isClosed();
 						}
 
+						@Override
+						public void setReadOnly() {
+							//do nothing
+						}
+
 					};
 					return new Q2<T>(cq);
 				} else {

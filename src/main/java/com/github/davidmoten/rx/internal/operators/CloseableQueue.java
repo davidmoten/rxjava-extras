@@ -6,5 +6,5 @@ import rx.Subscription;
 
 interface CloseableQueue<T> extends Queue<T>, Subscription {
 
-
+    void setReadOnly();
 }
