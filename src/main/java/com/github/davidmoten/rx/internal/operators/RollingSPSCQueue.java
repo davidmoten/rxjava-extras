@@ -49,7 +49,7 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 
 		// returns true if closed
 		boolean isEmpty();
-		
+
 		void freeResources();
 	}
 
@@ -123,6 +123,8 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 							last.freeResources();
 						}
 						queues.offerLast(queueFactory.call());
+					} else {
+						return true;
 					}
 				}
 			}
@@ -156,8 +158,7 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 							removed = queues.pollFirst();
 						}
 						// don't have concurrent poll/poll so don't have
-						// to
-						// do null check on removed
+						// to do null check on removed
 						if (removed != null)
 							removed.close();
 					}
@@ -269,7 +270,7 @@ final class RollingSPSCQueue<T> extends AtomicBoolean implements CloseableQueue<
 
 	@Override
 	public void freeResources() {
-		//do nothing
+		// do nothing
 	}
 
 }
