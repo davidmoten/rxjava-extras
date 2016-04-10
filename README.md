@@ -263,11 +263,15 @@ Transformers.onBackpressureBufferToFile
 ----------------------------------------
 This is work-in-progress still so watch this space for a release.
 
-As of 0.7.1, you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
+As of 0.7.1, you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage).
+
+If you use the `onBackpressureBuffer` operator you'll know that when a stream is producing faster than the downstream operators can process (perhaps the producer cannot respond meaningfully to a *slow down* request from downstream) then `onBackpressureBuffer` buffers the items to an in-memory queue until they can be processed. Of course if memory is limited then some streams might eventually cause an `OutOfMemoryError`. One solution to this problem is to increase the effectively available memory for buffering by using disk instead (and small in-memory read/write buffers). That's why `Transformers.onBackpressureBufferToFile` was created. 
+
+Internally one queue corresponds to a sequence of files (each with <=M entries). A read position and a write position for the file are maintained and relate to byte positions in files in the sequence. Naturally enough the write position will always be >= the read position. As the read position advances past the end of a file to the next file in the sequence the previous file is closed and deleted. Any files between the read position and the write position are closed (not referenced by open file descriptors) and are opened when the read position advances to it. The read position can advance beyond the last position in the last file into the write buffer (but will always be before or at the write position).
 
 <img src="src/docs/file-queue.png?raw=true" />
 
-Note that new files for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription). The file based queue implementation may create multiple files for one queue. Those files will have the same filename for one database up to the extension.
+Note that new files for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription). 
 
 Here's an example:
 
