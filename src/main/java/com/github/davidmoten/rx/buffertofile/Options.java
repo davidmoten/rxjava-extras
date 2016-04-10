@@ -67,7 +67,7 @@ public final class Options {
 	}
 
 	public static Builder disableRollover() {
-		return rolloverEvery(0);
+		return builder().disableRollover();
 	}
 	
 	public static Builder bufferSizeBytes(int bufferSizeBytes) {
@@ -86,6 +86,10 @@ public final class Options {
 		private int bufferSizeBytes = 1024;
 
 		private Builder() {
+		}
+
+		public Builder disableRollover() {
+			return rolloverEvery(0);
 		}
 
 		public Builder bufferSizeBytes(int bufferSizeBytes) {

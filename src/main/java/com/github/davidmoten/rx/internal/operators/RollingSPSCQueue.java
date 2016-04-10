@@ -107,8 +107,6 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 				count = 1;
 				Queue2<T> q = queueFactory.call();
 				synchronized (queues) {
-					// don't want to miss out unsubscribing a queue so using
-					// synchronization here
 					if (!unsubscribed) {
 						Queue2<T> last = queues.peekLast();
 						if (last != null) {
@@ -176,10 +174,8 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 				Queue2<T> first = queues.peekFirst();
 				if (first == null) {
 					return true;
-				} else if (queues.peekLast() == first && first.isEmpty()) {
-					return true;
 				} else {
-					return false;
+					return queues.peekLast() == first && first.isEmpty();
 				}
 			}
 		}
