@@ -38,6 +38,7 @@ import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action1;
+import rx.functions.Func1;
 import rx.observers.TestSubscriber;
 import rx.plugins.RxJavaPlugins;
 import rx.schedulers.Schedulers;
@@ -517,21 +518,29 @@ public final class OperatorBufferToFileTest {
 
 	public static void main(String[] args) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
-		Observable.range(1, 100000000)
+		Observable.range(1, Integer.MAX_VALUE)
 				//
 				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation(),
 						Options.rolloverEvery(2000000).build()))
 				//
-				.lift(Logging.<Integer> logger().showCount().every(1000000).showMemory().log())
+				.lift(Logging.<Integer> logger().showValue().value(new Func1<Integer, Integer> () {
+
+					@Override
+					public Integer call(Integer t) {
+						return FileBasedSPSCQueue.openFileHandles.get();
+					}})
+						//
+						.showCount().every(1000000).showMemory().log())
 				//
 				// .delay(200, TimeUnit.MILLISECONDS, Schedulers.immediate())
 				//
 				.subscribe(new Subscriber<Integer>() {
 					int count = 0;
+
 					@Override
 					public void onCompleted() {
 						// TODO Auto-generated method stub
-						
+
 					}
 
 					@Override
@@ -542,11 +551,12 @@ public final class OperatorBufferToFileTest {
 					@Override
 					public void onNext(Integer t) {
 						count++;
-						if (t!=count) {
-						    System.out.println(t + " != "+ count);
-						    latch.countDown();
+						if (t != count) {
+							System.out.println(t + " != " + count);
+							latch.countDown();
 						}
-					}});
+					}
+				});
 		latch.await();
 	}
 

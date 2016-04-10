@@ -12,6 +12,7 @@ import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
@@ -20,6 +21,7 @@ import com.github.davidmoten.util.Preconditions;
 class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	public static boolean debug = false;
+	public static final AtomicInteger openFileHandles = new AtomicInteger();
 
 	int readBufferPosition = 0;
 	int readPosition = 0;
@@ -32,8 +34,9 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 	volatile int writePosition;
 	volatile int writeBufferPosition;
 	final Object writeLock = new Object();
-	private FileBasedSPSCQueue<T>.Files files;
-	private final Object filesLock = new Object();
+	//guarde by accessLock
+	private FileBasedSPSCQueue<T>.FileAccessor accessor;
+	private final Object accessLock = new Object();
 	private final DataOutputStream output;
 	private final DataInputStream input;
 
@@ -50,21 +53,22 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-		this.files = new Files(file);
+		this.accessor = new FileAccessor(file);
 		this.serializer = serializer;
 		this.size = new AtomicLong(0);
 		this.output = new DataOutputStream(new QueueWriter());
 		this.input = new DataInputStream(new QueueReader());
 	}
 
-	private final class Files {
-		private final RandomAccessFile fWrite;
-		private final RandomAccessFile fRead;
+	private final class FileAccessor {
+		final RandomAccessFile fWrite;
+		final RandomAccessFile fRead;
 
-		Files(File file) {
+		FileAccessor(File file) {
 			try {
 				this.fWrite = new RandomAccessFile(file, "rw");
 				this.fRead = new RandomAccessFile(file, "r");
+				openFileHandles.addAndGet(2);
 			} catch (FileNotFoundException e) {
 				throw new RuntimeException(e);
 			}
@@ -74,6 +78,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 			try {
 				fWrite.close();
 				fRead.close();
+				openFileHandles.addAndGet(-2);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -91,8 +96,8 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 				writeBufferPosition++;
 			} else {
 				synchronized (writeLock) {
-					files.fWrite.seek(writePosition);
-					files.fWrite.write(writeBuffer);
+					accessor.fWrite.seek(writePosition);
+					accessor.fWrite.write(writeBuffer);
 					if (debug)
 						log("wrote buffer " + Arrays.toString(writeBuffer));
 
@@ -136,12 +141,12 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 						int over = wp - readPosition;
 						if (over > 0) {
 							readBufferLength = Math.min(readBuffer.length, over);
-							synchronized (filesLock) {
-								if (files == null) {
-									files = new Files(file);
+							synchronized (accessLock) {
+								if (accessor == null) {
+									accessor = new FileAccessor(file);
 								}
-								files.fRead.seek(readPosition);
-								files.fRead.read(readBuffer, 0, readBufferLength);
+								accessor.fRead.seek(readPosition);
+								accessor.fRead.read(readBuffer, 0, readBufferLength);
 							}
 							if (debug)
 								log("read buffer " + Arrays.toString(readBuffer));
@@ -180,17 +185,17 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	@Override
 	public void unsubscribe() {
-			synchronized (filesLock) {
-				if (files != null) {
-					files.close();
-					files = null;
-				}
+		synchronized (accessLock) {
+			if (accessor != null) {
+				accessor.close();
+				accessor = null;
 			}
-			if (!file.delete()) {
-				throw new RuntimeException("could not delete file " + file);
-			}
-			if (debug)
-				log(Thread.currentThread().getName() + "|persistent queue closed " + file + " exists=" + file.exists());
+		}
+		if (!file.delete()) {
+			throw new RuntimeException("could not delete file " + file);
+		}
+		if (debug)
+			log(Thread.currentThread().getName() + "|persistent queue closed " + file + " exists=" + file.exists());
 	}
 
 	@Override
@@ -229,9 +234,9 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	@Override
 	public void freeResources() {
-		synchronized (filesLock) {
-			files.close();
-			files = null;
+		synchronized (accessLock) {
+			accessor.close();
+			accessor = null;
 		}
 	}
 
