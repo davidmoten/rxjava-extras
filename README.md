@@ -373,8 +373,8 @@ Observable.just(1, 2, 3, 4)
 
 ###Performance
 Throughput writing to spinning disk on an i7 with `Options.bufferSizeBytes=1024`:
-* 34MB/second with 1K messages (23,000 messages/second) 
-* 6.7MB/second with 4B messages (1,300,000 integers/second)
+* 34MB/second with 1K messages (34,000 messages/second) 
+* 5.2MB/second with 4B messages (1,300,000 integers/second)
 I wouldn't be surprised to see another order of magnitude improvement on this throughput in the medium term (especially if using memory-mapped files).
 
 TestingHelper

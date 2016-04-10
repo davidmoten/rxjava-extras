@@ -31,11 +31,7 @@ import rx.plugins.RxJavaPlugins;
  * @param <T>
  *            type of item being queued
  */
-class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T> {
-
-	// inherited boolean represents the closed status of the RollingQueue
-
-	private static final long serialVersionUID = 6212213475110919831L;
+class RollingSPSCQueue<T> implements QueueWithResources<T> {
 
 	interface Queue2<T> {
 
@@ -61,21 +57,22 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 	// visibility managed by the fact that calls to offer are happens-before
 	// sequential
 	private long count;
+	private boolean unsubscribed;
 
 	RollingSPSCQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
 		Preconditions.checkNotNull(queueFactory);
 		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
+		this.count = 0;
+		this.unsubscribed = false;
 		this.queueFactory = queueFactory;
 		this.maxItemsPerQueue = maxItemsPerQueue;
-		this.count = 0;
-		// store-store barrier
-		lazySet(false);
 	}
 
 	@Override
 	public void unsubscribe() {
 		synchronized (queues) {
-			if (compareAndSet(false, true)) {
+			if (!unsubscribed) {
+				unsubscribed = true;
 				try {
 					// thread-safe and idempotent
 					for (Queue2<T> q : queues) {
@@ -95,14 +92,16 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 
 	@Override
 	public boolean isUnsubscribed() {
-		return get();
+		synchronized (queues) {
+			return unsubscribed;
+		}
 	}
 
 	@Override
 	public boolean offer(T t) {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
 		// not offer and offer)
-		if (closed()) {
+		if (unsubscribed) {
 			return true;
 		} else {
 			count++;
@@ -112,7 +111,7 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 				synchronized (queues) {
 					// don't want to miss out unsubscribing a queue so using
 					// synchronization here
-					if (!closed()) {
+					if (!unsubscribed) {
 						Queue2<T> last = queues.peekLast();
 						if (last != null) {
 							last.freeResources();
@@ -133,11 +132,14 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 	public T poll() {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
 		// not poll and poll)
+		if (unsubscribed) {
+			return null;
+		}
 		while (true) {
-			if (closed()) {
-				return null;
-			}
 			synchronized (queues) {
+				if (unsubscribed) {
+					return null;
+				}
 				Queue2<T> first = queues.peekFirst();
 				if (first == null) {
 					return null;
@@ -147,11 +149,9 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 					if (first == queues.peekLast()) {
 						return null;
 					} else {
-						if (!closed()) {
-							Queue2<T> removed = queues.pollFirst();
-							if (removed != null)
-								removed.close();
-						}
+						Queue2<T> removed = queues.pollFirst();
+						if (removed != null)
+							removed.close();
 					}
 				} else {
 					return value;
@@ -163,10 +163,13 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 	@Override
 	public boolean isEmpty() {
 		// thread-safe (will just return true if queue has been closed)
-		if (closed()) {
+		if (unsubscribed) {
 			return true;
 		} else {
 			synchronized (queues) {
+				if (unsubscribed) {
+					return true;
+				}
 				Queue2<T> first = queues.peekFirst();
 				if (first == null) {
 					return true;
@@ -177,10 +180,6 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 				}
 			}
 		}
-	}
-
-	private boolean closed() {
-		return get();
 	}
 
 	@Override
