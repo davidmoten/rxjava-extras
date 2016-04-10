@@ -32,7 +32,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 	volatile int writePosition;
 	volatile int writeBufferPosition;
 	final Object writeLock = new Object();
-	//guarded by accessLock
+	// guarded by accessLock
 	private FileBasedSPSCQueue<T>.FileAccessor accessor;
 	private final Object accessLock = new Object();
 	private final DataOutputStream output;
@@ -231,7 +231,9 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 	@Override
 	public void freeResources() {
 		synchronized (accessLock) {
-			accessor.close();
+			if (accessor != null) {
+				accessor.close();
+			}
 			accessor = null;
 		}
 	}

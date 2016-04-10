@@ -138,7 +138,6 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 			if (closed()) {
 				return null;
 			}
-			Queue2<T> removed = null;
 			synchronized (queues) {
 				Queue2<T> first = queues.peekFirst();
 				if (first == null) {
@@ -150,16 +149,14 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 						return null;
 					} else {
 						if (!closed()) {
-							removed = queues.pollFirst();
+							Queue2<T> removed = queues.pollFirst();
+							if (removed != null)
+								removed.close();
 						}
 					}
 				} else {
 					return value;
 				}
-			}
-			synchronized (queues) {
-				if (removed != null)
-					removed.close();
 			}
 		}
 	}
