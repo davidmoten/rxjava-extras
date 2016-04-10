@@ -9,15 +9,51 @@ import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.perf.LatchedObserver;
 
 import rx.Observable;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 public class Benchmarks {
 
 	@Benchmark
 	public void perfOnBackpressureBufferToFileForIntegersOnComputation(Blackhole bh) throws InterruptedException {
 		LatchedObserver<Integer> observer = new LatchedObserver<Integer>(bh);
-		Observable.range(1, 1000).compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer()))
+		Observable.range(1, 100000).compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer()))
 				.subscribe(observer);
-		observer.latch.await(10, TimeUnit.SECONDS);
+		observer.latch.await(100, TimeUnit.SECONDS);
+	}
+	
+	@Benchmark
+	public void perfOnBackpressureBufferToFileForIntegersSychronous(Blackhole bh) throws InterruptedException {
+		LatchedObserver<Integer> observer = new LatchedObserver<Integer>(bh);
+		Observable.range(1, 100000).compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(),Schedulers.immediate()))
+				.subscribe(observer);
+		observer.latch.await(100, TimeUnit.SECONDS);
+	}
+	
+	@Benchmark
+	public void perfOnBackpressureBufferToFileFor1KMessagesOnComputation(Blackhole bh) throws InterruptedException {
+		LatchedObserver<byte[]> observer = new LatchedObserver<byte[]>(bh);
+		Observable.range(1, 3000).map(new Func1<Integer, byte[]>() {
+			@Override
+			public byte[] call(Integer n) {
+				return new byte[1000];
+			}
+		}).compose(Transformers.onBackpressureBufferToFile(DataSerializers.byteArray(), Schedulers.immediate()))
+				.subscribe(observer);
+		observer.latch.await(100, TimeUnit.SECONDS);
+	}
+	
+	@Benchmark
+	public void perfOnBackpressureBufferToFileFor1KMessagesOnSynchronous(Blackhole bh) throws InterruptedException {
+		LatchedObserver<byte[]> observer = new LatchedObserver<byte[]>(bh);
+		Observable.range(1, 3000).map(new Func1<Integer, byte[]>() {
+			@Override
+			public byte[] call(Integer n) {
+				return new byte[1000];
+			}
+		}).compose(Transformers.onBackpressureBufferToFile(DataSerializers.byteArray(), Schedulers.immediate()))
+				.subscribe(observer);
+		observer.latch.await(100, TimeUnit.SECONDS);
 	}
 
 }
