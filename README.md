@@ -265,6 +265,8 @@ This is work-in-progress still so watch this space for a release.
 
 As of 0.7.1, you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage). 
 
+<img src="http://davidmoten.github.io/resources/rxjava-extras/file-queue.svg"/><br/>
+
 Note that new files for a file buffered observable are created for each subscription and thoses files are in normal circumstances deleted on unsubscription (triggered by `onCompleted`/`onError` termination or manual unsubscription). The file based queue implementation may create multiple files for one queue. Those files will have the same filename for one database up to the extension.
 
 Here's an example:
