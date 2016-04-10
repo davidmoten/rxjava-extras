@@ -42,7 +42,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	public Subscriber<? super T> call(Subscriber<? super T> child) {
 
 		// create the file based queue
-		final QueueWithResources<T> queue = createRollingQueue(dataSerializer, options);
+		final QueueWithResources<T> queue = createFileBasedQueue(dataSerializer, options);
 
 		// hold a reference to the queueProducer which will be set on
 		// subscription to `source`
@@ -76,9 +76,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	}
 
 	/**
-	 * Wraps a Queue (like MapDB Queue) to provide concurrency guarantees around
-	 * calls to the close() method. Extends AtomicBoolean to save allocation.
-	 * The AtomicBoolean represents the closed status of the queue.
+	 * Wraps a Queue (like a file based queue) to provide concurrency guarantees
+	 * around calls to the close() method. Extends AtomicBoolean to save
+	 * allocation. The AtomicBoolean represents the closed status of the queue.
 	 * 
 	 * @param <T>
 	 *            type of item on queue
@@ -93,7 +93,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		// currentCalls and this used to manage visibility
 		private boolean closing;
 
-		// ensures db.close() doesn't occur until outstanding peek(),offer(),
+		// ensures queue.close() doesn't occur until outstanding peek(),offer(),
 		// poll(), isEmpty() calls have finished. When currentCalls is zero a
 		// close request can be actioned.
 		private final AtomicInteger currentCalls = new AtomicInteger(0);
@@ -184,20 +184,26 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 	}
 
-	private static <T> QueueWithResources<T> createRollingQueue(final DataSerializer<T> dataSerializer,
+	private static <T> QueueWithResources<T> createFileBasedQueue(final DataSerializer<T> dataSerializer,
 			final Options options) {
-		final Func0<Queue2<T>> queueFactory = new Func0<Queue2<T>>() {
-			@Override
-			public Queue2<T> call() {
-				// create the file to be used for queue storage (and whose file
-				// name will determine the names of other files used for
-				// storage)
-				File file = options.fileFactory().call();
+		if (options.rolloverEvery() == 0 || options.rolloverEvery() == Long.MAX_VALUE) {
+			//skip the Rollover version 
+			return new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), options.fileFactory().call(), dataSerializer);
 
-				return new Q2<T>(new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), file, dataSerializer));
-			}
-		};
-		return new RollingSPSCQueue<T>(queueFactory, options.rolloverEvery());
+		} else {
+			final Func0<Queue2<T>> queueFactory = new Func0<Queue2<T>>() {
+				@Override
+				public Queue2<T> call() {
+					// create the file to be used for queue storage (and whose
+					// file name will determine the names of other files used
+					// for storage if multiple are required per queue)
+					File file = options.fileFactory().call();
+
+					return new Q2<T>(new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), file, dataSerializer));
+				}
+			};
+			return new RollingSPSCQueue<T>(queueFactory, options.rolloverEvery());
+		}
 	}
 
 	private static final class OnSubscribeFromQueue<T> implements OnSubscribe<T> {
@@ -207,8 +213,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		private final Worker worker;
 		private final Options options;
 
-		OnSubscribeFromQueue(AtomicReference<QueueProducer<T>> queueProducer, QueueWithResources<T> queue, Worker worker,
-				Options options) {
+		OnSubscribeFromQueue(AtomicReference<QueueProducer<T>> queueProducer, QueueWithResources<T> queue,
+				Worker worker, Options options) {
 			this.queueProducer = queueProducer;
 			this.queue = queue;
 			this.worker = worker;

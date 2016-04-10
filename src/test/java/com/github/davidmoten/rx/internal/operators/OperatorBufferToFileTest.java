@@ -31,6 +31,7 @@ import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
+import com.github.davidmoten.rx.slf4j.Logging;
 
 import rx.Observable;
 import rx.Scheduler;
@@ -426,7 +427,7 @@ public final class OperatorBufferToFileTest {
 		long t = System.currentTimeMillis();
 		int last = Observable.range(1, max)
 				//
-				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler))
+				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler, Options.rolloverEvery(0).build()))
 				// log
 				// .lift(Logging.<Integer>
 				// logger().showCount().every(1000).showMemory().log())
@@ -521,7 +522,7 @@ public final class OperatorBufferToFileTest {
 				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation(),
 						Options.rolloverEvery(2000000).build()))
 				//
-//				.lift(Logging.<Integer> logger().showCount().every(1000000).showMemory().log())
+				.lift(Logging.<Integer> logger().showCount().every(1000000).showMemory().log())
 				//
 				// .delay(200, TimeUnit.MILLISECONDS, Schedulers.immediate())
 				//

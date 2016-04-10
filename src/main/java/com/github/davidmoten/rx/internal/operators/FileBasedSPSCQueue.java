@@ -34,6 +34,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 	private final Object accessLock = new Object();
 	private final DataOutputStream output;
 	private final DataInputStream input;
+	private volatile boolean unsubscribed = false;
 
 	FileBasedSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
 		Preconditions.checkArgument(bufferSizeBytes > 0, "bufferSizeBytes must be greater than zero");
@@ -164,6 +165,10 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	@Override
 	public void unsubscribe() {
+		if (unsubscribed) {
+			return;
+		}
+		unsubscribed = true;
 		synchronized (accessLock) {
 			if (accessor != null) {
 				accessor.close();
@@ -177,7 +182,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	@Override
 	public boolean isUnsubscribed() {
-		throw new UnsupportedOperationException();
+		return unsubscribed;
 	}
 
 	@Override
