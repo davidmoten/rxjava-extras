@@ -340,7 +340,7 @@ Observable
 ```
 `Options.fileFactory(Func0<File>)` specifies the method used to create the root temporary file used by the queue storage mechanism (MapDB). The default is a factory that calls `Files.createTempFile("bufferToFileDB", "")`.
 
-`Options.rolloverEvery(long)` is an important option for long running/infinite streams.  The strategy used to reclaim disk space is to create a new file based queue every N emissions. Writing will occur to the latest created queue and reading will be occuring on the earliest non-closed queue. Once a queue instance is read fully and it is not the last queue it is closed and its file resources deleted. The abstraction used internally to handle these operations is [`RollingQueue`](src/main/java/com/github/davidmoten/rx/internal/operators/RollingQueue.java). 
+`Options.rolloverEvery(long)` is an important option for long running/infinite streams.  The strategy used to reclaim disk space is to create a new file based queue every N emissions. Writing will occur to the latest created queue and reading will be occuring on the earliest non-closed queue. Once a queue instance is read fully and it is not the last queue it is closed and its file resources deleted. The abstraction used internally to handle these operations is [`RollingQueue`](src/main/java/com/github/davidmoten/rx/internal/operators/RollingSPSCQueue.java). 
 
 * If you have a long running stream (or just a lot of data going through in terms of MB) then **be sure to specify a value for `rolloverEvery`**
 
@@ -373,8 +373,8 @@ Observable.just(1, 2, 3, 4)
 
 ###Performance
 Throughput writing to spinning disk on an i7 with `Options.bufferSizeBytes=1024`:
-* 33MB/second with 1K messages (33,000 messages/second) 
-* 6MB/second with 4B messages (1,500,000 integers/second)
+* 19MB/second with 1K messages (19,000 messages/second) 
+* 4.3MB/second with 4B messages (1,100,000 integers/second)
 I wouldn't be surprised to see another order of magnitude improvement on this throughput in the medium term (especially if using memory-mapped files).
 
 TestingHelper

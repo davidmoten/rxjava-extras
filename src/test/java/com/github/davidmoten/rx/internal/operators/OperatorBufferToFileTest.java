@@ -38,7 +38,6 @@ import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action1;
-import rx.functions.Func1;
 import rx.observers.TestSubscriber;
 import rx.plugins.RxJavaPlugins;
 import rx.schedulers.Schedulers;

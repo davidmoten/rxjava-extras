@@ -180,6 +180,8 @@ public class OrderedMergeTest {
 
     private static class TestException extends Exception {
 
+		private static final long serialVersionUID = -1204531902391807941L;
+
     }
 
     @SuppressWarnings("unchecked")
