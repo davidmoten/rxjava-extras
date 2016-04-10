@@ -32,7 +32,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 	volatile int writePosition;
 	volatile int writeBufferPosition;
 	final Object writeLock = new Object();
-	//guarde by accessLock
+	//guarded by accessLock
 	private FileBasedSPSCQueue<T>.FileAccessor accessor;
 	private final Object accessLock = new Object();
 	private final DataOutputStream output;
