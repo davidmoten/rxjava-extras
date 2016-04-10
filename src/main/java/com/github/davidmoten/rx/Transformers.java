@@ -598,8 +598,6 @@ public final class Transformers {
         };
     }
 
-   
-
     public static <T> Transformer<T, T> windowMin(final int windowSize,
             final Comparator<? super T> comparator) {
         return new Transformer<T, T>() {
