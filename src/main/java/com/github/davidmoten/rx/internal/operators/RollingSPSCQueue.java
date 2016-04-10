@@ -108,18 +108,20 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 			count++;
 			if (count == 1 || count == maxItemsPerQueue) {
 				count = 1;
+				Queue2<T> q = queueFactory.call();
+				Queue2<T> last = null;
 				synchronized (queues) {
 					// don't want to miss out unsubscribing a queue so using
 					// synchronization here
 					if (!closed()) {
-						Queue2<T> last = queues.peekLast();
-						if (last != null) {
-							last.freeResources();
-						}
-						queues.offerLast(queueFactory.call());
+						last = queues.peekLast();
+						queues.offerLast(q);
 					} else {
 						return true;
 					}
+				}
+				if (last != null) {
+					last.freeResources();
 				}
 			}
 			synchronized (queues) {
@@ -136,29 +138,28 @@ class RollingSPSCQueue<T> extends AtomicBoolean implements QueueWithResources<T>
 			if (closed()) {
 				return null;
 			}
+			Queue2<T> removed = null;
 			synchronized (queues) {
 				Queue2<T> first = queues.peekFirst();
 				if (first == null) {
 					return null;
 				}
-				T value;
-				value = first.poll();
+				T value = first.poll();
 				if (value == null) {
 					if (first == queues.peekLast()) {
 						return null;
 					} else {
-						Queue2<T> removed = null;
 						if (!closed()) {
 							removed = queues.pollFirst();
 						}
-						// don't have concurrent poll/poll so don't have
-						// to do null check on removed
-						if (removed != null)
-							removed.close();
 					}
 				} else {
 					return value;
 				}
+			}
+			synchronized (queues) {
+				if (removed != null)
+					removed.close();
 			}
 		}
 	}
