@@ -24,7 +24,7 @@ import rx.functions.Func0;
  * Uses thread-weaver to test concurrent calls of poll and offer using
  * interleaving. Not sure if is comprehensive!
  */
-public class RollingQueueTest {
+public class RollingSPSCQueueTest {
 
 	private volatile RollingSPSCQueue<Integer> q;
 

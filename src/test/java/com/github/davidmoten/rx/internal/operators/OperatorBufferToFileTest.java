@@ -523,14 +523,7 @@ public final class OperatorBufferToFileTest {
 				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation(),
 						Options.rolloverEvery(2000000).build()))
 				//
-				.lift(Logging.<Integer> logger().showValue().value(new Func1<Integer, Integer> () {
-
-					@Override
-					public Integer call(Integer t) {
-						return FileBasedSPSCQueue.openFileHandles.get();
-					}})
-						//
-						.showCount().every(1000000).showMemory().log())
+				.lift(Logging.<Integer> logger().showCount().every(1000000).showMemory().log())
 				//
 				// .delay(200, TimeUnit.MILLISECONDS, Schedulers.immediate())
 				//

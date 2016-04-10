@@ -12,7 +12,6 @@ import java.io.RandomAccessFile;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
@@ -21,7 +20,6 @@ import com.github.davidmoten.util.Preconditions;
 class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	public static boolean debug = false;
-	public static final AtomicInteger openFileHandles = new AtomicInteger();
 
 	int readBufferPosition = 0;
 	int readPosition = 0;
@@ -68,7 +66,6 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 			try {
 				this.fWrite = new RandomAccessFile(file, "rw");
 				this.fRead = new RandomAccessFile(file, "r");
-				openFileHandles.addAndGet(2);
 			} catch (FileNotFoundException e) {
 				throw new RuntimeException(e);
 			}
@@ -78,7 +75,6 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 			try {
 				fWrite.close();
 				fRead.close();
-				openFileHandles.addAndGet(-2);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}

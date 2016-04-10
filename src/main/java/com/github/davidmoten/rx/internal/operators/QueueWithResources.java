@@ -5,11 +5,13 @@ import java.util.Queue;
 import rx.Subscription;
 
 /**
- * A queue with associated underlying resources that can be freed, or closed
- * (via {@code unsubscribe}). An example of freeing resources would be to close
+ * <p>A queue with associated underlying resources that can be freed, or closed
+ * (via {@code unsubscribe}). 
+ * 
+ * <p>An example of freeing resources would be to close
  * all open file system resources (like file descriptor handles) associated with
  * the queue and reopen them on next poll/offer that needs to access the file
- * system.
+ * system. This would avoid running out of file descriptors in some situations.
  *
  * @param <T>
  *            type of item on queue
