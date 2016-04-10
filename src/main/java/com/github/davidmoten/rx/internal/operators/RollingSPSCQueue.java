@@ -56,6 +56,8 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 	// visibility managed by the fact that calls to offer are happens-before
 	// sequential
 	private long count;
+	
+	//guarded by queues
 	private boolean unsubscribed;
 
 	RollingSPSCQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
