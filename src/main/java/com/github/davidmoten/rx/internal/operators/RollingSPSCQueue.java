@@ -3,7 +3,7 @@ package com.github.davidmoten.rx.internal.operators;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
-import java.util.concurrent.LinkedBlockingDeque;
+import java.util.LinkedList;
 
 import com.github.davidmoten.util.Preconditions;
 
@@ -50,7 +50,7 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 
 	private final Func0<Queue2<T>> queueFactory;
 	private final long maxItemsPerQueue;
-	private final Deque<Queue2<T>> queues = new LinkedBlockingDeque<Queue2<T>>();
+	private final Deque<Queue2<T>> queues = new LinkedList<Queue2<T>>();
 
 	// counter used to determine when to rollover to another queue
 	// visibility managed by the fact that calls to offer are happens-before
@@ -103,7 +103,7 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 			return true;
 		} else {
 			count++;
-			if (count == 1 || count == maxItemsPerQueue) {
+			if (count == maxItemsPerQueue || count == 1) {
 				count = 1;
 				Queue2<T> q = queueFactory.call();
 				synchronized (queues) {
@@ -115,13 +115,18 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 							last.freeResources();
 						}
 						queues.offerLast(q);
+						return q.offer(t);
 					} else {
 						return true;
 					}
 				}
-			}
-			synchronized (queues) {
-				return queues.peekLast().offer(t);
+			} else {
+				synchronized (queues) {
+					if (unsubscribed) {
+						return true;
+					}
+					return queues.peekLast().offer(t);
+				}
 			}
 		}
 	}

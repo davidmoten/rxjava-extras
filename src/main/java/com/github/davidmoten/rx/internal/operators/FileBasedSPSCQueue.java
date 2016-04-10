@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,8 +17,6 @@ import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.util.Preconditions;
 
 class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
-
-	public static boolean debug = false;
 
 	int readBufferPosition = 0;
 	int readPosition = 0;
