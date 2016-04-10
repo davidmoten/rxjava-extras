@@ -86,17 +86,12 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 		@Override
 		public void write(int b) throws IOException {
 			if (writeBufferPosition < writeBuffer.length) {
-				if (debug)
-					log("writeBuffer[" + writeBufferPosition + "]=" + b);
 				writeBuffer[writeBufferPosition] = (byte) b;
 				writeBufferPosition++;
 			} else {
 				synchronized (writeLock) {
 					accessor.fWrite.seek(writePosition);
 					accessor.fWrite.write(writeBuffer);
-					if (debug)
-						log("wrote buffer " + Arrays.toString(writeBuffer));
-
 					writeBuffer[0] = (byte) b;
 					writeBufferPosition = 1;
 					writePosition += writeBuffer.length;
@@ -106,9 +101,6 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	}
 
-	private static void log(String string) {
-		System.out.println(string);
-	}
 
 	private final class QueueReader extends InputStream {
 
@@ -119,8 +111,6 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 			} else {
 				if (readBufferPosition < readBufferLength) {
 					byte b = readBuffer[readBufferPosition];
-					if (debug)
-						log("returned from readBuffer[" + readBufferPosition + "]=" + b);
 					readBufferPosition++;
 					return toUnsignedInteger(b);
 				} else {
@@ -136,6 +126,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 						}
 						int over = wp - readPosition;
 						if (over > 0) {
+							//read position is past the write position
 							readBufferLength = Math.min(readBuffer.length, over);
 							synchronized (accessLock) {
 								if (accessor == null) {
@@ -144,14 +135,11 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 								accessor.fRead.seek(readPosition);
 								accessor.fRead.read(readBuffer, 0, readBufferLength);
 							}
-							if (debug)
-								log("read buffer " + Arrays.toString(readBuffer));
 							readPosition += readBufferLength;
 							readBufferPosition = 1;
-							if (debug)
-								log("returned from readBuffer[0]=" + readBuffer[0]);
 							return toUnsignedInteger(readBuffer[0]);
 						} else {
+							//read position is not past the write position
 							int index = -over;
 							if (index >= writeBuffer.length) {
 								throw new EOFException();
@@ -163,8 +151,6 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 								}
 								if (writeBufferUnchanged) {
 									readPosition++;
-									if (debug)
-										log("returned from writeBuffer[" + index + "]=" + b);
 									return b;
 								}
 							}
@@ -190,8 +176,6 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 		if (!file.delete()) {
 			throw new RuntimeException("could not delete file " + file);
 		}
-		if (debug)
-			log(Thread.currentThread().getName() + "|persistent queue closed " + file + " exists=" + file.exists());
 	}
 
 	@Override

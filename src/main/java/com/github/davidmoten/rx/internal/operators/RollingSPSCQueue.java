@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.github.davidmoten.util.Preconditions;
 
@@ -74,7 +73,6 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 			if (!unsubscribed) {
 				unsubscribed = true;
 				try {
-					// thread-safe and idempotent
 					for (Queue2<T> q : queues) {
 						q.close();
 					}
