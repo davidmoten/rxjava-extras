@@ -184,12 +184,12 @@
          y="412.36218"
          style="font-size:16px">File 2 (closed)</tspan></text>
     <rect
-       style="fill:#f1f9dc;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="fill:#f1f9dc;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.78091472px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        id="rect2985-5"
-       width="157"
-       height="314"
-       x="712.66113"
-       y="397.36218" />
+       width="157.21909"
+       height="191.21909"
+       x="712.55157"
+       y="397.25266" />
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
@@ -208,52 +208,52 @@
        width="157"
        height="81"
        x="712.66113"
-       y="711.36218" />
+       y="588.36218" />
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
        x="568.66113"
-       y="739.36218"
+       y="616.36218"
        id="text5230-0"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan5232-8"
          x="568.66113"
-         y="739.36218"
+         y="616.36218"
          style="font-size:16px">Write position</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
-       d="m 671.66113,752.36218 35,-1"
+       d="m 671.66113,629.36218 35,-1"
        id="path5234-7"
        inkscape:connector-curvature="0" />
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
        x="744.66113"
-       y="745.36218"
+       y="622.36218"
        id="text5866-8"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan5868-1"
          x="744.66113"
-         y="745.36218"
+         y="622.36218"
          style="font-size:16px">Write buffer</tspan><tspan
          sodipodi:role="line"
          x="744.66113"
-         y="765.36218"
+         y="642.36218"
          id="tspan5870-1"
          style="font-size:16px">(in-memory)</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
-       x="612"
-       y="547.36218"
+       x="608"
+       y="511.36218"
        id="text5976"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan5978"
-         x="612"
-         y="547.36218">...</tspan></text>
+         x="608"
+         y="511.36218">...</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
