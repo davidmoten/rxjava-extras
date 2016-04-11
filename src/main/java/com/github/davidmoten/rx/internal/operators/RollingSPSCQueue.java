@@ -32,25 +32,9 @@ import rx.plugins.RxJavaPlugins;
  */
 class RollingSPSCQueue<T> implements QueueWithResources<T> {
 
-	interface Queue2<T> {
-
-		// returns null if closed
-		T poll();
-
-		// returns true if closed
-		boolean offer(T t);
-
-		void close();
-
-		// returns true if closed
-		boolean isEmpty();
-
-		void freeResources();
-	}
-
-	private final Func0<Queue2<T>> queueFactory;
+	private final Func0<QueueWithResources<T>> queueFactory;
 	private final long maxItemsPerQueue;
-	private final Deque<Queue2<T>> queues = new LinkedList<Queue2<T>>();
+	private final Deque<QueueWithResources<T>> queues = new LinkedList<QueueWithResources<T>>();
 
 	// counter used to determine when to rollover to another queue
 	// visibility managed by the fact that calls to offer are happens-before
@@ -60,7 +44,7 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 	//guarded by queues
 	private boolean unsubscribed;
 
-	RollingSPSCQueue(Func0<Queue2<T>> queueFactory, long maxItemsPerQueue) {
+	RollingSPSCQueue(Func0<QueueWithResources<T>> queueFactory, long maxItemsPerQueue) {
 		Preconditions.checkNotNull(queueFactory);
 		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
 		this.count = 0;
@@ -75,8 +59,8 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 			if (!unsubscribed) {
 				unsubscribed = true;
 				try {
-					for (Queue2<T> q : queues) {
-						q.close();
+					for (QueueWithResources<T> q : queues) {
+						q.unsubscribe();
 					}
 					queues.clear();
 				} catch (RuntimeException e) {
@@ -107,10 +91,10 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 			count++;
 			if (count == maxItemsPerQueue || count == 1) {
 				count = 1;
-				Queue2<T> q = queueFactory.call();
+				QueueWithResources<T> q = queueFactory.call();
 				synchronized (queues) {
 					if (!unsubscribed) {
-						Queue2<T> last = queues.peekLast();
+						QueueWithResources<T> last = queues.peekLast();
 						if (last != null) {
 							last.freeResources();
 						}
@@ -143,7 +127,7 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 				if (unsubscribed) {
 					return null;
 				}
-				Queue2<T> first = queues.peekFirst();
+				QueueWithResources<T> first = queues.peekFirst();
 				if (first == null) {
 					return null;
 				}
@@ -152,9 +136,9 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 					if (first == queues.peekLast()) {
 						return null;
 					} else {
-						Queue2<T> removed = queues.pollFirst();
+						QueueWithResources<T> removed = queues.pollFirst();
 						if (removed != null)
-							removed.close();
+							removed.unsubscribe();
 					}
 				} else {
 					return value;
@@ -173,7 +157,7 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 				if (unsubscribed) {
 					return true;
 				}
-				Queue2<T> first = queues.peekFirst();
+				QueueWithResources<T> first = queues.peekFirst();
 				if (first == null) {
 					return true;
 				} else {

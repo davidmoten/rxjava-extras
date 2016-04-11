@@ -2,13 +2,12 @@ package com.github.davidmoten.rx.internal.operators;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Queue;
 
-abstract class AbstractCloseableQueue<T> implements QueueWithResources<T> {
+abstract class AbstractQueueWithResources<T> implements QueueWithResources<T> {
 
-	private final Queue<T> q;
+	private final QueueWithResources<T> q;
 	
-	AbstractCloseableQueue(Queue<T> q) {
+	AbstractQueueWithResources(QueueWithResources<T> q) {
 		this.q = q;
 	}
 
@@ -92,5 +91,12 @@ abstract class AbstractCloseableQueue<T> implements QueueWithResources<T> {
 	public int hashCode() {
 		return q.hashCode();
 	}
+	
+	public void unsubscribe() {
+		q.unsubscribe();
+	}
 
+	public void freeResources() {
+		q.freeResources();
+	}
 }

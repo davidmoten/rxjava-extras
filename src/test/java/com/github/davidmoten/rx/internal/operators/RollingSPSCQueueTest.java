@@ -3,14 +3,12 @@ package com.github.davidmoten.rx.internal.operators;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
-import java.util.Queue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.github.davidmoten.rx.internal.operators.RollingSPSCQueue.Queue2;
 import com.google.testing.threadtester.AnnotatedTestRunner;
 import com.google.testing.threadtester.MethodOption;
 import com.google.testing.threadtester.ThreadedAfter;
@@ -63,13 +61,12 @@ public class RollingSPSCQueueTest {
 		assertTrue(first == 1 && second == null || first == 2 && second == null);
 	}
 
-	private static final Func0<Queue2<Integer>> queueFactory = new Func0<Queue2<Integer>>() {
+	private static final Func0<QueueWithResources<Integer>> queueFactory = new Func0<QueueWithResources<Integer>>() {
 
 		@Override
-		public Queue2<Integer> call() {
-			return new Queue2<Integer>() {
+		public QueueWithResources<Integer> call() {
+			return new QueueWithResourcesForwarder<Integer>(new LinkedBlockingDeque<Integer>()) {
 
-				final Queue<Integer> queue = new LinkedBlockingDeque<Integer>();
 				final AtomicBoolean closed = new AtomicBoolean(false);
 
 				@Override
@@ -77,7 +74,7 @@ public class RollingSPSCQueueTest {
 					if (closed.get()) {
 						return null;
 					} else {
-						return queue.poll();
+						return super.poll();
 					}
 				}
 
@@ -86,25 +83,15 @@ public class RollingSPSCQueueTest {
 					if (closed.get()) {
 						return true;
 					} else {
-						return queue.offer(t);
+						return super.offer(t);
 					}
 				}
 
 				@Override
-				public void close() {
+				public void unsubscribe() {
 					if (closed.compareAndSet(false, true)) {
-						queue.clear();
+						super.clear();
 					}
-				}
-
-				@Override
-				public boolean isEmpty() {
-					return queue.isEmpty();
-				}
-
-				@Override
-				public void freeResources() {
-					//do nothing
 				}
 			};
 		}

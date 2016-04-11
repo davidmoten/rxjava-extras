@@ -1,14 +1,12 @@
 package com.github.davidmoten.rx.internal.operators;
 
 import java.io.File;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.Options;
-import com.github.davidmoten.rx.internal.operators.RollingSPSCQueue.Queue2;
 import com.github.davidmoten.util.Preconditions;
 
 import rx.Observable;
@@ -75,131 +73,23 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		return parentSubscriber;
 	}
 
-	/**
-	 * Wraps a Queue (like a file based queue) to provide concurrency guarantees
-	 * around calls to the close() method. Extends AtomicBoolean to save
-	 * allocation. The AtomicBoolean represents the closed status of the queue.
-	 * 
-	 * @param <T>
-	 *            type of item on queue
-	 */
-	private static final class Q2<T> extends AtomicBoolean implements Queue2<T> {
-
-		private static final long serialVersionUID = -950306777716863302L;
-
-		// non-final so we can clear references on close for early gc
-		private QueueWithResources<T> queue;
-
-		// currentCalls and this used to manage visibility
-		private boolean closing;
-
-		// ensures queue.close() doesn't occur until outstanding peek(),offer(),
-		// poll(), isEmpty() calls have finished. When currentCalls is zero a
-		// close request can be actioned.
-		private final AtomicInteger currentCalls = new AtomicInteger(0);
-
-		Q2(QueueWithResources<T> queue) {
-			this.queue = queue;
-			this.closing = false;
-			// store-store barrier
-			lazySet(false);
-		}
-
-		@Override
-		public T poll() {
-			try {
-				if (closing) {
-					return null;
-				} else {
-					try {
-						currentCalls.incrementAndGet();
-						return queue.poll();
-					} finally {
-						currentCalls.decrementAndGet();
-					}
-				}
-			} finally {
-				checkClosed();
-			}
-		}
-
-		@Override
-		public boolean offer(T t) {
-			try {
-				if (closing) {
-					return true;
-				} else {
-					try {
-						currentCalls.incrementAndGet();
-						return queue.offer(t);
-					} finally {
-						currentCalls.decrementAndGet();
-					}
-				}
-			} finally {
-				checkClosed();
-			}
-		}
-
-		@Override
-		public boolean isEmpty() {
-			try {
-				if (closing) {
-					return true;
-				} else {
-					try {
-						currentCalls.incrementAndGet();
-						return queue.isEmpty();
-					} finally {
-						currentCalls.decrementAndGet();
-					}
-				}
-			} finally {
-				checkClosed();
-			}
-		}
-
-		@Override
-		public void close() {
-			synchronized (this) {
-				// ensure this change is flushed to main memory by enclosing in
-				// synchronized block
-				closing = true;
-			}
-			checkClosed();
-		}
-
-		private void checkClosed() {
-			if (closing && currentCalls.get() == 0 && compareAndSet(false, true)) {
-				queue.unsubscribe();
-				// clear references so will be gc'd early
-				queue = null;
-			}
-		}
-
-		@Override
-		public void freeResources() {
-			queue.freeResources();
-		}
-
-	}
-
 	private static <T> QueueWithResources<T> createFileBasedQueue(final DataSerializer<T> dataSerializer,
 			final Options options) {
 		if (options.rolloverEvery() == 0 || options.rolloverEvery() == Long.MAX_VALUE) {
-			//skip the Rollover version 
-			return new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), options.fileFactory().call(), dataSerializer);
-
+			// skip the Rollover version
+			return new QueueWithResourcesNonBlockingUnsubscribe<T>(
+					new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), options.fileFactory().call(), dataSerializer));
 		} else {
-			final Func0<Queue2<T>> queueFactory = new Func0<Queue2<T>>() {
+			final Func0<QueueWithResources<T>> queueFactory = new Func0<QueueWithResources<T>>() {
 				@Override
-				public Queue2<T> call() {
+				public QueueWithResources<T> call() {
 					// create the file to be used for queue storage (and whose
 					// file name will determine the names of other files used
 					// for storage if multiple are required per queue)
 					File file = options.fileFactory().call();
 
-					return new Q2<T>(new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), file, dataSerializer));
+					return new QueueWithResourcesNonBlockingUnsubscribe<T>(
+							new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), file, dataSerializer));
 				}
 			};
 			return new RollingSPSCQueue<T>(queueFactory, options.rolloverEvery());
