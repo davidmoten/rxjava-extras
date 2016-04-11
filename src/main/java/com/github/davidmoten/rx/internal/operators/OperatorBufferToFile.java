@@ -87,8 +87,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 					// for storage if multiple are required per queue)
 					File file = options.fileFactory().call();
 
-					return new QueueWithResourcesNonBlockingUnsubscribe<T>(
-							new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), file, dataSerializer));
+					return new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), file, dataSerializer);
 				}
 			};
 			return new RollingSPSCQueue<T>(queueFactory, options.rolloverEvery());
