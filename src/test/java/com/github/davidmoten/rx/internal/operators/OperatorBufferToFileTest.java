@@ -389,7 +389,7 @@ public final class OperatorBufferToFileTest {
 		int last = Observable.range(1, max)
 				//
 				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-						Options.rolloverEvery(Long.MAX_VALUE).build()))
+						Options.disableRollover().build()))
 				// log
 				// .lift(Logging.<Integer>
 				// logger().showCount().every(1000).showMemory().log())
@@ -398,16 +398,14 @@ public final class OperatorBufferToFileTest {
 		assertEquals(max, last);
 		System.out.println("rate = " + (double) max * 4 / (t) / 1000 + "MB/s (4B messages)");
 		waitUntilWorkCompleted(scheduler);
-		// about 33,000 messages per second on i7 for NO_CACHE
-		// about 46,000 messages per second on i7 for WEAK_REF
 	}
 
 	@Test
 	public void checkRateForOneKMessages() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
 		DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
-			
-			private final byte[] message = new byte[1000-4];
+
+			private final byte[] message = new byte[1000 - 4];
 
 			@Override
 			public void serialize(DataOutput output, Integer value) throws IOException {
@@ -426,7 +424,8 @@ public final class OperatorBufferToFileTest {
 		long t = System.currentTimeMillis();
 		int last = Observable.range(1, max)
 				//
-				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler, Options.rolloverEvery(0).build()))
+				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
+						Options.disableRollover().build()))
 				// log
 				// .lift(Logging.<Integer>
 				// logger().showCount().every(1000).showMemory().log())
@@ -435,8 +434,6 @@ public final class OperatorBufferToFileTest {
 		assertEquals(max, last);
 		System.out.println("rate = " + (double) max / (t) + "MB/s (1K messages)");
 		waitUntilWorkCompleted(scheduler);
-		// about 33,000 messages per second on i7 for NO_CACHE
-		// about 46,000 messages per second on i7 for WEAK_REF
 	}
 
 	@Test
@@ -521,7 +518,8 @@ public final class OperatorBufferToFileTest {
 				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation(),
 						Options.rolloverEvery(2000000).build()))
 				//
-//				.lift(Logging.<Integer> logger().showCount().every(1000000).showMemory().log())
+				// .lift(Logging.<Integer>
+				// logger().showCount().every(1000000).showMemory().log())
 				//
 				// .delay(200, TimeUnit.MILLISECONDS, Schedulers.immediate())
 				//
