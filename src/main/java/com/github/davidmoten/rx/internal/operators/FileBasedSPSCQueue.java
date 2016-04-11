@@ -100,13 +100,14 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	}
 
+	private static final EOFException EOF = new EOFException(); 
 
 	private final class QueueReader extends InputStream {
 
 		@Override
 		public int read() throws IOException {
 			if (size.get() == 0) {
-				throw new EOFException();
+				throw EOF;
 			} else {
 				if (readBufferPosition < readBufferLength) {
 					byte b = readBuffer[readBufferPosition];
@@ -141,7 +142,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 							//read position is not past the write position
 							int index = -over;
 							if (index >= writeBuffer.length) {
-								throw new EOFException();
+								throw EOF;
 							} else {
 								int b = toUnsignedInteger(writeBuffer[index]);
 								final boolean writeBufferUnchanged;

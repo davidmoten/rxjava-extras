@@ -406,19 +406,18 @@ public final class OperatorBufferToFileTest {
 	public void checkRateForOneKMessages() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
 		DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
+			
+			private final byte[] message = new byte[1000-4];
 
 			@Override
 			public void serialize(DataOutput output, Integer value) throws IOException {
-				for (int i = 0; i < 1000 - 4; i++)
-					output.writeByte(0);
+				output.write(message);
 				output.writeInt(value);
 			}
 
 			@Override
 			public Integer deserialize(DataInput input, int availableBytes) throws IOException {
-				for (int i = 0; i < 1000 - 4; i++) {
-					input.readByte();
-				}
+				input.readFully(message);
 				return input.readInt();
 			}
 		};
@@ -522,7 +521,7 @@ public final class OperatorBufferToFileTest {
 				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation(),
 						Options.rolloverEvery(2000000).build()))
 				//
-				.lift(Logging.<Integer> logger().showCount().every(1000000).showMemory().log())
+//				.lift(Logging.<Integer> logger().showCount().every(1000000).showMemory().log())
 				//
 				// .delay(200, TimeUnit.MILLISECONDS, Schedulers.immediate())
 				//
