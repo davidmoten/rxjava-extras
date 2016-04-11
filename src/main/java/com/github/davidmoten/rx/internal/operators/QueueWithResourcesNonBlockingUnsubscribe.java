@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class QueueWithResourcesNonBlockingUnsubscribe<T> extends AbstractQueueWithResources<T> {
 
 	// currentCalls and this used to manage visibility
-	private boolean closing;
+	private boolean unsubscribing;
 
 	// ensures queue.close() doesn't occur until outstanding peek(),offer(),
 	// poll(), isEmpty() calls have finished. When currentCalls is zero a
@@ -25,14 +25,14 @@ final class QueueWithResourcesNonBlockingUnsubscribe<T> extends AbstractQueueWit
 	
 	QueueWithResourcesNonBlockingUnsubscribe(QueueWithResources<T> queue) {
 		super(queue);
-		this.closing = false;
+		this.unsubscribing = false;
 		this.unsubscribed = new AtomicBoolean(false);
 	}
 
 	@Override
 	public T poll() {
 		try {
-			if (closing) {
+			if (unsubscribing) {
 				return null;
 			} else {
 				try {
@@ -43,14 +43,14 @@ final class QueueWithResourcesNonBlockingUnsubscribe<T> extends AbstractQueueWit
 				}
 			}
 		} finally {
-			checkClosed();
+			checkUnsubscribe();
 		}
 	}
 
 	@Override
 	public boolean offer(T t) {
 		try {
-			if (closing) {
+			if (unsubscribing) {
 				return true;
 			} else {
 				try {
@@ -61,14 +61,14 @@ final class QueueWithResourcesNonBlockingUnsubscribe<T> extends AbstractQueueWit
 				}
 			}
 		} finally {
-			checkClosed();
+			checkUnsubscribe();
 		}
 	}
 
 	@Override
 	public boolean isEmpty() {
 		try {
-			if (closing) {
+			if (unsubscribing) {
 				return true;
 			} else {
 				try {
@@ -79,7 +79,7 @@ final class QueueWithResourcesNonBlockingUnsubscribe<T> extends AbstractQueueWit
 				}
 			}
 		} finally {
-			checkClosed();
+			checkUnsubscribe();
 		}
 	}
 
@@ -88,13 +88,13 @@ final class QueueWithResourcesNonBlockingUnsubscribe<T> extends AbstractQueueWit
 		synchronized (this) {
 			// ensure this change is flushed to main memory by enclosing in
 			// synchronized block
-			closing = true;
+			unsubscribing = true;
 		}
-		checkClosed();
+		checkUnsubscribe();
 	}
 
-	private void checkClosed() {
-		if (closing && currentCalls.get() == 0 && unsubscribed.compareAndSet(false, true)) {
+	private void checkUnsubscribe() {
+		if (unsubscribing && currentCalls.get() == 0 && unsubscribed.compareAndSet(false, true)) {
 			super.unsubscribe();
 		}
 	}
