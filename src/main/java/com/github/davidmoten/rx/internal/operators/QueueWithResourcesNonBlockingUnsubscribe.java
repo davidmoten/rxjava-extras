@@ -13,100 +13,95 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 final class QueueWithResourcesNonBlockingUnsubscribe<T> extends AbstractQueueWithResources<T> {
 
-	// currentCalls and this used to manage visibility
-	private boolean unsubscribing;
+    private volatile boolean unsubscribing;
 
-	// ensures queue.close() doesn't occur until outstanding peek(),offer(),
-	// poll(), isEmpty() calls have finished. When currentCalls is zero a
-	// close request can be actioned.
-	private final AtomicInteger currentCalls = new AtomicInteger(0);
+    // ensures queue.close() doesn't occur until outstanding peek(),offer(),
+    // poll(), isEmpty() calls have finished. When currentCalls is zero a
+    // close request can be actioned.
+    private final AtomicInteger currentCalls = new AtomicInteger(0);
 
-	private final AtomicBoolean unsubscribed;
-	
-	QueueWithResourcesNonBlockingUnsubscribe(QueueWithResources<T> queue) {
-		super(queue);
-		this.unsubscribing = false;
-		this.unsubscribed = new AtomicBoolean(false);
-	}
+    private final AtomicBoolean unsubscribed;
 
-	@Override
-	public T poll() {
-		try {
-			if (unsubscribing) {
-				return null;
-			} else {
-				try {
-					currentCalls.incrementAndGet();
-					return super.poll();
-				} finally {
-					currentCalls.decrementAndGet();
-				}
-			}
-		} finally {
-			checkUnsubscribe();
-		}
-	}
+    QueueWithResourcesNonBlockingUnsubscribe(QueueWithResources<T> queue) {
+        super(queue);
+        this.unsubscribing = false;
+        this.unsubscribed = new AtomicBoolean(false);
+    }
 
-	@Override
-	public boolean offer(T t) {
-		try {
-			if (unsubscribing) {
-				return true;
-			} else {
-				try {
-					currentCalls.incrementAndGet();
-					return super.offer(t);
-				} finally {
-					currentCalls.decrementAndGet();
-				}
-			}
-		} finally {
-			checkUnsubscribe();
-		}
-	}
+    @Override
+    public T poll() {
+        try {
+            if (unsubscribing) {
+                return null;
+            } else {
+                try {
+                    currentCalls.incrementAndGet();
+                    return super.poll();
+                } finally {
+                    currentCalls.decrementAndGet();
+                }
+            }
+        } finally {
+            checkUnsubscribe();
+        }
+    }
 
-	@Override
-	public boolean isEmpty() {
-		try {
-			if (unsubscribing) {
-				return true;
-			} else {
-				try {
-					currentCalls.incrementAndGet();
-					return super.isEmpty();
-				} finally {
-					currentCalls.decrementAndGet();
-				}
-			}
-		} finally {
-			checkUnsubscribe();
-		}
-	}
+    @Override
+    public boolean offer(T t) {
+        try {
+            if (unsubscribing) {
+                return true;
+            } else {
+                try {
+                    currentCalls.incrementAndGet();
+                    return super.offer(t);
+                } finally {
+                    currentCalls.decrementAndGet();
+                }
+            }
+        } finally {
+            checkUnsubscribe();
+        }
+    }
 
-	@Override
-	public void unsubscribe() {
-		synchronized (this) {
-			// ensure this change is flushed to main memory by enclosing in
-			// synchronized block
-			unsubscribing = true;
-		}
-		checkUnsubscribe();
-	}
+    @Override
+    public boolean isEmpty() {
+        try {
+            if (unsubscribing) {
+                return true;
+            } else {
+                try {
+                    currentCalls.incrementAndGet();
+                    return super.isEmpty();
+                } finally {
+                    currentCalls.decrementAndGet();
+                }
+            }
+        } finally {
+            checkUnsubscribe();
+        }
+    }
 
-	private void checkUnsubscribe() {
-		if (unsubscribing && currentCalls.get() == 0 && unsubscribed.compareAndSet(false, true)) {
-			super.unsubscribe();
-		}
-	}
+    @Override
+    public void unsubscribe() {
+        unsubscribing = true;
+        checkUnsubscribe();
+    }
 
-	@Override
-	public void freeResources() {
-		super.freeResources();
-	}
+    private void checkUnsubscribe() {
+        if (unsubscribing && currentCalls.get() == 0 && unsubscribed.compareAndSet(false, true)) {
+            super.unsubscribe();
+        }
+    }
 
-	@Override
-	public boolean isUnsubscribed() {
-		return unsubscribed.get();
+    @Override
+    public void freeResources() {
+        super.freeResources();
+    }
 
-	}
+    @Override
+    public boolean isUnsubscribed() {
+        return unsubscribed.get();
+
+    }
 }
