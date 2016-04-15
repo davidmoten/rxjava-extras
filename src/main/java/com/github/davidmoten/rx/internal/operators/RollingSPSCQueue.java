@@ -47,8 +47,8 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 
 	RollingSPSCQueue(Func0<QueueWithResources<T>> queueFactory, long maxSizeBytesPerQueue, long maxItemsPerQueue) {
 		Preconditions.checkNotNull(queueFactory);
-		Preconditions.checkArgument(maxSizeBytesPerQueue > 0 || maxItemsPerQueue > 1,
-				"maxSizeBytesPerQueue must be > 0 or maxItemsPerQueue must be > 1");
+		Preconditions.checkArgument(maxSizeBytesPerQueue > 0, "maxSizeBytesPerQueue must be greater than zero");
+		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxSizeBytesPerQueue must be greater than one");
 		this.count = 0;
 		this.maxSizeBytesPerQueue = maxSizeBytesPerQueue;
 		this.unsubscribed = false;
@@ -92,22 +92,7 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 			return true;
 		} else {
 			count++;
-			final boolean createAnotherQueue;
-			if (count == 1) {
-				createAnotherQueue = true;
-			} else if (count == maxItemsPerQueue) {
-				createAnotherQueue = true;
-			} else if (maxSizeBytesPerQueue != Long.MAX_VALUE){
-				synchronized (queues) {
-					if (unsubscribed) {
-						return true;
-					}
-					createAnotherQueue = queues.peekLast().resourcesSize() >= maxSizeBytesPerQueue;
-				}
-			} else {
-				createAnotherQueue = false;
-			}
-			if (createAnotherQueue) {
+			if (createAnotherQueue()) {
 				count = 1;
 				QueueWithResources<T> q = queueFactory.call();
 				synchronized (queues) {
@@ -130,6 +115,24 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 					return queues.peekLast().offer(t);
 				}
 			}
+		}
+	}
+
+	private boolean createAnotherQueue() {
+		if (count == 1) {
+			// first call to offer
+			return true;
+		} else if (count == maxItemsPerQueue) {
+			return true;
+		} else if (maxSizeBytesPerQueue != Long.MAX_VALUE) {
+			synchronized (queues) {
+				if (unsubscribed) {
+					return true;
+				}
+				return queues.peekLast().resourcesSize() >= maxSizeBytesPerQueue;
+			}
+		} else {
+			return false;
 		}
 	}
 
