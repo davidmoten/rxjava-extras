@@ -58,6 +58,9 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 
 	@Override
 	public void unsubscribe() {
+		if (unsubscribed) {
+			return;
+		}
 		synchronized (queues) {
 			if (!unsubscribed) {
 				unsubscribed = true;
@@ -88,6 +91,9 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 	public boolean offer(T t) {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
 		// not offer and offer)
+		if (unsubscribed) {
+			return true;
+		}
 		count++;
 		if (createAnotherQueue()) {
 			count = 1;
@@ -136,6 +142,9 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 	public T poll() {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
 		// not poll and poll)
+		if (unsubscribed) {
+			return null;
+		}
 		while (true) {
 			synchronized (queues) {
 				if (unsubscribed) {
@@ -164,6 +173,9 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 	@Override
 	public boolean isEmpty() {
 		// thread-safe (will just return true if queue has been closed)
+		if (unsubscribed) {
+			return true;
+		}
 		synchronized (queues) {
 			if (unsubscribed) {
 				return true;
