@@ -104,4 +104,9 @@ final class QueueWithResourcesNonBlockingUnsubscribe<T> extends AbstractQueueWit
         return unsubscribed.get();
 
     }
+
+    @Override
+    public long resourcesSize() {
+        return super.resourcesSize();
+    }
 }

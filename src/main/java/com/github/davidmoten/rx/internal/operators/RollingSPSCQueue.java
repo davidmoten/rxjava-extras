@@ -32,220 +32,225 @@ import rx.plugins.RxJavaPlugins;
  */
 class RollingSPSCQueue<T> implements QueueWithResources<T> {
 
-	private final Func0<QueueWithResources<T>> queueFactory;
-	private final long maxItemsPerQueue;
-	private final Deque<QueueWithResources<T>> queues = new LinkedList<QueueWithResources<T>>();
+    private final Func0<QueueWithResources<T>> queueFactory;
+    private final long maxItemsPerQueue;
+    private final Deque<QueueWithResources<T>> queues = new LinkedList<QueueWithResources<T>>();
 
-	// counter used to determine when to rollover to another queue
-	// visibility managed by the fact that calls to offer are happens-before
-	// sequential
-	private long count;
-	
-	//guarded by queues
-	private boolean unsubscribed;
+    // counter used to determine when to rollover to another queue
+    // visibility managed by the fact that calls to offer are happens-before
+    // sequential
+    private long count;
 
-	RollingSPSCQueue(Func0<QueueWithResources<T>> queueFactory, long maxItemsPerQueue) {
-		Preconditions.checkNotNull(queueFactory);
-		Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
-		this.count = 0;
-		this.unsubscribed = false;
-		this.queueFactory = queueFactory;
-		this.maxItemsPerQueue = maxItemsPerQueue;
-	}
+    // guarded by queues
+    private boolean unsubscribed;
 
-	@Override
-	public void unsubscribe() {
-		synchronized (queues) {
-			if (!unsubscribed) {
-				unsubscribed = true;
-				try {
-					for (QueueWithResources<T> q : queues) {
-						q.unsubscribe();
-					}
-					queues.clear();
-				} catch (RuntimeException e) {
-					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
-					throw e;
-				} catch (Error e) {
-					RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
-					throw e;
-				}
-			}
-		}
-	}
+    RollingSPSCQueue(Func0<QueueWithResources<T>> queueFactory, long maxItemsPerQueue) {
+        Preconditions.checkNotNull(queueFactory);
+        Preconditions.checkArgument(maxItemsPerQueue > 1, "maxItemsPerQueue must be > 1");
+        this.count = 0;
+        this.unsubscribed = false;
+        this.queueFactory = queueFactory;
+        this.maxItemsPerQueue = maxItemsPerQueue;
+    }
 
-	@Override
-	public boolean isUnsubscribed() {
-		synchronized (queues) {
-			return unsubscribed;
-		}
-	}
+    @Override
+    public void unsubscribe() {
+        synchronized (queues) {
+            if (!unsubscribed) {
+                unsubscribed = true;
+                try {
+                    for (QueueWithResources<T> q : queues) {
+                        q.unsubscribe();
+                    }
+                    queues.clear();
+                } catch (RuntimeException e) {
+                    RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+                    throw e;
+                } catch (Error e) {
+                    RxJavaPlugins.getInstance().getErrorHandler().handleError(e);
+                    throw e;
+                }
+            }
+        }
+    }
 
-	@Override
-	public boolean offer(T t) {
-		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
-		// not offer and offer)
-		if (unsubscribed) {
-			return true;
-		} else {
-			count++;
-			if (count == maxItemsPerQueue || count == 1) {
-				count = 1;
-				QueueWithResources<T> q = queueFactory.call();
-				synchronized (queues) {
-					if (!unsubscribed) {
-						QueueWithResources<T> last = queues.peekLast();
-						if (last != null) {
-							last.freeResources();
-						}
-						queues.offerLast(q);
-						return q.offer(t);
-					} else {
-						return true;
-					}
-				}
-			} else {
-				synchronized (queues) {
-					if (unsubscribed) {
-						return true;
-					}
-					return queues.peekLast().offer(t);
-				}
-			}
-		}
-	}
+    @Override
+    public boolean isUnsubscribed() {
+        synchronized (queues) {
+            return unsubscribed;
+        }
+    }
 
-	@Override
-	public T poll() {
-		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
-		// not poll and poll)
-		if (unsubscribed) {
-			return null;
-		}
-		while (true) {
-			synchronized (queues) {
-				if (unsubscribed) {
-					return null;
-				}
-				QueueWithResources<T> first = queues.peekFirst();
-				if (first == null) {
-					return null;
-				}
-				T value = first.poll();
-				if (value == null) {
-					if (first == queues.peekLast()) {
-						return null;
-					} else {
-						QueueWithResources<T> removed = queues.pollFirst();
-						if (removed != null)
-							removed.unsubscribe();
-					}
-				} else {
-					return value;
-				}
-			}
-		}
-	}
+    @Override
+    public boolean offer(T t) {
+        // limited thread safety (offer/poll/close/peek/isEmpty concurrent but
+        // not offer and offer)
+        if (unsubscribed) {
+            return true;
+        } else {
+            count++;
+            if (count == maxItemsPerQueue || count == 1) {
+                count = 1;
+                QueueWithResources<T> q = queueFactory.call();
+                synchronized (queues) {
+                    if (!unsubscribed) {
+                        QueueWithResources<T> last = queues.peekLast();
+                        if (last != null) {
+                            last.freeResources();
+                        }
+                        queues.offerLast(q);
+                        return q.offer(t);
+                    } else {
+                        return true;
+                    }
+                }
+            } else {
+                synchronized (queues) {
+                    if (unsubscribed) {
+                        return true;
+                    }
+                    return queues.peekLast().offer(t);
+                }
+            }
+        }
+    }
 
-	@Override
-	public boolean isEmpty() {
-		// thread-safe (will just return true if queue has been closed)
-		if (unsubscribed) {
-			return true;
-		} else {
-			synchronized (queues) {
-				if (unsubscribed) {
-					return true;
-				}
-				QueueWithResources<T> first = queues.peekFirst();
-				if (first == null) {
-					return true;
-				} else {
-					return queues.peekLast() == first && first.isEmpty();
-				}
-			}
-		}
-	}
+    @Override
+    public T poll() {
+        // limited thread safety (offer/poll/close/peek/isEmpty concurrent but
+        // not poll and poll)
+        if (unsubscribed) {
+            return null;
+        }
+        while (true) {
+            synchronized (queues) {
+                if (unsubscribed) {
+                    return null;
+                }
+                QueueWithResources<T> first = queues.peekFirst();
+                if (first == null) {
+                    return null;
+                }
+                T value = first.poll();
+                if (value == null) {
+                    if (first == queues.peekLast()) {
+                        return null;
+                    } else {
+                        QueueWithResources<T> removed = queues.pollFirst();
+                        if (removed != null)
+                            removed.unsubscribe();
+                    }
+                } else {
+                    return value;
+                }
+            }
+        }
+    }
 
-	@Override
-	public void clear() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean isEmpty() {
+        // thread-safe (will just return true if queue has been closed)
+        if (unsubscribed) {
+            return true;
+        } else {
+            synchronized (queues) {
+                if (unsubscribed) {
+                    return true;
+                }
+                QueueWithResources<T> first = queues.peekFirst();
+                if (first == null) {
+                    return true;
+                } else {
+                    return queues.peekLast() == first && first.isEmpty();
+                }
+            }
+        }
+    }
 
-	@Override
-	public int size() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public void clear() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public T peek() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public int size() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean contains(Object o) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public T peek() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Iterator<T> iterator() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean contains(Object o) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public Object[] toArray() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Iterator<T> iterator() {
+        throw new UnsupportedOperationException();
+    }
 
-	@SuppressWarnings("hiding")
-	@Override
-	public <T> T[] toArray(T[] a) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public Object[] toArray() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean remove(Object o) {
-		throw new UnsupportedOperationException();
-	}
+    @SuppressWarnings("hiding")
+    @Override
+    public <T> T[] toArray(T[] a) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean containsAll(Collection<?> c) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean remove(Object o) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean addAll(Collection<? extends T> c) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean removeAll(Collection<?> c) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean addAll(Collection<? extends T> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean retainAll(Collection<?> c) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean add(T e) {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public T remove() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public boolean add(T e) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public T element() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public T remove() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public void freeResources() {
-		// do nothing
-	}
+    @Override
+    public T element() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void freeResources() {
+        // do nothing
+    }
+
+    @Override
+    public long resourcesSize() {
+        throw new UnsupportedOperationException();
+    }
 
 }
