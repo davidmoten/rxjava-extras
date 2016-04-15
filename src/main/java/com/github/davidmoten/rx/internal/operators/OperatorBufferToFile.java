@@ -234,11 +234,12 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         }
 
         private void drainNow() {
-            // get the number of unsatisfied requests
-            long requests = get();
+            
             while (true) {
                 // reset drainRequested counter
                 drainRequested.set(1);
+             // get the number of unsatisfied requests
+                long requests = get();
                 long emitted = 0;
                 while (requests > 0) {
                     if (child.isUnsubscribed()) {

@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -62,44 +63,51 @@ public final class OperatorBufferToFileTest {
 	@Test
 	public void handlesEmpty() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
-		TestSubscriber<String> ts = TestSubscriber.create(0);
-		Observable.<String> empty()
-				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(), scheduler)).subscribe(ts);
-		ts.requestMore(1);
-		ts.awaitTerminalEvent();
-		ts.assertNoErrors();
-		ts.assertNoValues();
-		ts.assertCompleted();
-		waitUntilWorkCompleted(scheduler);
+		for (int i = 0; i < loops(); i++) {
+			TestSubscriber<String> ts = TestSubscriber.create(0);
+			Observable.<String> empty()
+					.compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(), scheduler))
+					.subscribe(ts);
+			ts.requestMore(1);
+			ts.awaitTerminalEvent();
+			ts.assertNoErrors();
+			ts.assertNoValues();
+			ts.assertCompleted();
+			waitUntilWorkCompleted(scheduler);
+		}
 	}
 
 	@Test
 	public void handlesEmptyUsingJavaIOSerialization() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
-		TestSubscriber<String> ts = TestSubscriber.create(0);
-		Observable.<String> empty()
-				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.<String> javaIO(), scheduler))
-				.subscribe(ts);
-		ts.requestMore(1);
-		ts.awaitTerminalEvent();
-		ts.assertNoErrors();
-		ts.assertNoValues();
-		ts.assertCompleted();
-		waitUntilWorkCompleted(scheduler);
+		for (int i = 0; i < loops(); i++) {
+			TestSubscriber<String> ts = TestSubscriber.create(0);
+			Observable.<String> empty()
+					.compose(Transformers.onBackpressureBufferToFile(DataSerializers.<String> javaIO(), scheduler))
+					.subscribe(ts);
+			ts.requestMore(1);
+			ts.awaitTerminalEvent();
+			ts.assertNoErrors();
+			ts.assertNoValues();
+			ts.assertCompleted();
+			waitUntilWorkCompleted(scheduler);
+		}
 	}
 
 	@Test
 	public void handlesThreeUsingJavaIOSerialization() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
-		TestSubscriber<String> ts = TestSubscriber.create();
-		Observable.just("a", "bc", "def")
-				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.<String> javaIO(), scheduler))
-				.subscribe(ts);
-		ts.awaitTerminalEvent();
-		ts.assertNoErrors();
-		ts.assertValues("a", "bc", "def");
-		ts.assertCompleted();
-		waitUntilWorkCompleted(scheduler);
+		for (int i = 0; i < loops(); i++) {
+			TestSubscriber<String> ts = TestSubscriber.create();
+			Observable.just("a", "bc", "def")
+					.compose(Transformers.onBackpressureBufferToFile(DataSerializers.<String> javaIO(), scheduler))
+					.subscribe(ts);
+			ts.awaitTerminalEvent();
+			ts.assertNoErrors();
+			ts.assertValues("a", "bc", "def");
+			ts.assertCompleted();
+			waitUntilWorkCompleted(scheduler);
+		}
 	}
 
 	@Test
@@ -116,92 +124,47 @@ public final class OperatorBufferToFileTest {
 		assertEquals(Arrays.asList("abc", "def", "ghi"), b);
 	}
 
+	private static int loops() {
+		return Integer.parseInt(System.getProperty("loops", "1000"));
+	}
+
 	@Test
 	public void handlesThreeElementsWithBackpressureAndEnsureCompletionEventArrivesWhenThreeRequested()
 			throws InterruptedException {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
-		for (int i = 0; i < 1000; i++) {
-			MySubscriber<String> subscriber = new MySubscriber<String>() {
-
-				@Override
-				public void onStart() {
-
-				}
-
-				@Override
-				public void onCompleted() {
-					latch.countDown();
-				}
-
-				@Override
-				public void onError(Throwable t) {
-					latch.countDown();
-				}
-
-				@Override
-				public void onNext(String s) {
-					list.add(s);
-				}
-			};
+		for (int i = 0; i < loops(); i++) {
+			TestSubscriber<String> ts = TestSubscriber.create(0);
 			Observable.just("abc", "def", "ghi")
 					//
 					.compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(), scheduler,
 							Options.defaultInstance()))
-					.subscribe(subscriber);
-			subscriber.requestMore(2);
-			subscriber.requestMore(1);
-			if (!subscriber.latch.await(10, TimeUnit.SECONDS))
-				throw new RuntimeException("did not complete on loop " + i);
-			assertNull(subscriber.err);
-			assertEquals(Arrays.asList("abc", "def", "ghi"), subscriber.list);
+					.subscribe(ts);
+			ts.requestMore(2);
+			ts.requestMore(1);
+			ts.awaitTerminalEvent(1, TimeUnit.SECONDS);
+			if (ts.getOnNextEvents().size() != 3) {
+				Assert.fail("wrong number of elements on loop " + i + " found " + ts.getOnNextEvents().size());
+			}
+			ts.assertValues("abc", "def", "ghi");
+			ts.assertNoErrors();
 			waitUntilWorkCompleted(scheduler);
 		}
-	}
-
-	private static class MySubscriber<T> extends Subscriber<T> {
-
-		final CountDownLatch latch;
-		final List<T> list = new ArrayList<T>();
-		volatile Throwable err = null;
-
-		MySubscriber() {
-			latch = new CountDownLatch(1);
-		}
-
-		void requestMore(long n) {
-			request(n);
-		}
-
-		@Override
-		public void onCompleted() {
-			latch.countDown();
-		}
-
-		@Override
-		public void onError(Throwable e) {
-			err = e;
-			latch.countDown();
-		}
-
-		@Override
-		public void onNext(T t) {
-			list.add(t);
-		}
-
 	}
 
 	@Test
 	public void handlesErrorSerialization() throws InterruptedException {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
-		TestSubscriber<String> ts = TestSubscriber.create();
-		Observable.<String> error(new IOException("boo"))
-				//
-				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(), scheduler,
-						Options.defaultInstance()))
-				.subscribe(ts);
-		ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
-		ts.assertError(IOException.class);
-		waitUntilWorkCompleted(scheduler);
+		for (int i = 0; i < loops(); i++) {
+			TestSubscriber<String> ts = TestSubscriber.create();
+			Observable.<String> error(new IOException("boo"))
+					//
+					.compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(), scheduler,
+							Options.defaultInstance()))
+					.subscribe(ts);
+			ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
+			ts.assertError(IOException.class);
+			waitUntilWorkCompleted(scheduler);
+		}
 	}
 
 	@Test
@@ -309,17 +272,19 @@ public final class OperatorBufferToFileTest {
 
 	@Test
 	public void rolloverWorks() throws InterruptedException {
-		DataSerializer<Integer> serializer = DataSerializers.integer();
-		int max = 100;
-		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
-		int last = Observable.range(1, max)
-				//
-				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-						Options.rolloverEvery(max / 10).build()))
-				.last().toBlocking().single();
-		assertEquals(max, last);
-		// wait for all scheduled work to complete (unsubscription)
-		waitUntilWorkCompleted(scheduler, 10, TimeUnit.SECONDS);
+		for (int i = 0; i < 100; i++) {
+			DataSerializer<Integer> serializer = DataSerializers.integer();
+			int max = 100;
+			Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
+			int last = Observable.range(1, max)
+					//
+					.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
+							Options.rolloverEvery(max / 10).build()))
+					.last().toBlocking().single();
+			assertEquals(max, last);
+			// wait for all scheduled work to complete (unsubscription)
+			waitUntilWorkCompleted(scheduler, 10, TimeUnit.SECONDS);
+		}
 	}
 
 	private static void waitUntilWorkCompleted(Scheduler scheduler) {

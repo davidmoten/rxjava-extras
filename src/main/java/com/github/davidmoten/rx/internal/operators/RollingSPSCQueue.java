@@ -88,32 +88,28 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 	public boolean offer(T t) {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
 		// not offer and offer)
-		if (unsubscribed) {
-			return true;
+		count++;
+		if (createAnotherQueue()) {
+			count = 1;
+			QueueWithResources<T> q = queueFactory.call();
+			synchronized (queues) {
+				if (!unsubscribed) {
+					QueueWithResources<T> last = queues.peekLast();
+					if (last != null) {
+						last.freeResources();
+					}
+					queues.offerLast(q);
+					return q.offer(t);
+				} else {
+					return true;
+				}
+			}
 		} else {
-			count++;
-			if (createAnotherQueue()) {
-				count = 1;
-				QueueWithResources<T> q = queueFactory.call();
-				synchronized (queues) {
-					if (!unsubscribed) {
-						QueueWithResources<T> last = queues.peekLast();
-						if (last != null) {
-							last.freeResources();
-						}
-						queues.offerLast(q);
-						return q.offer(t);
-					} else {
-						return true;
-					}
+			synchronized (queues) {
+				if (unsubscribed) {
+					return true;
 				}
-			} else {
-				synchronized (queues) {
-					if (unsubscribed) {
-						return true;
-					}
-					return queues.peekLast().offer(t);
-				}
+				return queues.peekLast().offer(t);
 			}
 		}
 	}
@@ -140,9 +136,6 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 	public T poll() {
 		// limited thread safety (offer/poll/close/peek/isEmpty concurrent but
 		// not poll and poll)
-		if (unsubscribed) {
-			return null;
-		}
 		while (true) {
 			synchronized (queues) {
 				if (unsubscribed) {
@@ -171,19 +164,15 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 	@Override
 	public boolean isEmpty() {
 		// thread-safe (will just return true if queue has been closed)
-		if (unsubscribed) {
-			return true;
-		} else {
-			synchronized (queues) {
-				if (unsubscribed) {
-					return true;
-				}
-				QueueWithResources<T> first = queues.peekFirst();
-				if (first == null) {
-					return true;
-				} else {
-					return queues.peekLast() == first && first.isEmpty();
-				}
+		synchronized (queues) {
+			if (unsubscribed) {
+				return true;
+			}
+			QueueWithResources<T> first = queues.peekFirst();
+			if (first == null) {
+				return true;
+			} else {
+				return queues.peekLast() == first && first.isEmpty();
 			}
 		}
 	}
