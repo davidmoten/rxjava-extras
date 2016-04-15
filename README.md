@@ -373,8 +373,8 @@ Observable.just(1, 2, 3, 4)
 
 ###Performance
 Throughput writing to spinning disk on an i7 with `Options.bufferSizeBytes=1024`:
-* 34MB/second with 1K messages (34,000 messages/second) 
-* 12MB/second with 4B messages (3,000,000 integers/second)
+* 23MB/second with 1K messages (23,000 messages/second) 
+* 14MB/second with 4B messages (3,500,000 integers/second)
 
 I wouldn't be surprised to see another order of magnitude improvement on this throughput in the medium term (especially if using memory-mapped files). There are at least a couple of java file based implementations out there that have impressive throughput using memory-mapped files but without the overhead of a rolling queue for disk space recovery. 
 
