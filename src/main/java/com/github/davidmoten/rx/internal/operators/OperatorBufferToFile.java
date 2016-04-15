@@ -77,7 +77,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static <T> QueueWithResources<T> createFileBasedQueue(
             final DataSerializer<T> dataSerializer, final Options options) {
-        if (options.rolloverEvery() == 0 || options.rolloverEvery() == Long.MAX_VALUE) {
+        if (options.rolloverEvery() == Long.MAX_VALUE && options.rolloverSizeBytes() == Long.MAX_VALUE) {
             // skip the Rollover version
             return new FileBasedSPSCQueue<T>(options.bufferSizeBytes(),
                     options.fileFactory().call(), dataSerializer);
@@ -95,7 +95,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                 }
             };
             return new QueueWithResourcesNonBlockingUnsubscribe<T>(
-                    new RollingSPSCQueue<T>(queueFactory, options.rolloverEvery(), options.rolloverSizeBytes()));
+                    new RollingSPSCQueue<T>(queueFactory,options.rolloverSizeBytes(), options.rolloverEvery()));
         }
     }
 

@@ -97,13 +97,15 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 				createAnotherQueue = true;
 			} else if (count == maxItemsPerQueue) {
 				createAnotherQueue = true;
-			} else {
+			} else if (maxSizeBytesPerQueue != Long.MAX_VALUE){
 				synchronized (queues) {
 					if (unsubscribed) {
 						return true;
 					}
 					createAnotherQueue = queues.peekLast().resourcesSize() >= maxSizeBytesPerQueue;
 				}
+			} else {
+				createAnotherQueue = false;
 			}
 			if (createAnotherQueue) {
 				count = 1;

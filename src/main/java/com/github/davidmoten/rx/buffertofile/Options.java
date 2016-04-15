@@ -20,11 +20,8 @@ public final class Options {
 	private Options(Func0<File> filefactory, boolean delayError, long rolloverEvery, int bufferSizeBytes,
 			long rolloverSizeBytes) {
 		Preconditions.checkNotNull(filefactory);
-		Preconditions
-				.checkArgument(
-						(rolloverSizeBytes > 0 && rolloverEvery == 0) || (rolloverSizeBytes == 0
-								&& rolloverEvery > 1),
-				"rolloverEvery must be greater than 1 or can be zero or rolloverSizeBytes must be greater than zero (don't specify values for both)");
+		Preconditions.checkArgument(rolloverSizeBytes > 0, "rolloverSizeBytes must be greater than zero");
+		Preconditions.checkArgument(rolloverEvery > 1, "rolloverEvery must be greater than one");
 		Preconditions.checkArgument(bufferSizeBytes > 0, "bufferSizeBytes must be greater than 0");
 		this.fileFactory = filefactory;
 		this.delayError = delayError;
@@ -96,9 +93,9 @@ public final class Options {
 
 		private Func0<File> fileFactory = FileFactoryHolder.INSTANCE;
 		private boolean delayError = true;
+		private long rolloverSizeBytes = Long.MAX_VALUE;
 		private long rolloverEvery = 1000000;
 		private int bufferSizeBytes = 1024;
-		private long rolloverSizeBytes = 0;
 
 		private Builder() {
 		}
@@ -109,6 +106,7 @@ public final class Options {
 		}
 
 		public Builder disableRollover() {
+			this.rolloverSizeBytes = Long.MAX_VALUE;
 			return rolloverEvery(Long.MAX_VALUE);
 		}
 
