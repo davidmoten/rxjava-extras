@@ -1,6 +1,7 @@
 package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.DataInput;
@@ -31,7 +32,6 @@ import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
-import com.github.davidmoten.rx.slf4j.Logging;
 
 import rx.Observable;
 import rx.Scheduler;
@@ -120,19 +120,74 @@ public final class OperatorBufferToFileTest {
 	public void handlesThreeElementsWithBackpressureAndEnsureCompletionEventArrivesWhenThreeRequested()
 			throws InterruptedException {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
-		TestSubscriber<String> ts = TestSubscriber.create(0);
-		Observable.just("abc", "def", "ghi")
-				//
-				.compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(), scheduler,
-						Options.defaultInstance()))
-				.subscribe(ts);
-		ts.assertNoValues();
-		ts.requestMore(2);
-		ts.requestMore(1);
-		ts.awaitTerminalEvent(10, TimeUnit.SECONDS);
-		ts.assertCompleted();
-		ts.assertValues("abc", "def", "ghi");
-		waitUntilWorkCompleted(scheduler);
+		for (int i = 0; i < 1000; i++) {
+			MySubscriber<String> subscriber = new MySubscriber<String>() {
+
+				@Override
+				public void onStart() {
+
+				}
+
+				@Override
+				public void onCompleted() {
+					latch.countDown();
+				}
+
+				@Override
+				public void onError(Throwable t) {
+					latch.countDown();
+				}
+
+				@Override
+				public void onNext(String s) {
+					list.add(s);
+				}
+			};
+			Observable.just("abc", "def", "ghi")
+					//
+					.compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(), scheduler,
+							Options.defaultInstance()))
+					.subscribe(subscriber);
+			subscriber.requestMore(2);
+			subscriber.requestMore(1);
+			if (!subscriber.latch.await(10, TimeUnit.SECONDS))
+				throw new RuntimeException("did not complete on loop " + i);
+			assertNull(subscriber.err);
+			assertEquals(Arrays.asList("abc", "def", "ghi"), subscriber.list);
+			waitUntilWorkCompleted(scheduler);
+		}
+	}
+
+	private static class MySubscriber<T> extends Subscriber<T> {
+
+		final CountDownLatch latch;
+		final List<T> list = new ArrayList<T>();
+		volatile Throwable err = null;
+
+		MySubscriber() {
+			latch = new CountDownLatch(1);
+		}
+
+		void requestMore(long n) {
+			request(n);
+		}
+
+		@Override
+		public void onCompleted() {
+			latch.countDown();
+		}
+
+		@Override
+		public void onError(Throwable e) {
+			err = e;
+			latch.countDown();
+		}
+
+		@Override
+		public void onNext(T t) {
+			list.add(t);
+		}
+
 	}
 
 	@Test
