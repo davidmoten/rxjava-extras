@@ -227,7 +227,11 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
             accessor = null;
         }
     }
-
+    @Override
+    public long resourcesSize() {
+        return writePosition;
+    }
+    
     @Override
     public T element() {
         throw new UnsupportedOperationException();
@@ -304,9 +308,6 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public long resourcesSize() {
-        return writePosition;
-    }
+    
 
 }

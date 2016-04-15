@@ -95,7 +95,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
                 }
             };
             return new QueueWithResourcesNonBlockingUnsubscribe<T>(
-                    new RollingSPSCQueue<T>(queueFactory, options.rolloverEvery()));
+                    new RollingSPSCQueue<T>(queueFactory, options.rolloverEvery(), options.rolloverSizeBytes()));
         }
     }
 

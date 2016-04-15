@@ -40,7 +40,7 @@ public class RollingSPSCQueueTest {
 
 	@ThreadedBefore
 	public void before() {
-		q = new RollingSPSCQueue<Integer>(queueFactory, 3);
+		q = new RollingSPSCQueue<Integer>(queueFactory,0, 3);
 		q.offer(1);
 	}
 

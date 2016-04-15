@@ -14,16 +14,22 @@ public final class Options {
 	private final Func0<File> fileFactory;
 	private final boolean delayError;
 	private final long rolloverEvery;
+	private final long rolloverSizeBytes;
 	private final int bufferSizeBytes;
 
-	private Options(Func0<File> filefactory, boolean delayError, long rolloverEvery, int bufferSizeBytes) {
+	private Options(Func0<File> filefactory, boolean delayError, long rolloverEvery, int bufferSizeBytes,
+			long rolloverSizeBytes) {
 		Preconditions.checkNotNull(filefactory);
-		Preconditions.checkArgument(rolloverEvery > 1 || rolloverEvery == 0,
-				"rolloverEvery must be greater than 1 or can be zero");
+		Preconditions
+				.checkArgument(
+						(rolloverSizeBytes > 0 && rolloverEvery == 0) || (rolloverSizeBytes == 0
+								&& rolloverEvery > 1),
+				"rolloverEvery must be greater than 1 or can be zero or rolloverSizeBytes must be greater than zero (don't specify values for both)");
 		Preconditions.checkArgument(bufferSizeBytes > 0, "bufferSizeBytes must be greater than 0");
 		this.fileFactory = filefactory;
 		this.delayError = delayError;
 		this.rolloverEvery = rolloverEvery;
+		this.rolloverSizeBytes = rolloverSizeBytes;
 		this.bufferSizeBytes = bufferSizeBytes;
 	}
 
@@ -37,6 +43,10 @@ public final class Options {
 
 	public long rolloverEvery() {
 		return rolloverEvery;
+	}
+
+	public long rolloverSizeBytes() {
+		return rolloverSizeBytes;
 	}
 
 	public int bufferSizeBytes() {
@@ -66,10 +76,14 @@ public final class Options {
 		return builder().rolloverEvery(rolloverEvery);
 	}
 
+	public static Builder rolloverSizeBytes(long rolloverSizeBytes) {
+		return builder().rolloverSizeBytes(rolloverSizeBytes);
+	}
+
 	public static Builder disableRollover() {
 		return builder().disableRollover();
 	}
-	
+
 	public static Builder bufferSizeBytes(int bufferSizeBytes) {
 		return builder().bufferSizeBytes(bufferSizeBytes);
 	}
@@ -84,12 +98,18 @@ public final class Options {
 		private boolean delayError = true;
 		private long rolloverEvery = 1000000;
 		private int bufferSizeBytes = 1024;
+		private long rolloverSizeBytes = 0;
 
 		private Builder() {
 		}
 
+		public Builder rolloverSizeBytes(long rolloverSizeBytes) {
+			this.rolloverSizeBytes = rolloverSizeBytes;
+			return this;
+		}
+
 		public Builder disableRollover() {
-			return rolloverEvery(0);
+			return rolloverEvery(Long.MAX_VALUE);
 		}
 
 		public Builder bufferSizeBytes(int bufferSizeBytes) {
@@ -130,7 +150,7 @@ public final class Options {
 		}
 
 		public Options build() {
-			return new Options(fileFactory, delayError, rolloverEvery, bufferSizeBytes);
+			return new Options(fileFactory, delayError, rolloverEvery, bufferSizeBytes, rolloverSizeBytes);
 		}
 	}
 
