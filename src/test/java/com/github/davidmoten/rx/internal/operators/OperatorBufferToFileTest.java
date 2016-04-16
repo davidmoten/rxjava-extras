@@ -508,7 +508,7 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test
-    public void testUnsubscribeDeletesAllFilesUsingRolloverOnSize() {
+    public void testCompletionDeletesAllFilesUsingRolloverOnSize() {
         Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
         DataSerializer<Integer> serializer = DataSerializers.integer();
 
