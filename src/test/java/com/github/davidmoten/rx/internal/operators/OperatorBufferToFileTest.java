@@ -18,6 +18,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -36,7 +38,7 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
-import rx.Subscription;
+import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 import rx.plugins.RxJavaPlugins;
@@ -421,7 +423,26 @@ public final class OperatorBufferToFileTest {
 	@Test
 	public void checkRateForOneKMessages() {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
-		DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
+		DataSerializer<Integer> serializer = createSerializer1K();
+
+		int max = Integer.parseInt(System.getProperty("max.medium", "3000"));
+		long t = System.currentTimeMillis();
+		int last = Observable.range(1, max)
+				//
+				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
+						Options.disableRollover().build()))
+				// log
+				// .lift(Logging.<Integer>
+				// logger().showCount().every(1000).showMemory().log())
+				.last().toBlocking().single();
+		t = System.currentTimeMillis() - t;
+		assertEquals(max, last);
+		System.out.println("rate = " + (double) max / (t) + "MB/s (1K messages)");
+		waitUntilWorkCompleted(scheduler);
+	}
+
+	private static DataSerializer<Integer> createSerializer1K() {
+		return new DataSerializer<Integer>() {
 
 			private final byte[] message = new byte[1000 - 4];
 
@@ -437,19 +458,41 @@ public final class OperatorBufferToFileTest {
 				return input.readInt();
 			}
 		};
+	}
+
+	@Test
+	public void checkRateForOneKMessagesNoRead() {
+		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
+		DataSerializer<Integer> serializer = createSerializer1K();
 
 		int max = Integer.parseInt(System.getProperty("max.medium", "3000"));
 		long t = System.currentTimeMillis();
-		int last = Observable.range(1, max)
+		final Lock lock = new ReentrantLock();
+		lock.lock();
+		int first = Observable.range(1, max)
+				//
+				.doOnCompleted(new Action0() {
+					@Override
+					public void call() {
+						lock.unlock();
+					}
+				})
 				//
 				.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
 						Options.disableRollover().build()))
+				//
+				.doOnNext(new Action1<Integer>() {
+					@Override
+					public void call(Integer n) {
+						lock.lock();
+					}
+				})
 				// log
 				// .lift(Logging.<Integer>
 				// logger().showCount().every(1000).showMemory().log())
-				.last().toBlocking().single();
+				.first().toBlocking().single();
 		t = System.currentTimeMillis() - t;
-		assertEquals(max, last);
+		assertEquals(1, first);
 		System.out.println("rate = " + (double) max / (t) + "MB/s (1K messages)");
 		waitUntilWorkCompleted(scheduler);
 	}
