@@ -307,8 +307,8 @@ public final class OperatorBufferToFileTest {
 	}
 
 	@Test
-	public void handlesTenSecondLoopOfMidStreamUnsubscribe() throws InterruptedException {
-		int maxSeconds = Integer.parseInt(System.getProperty("max.seconds", "9"));
+	public void handlesTenSecondLoopOfMidStreamUnsubscribe() throws Throwable {
+		int maxSeconds = Integer.parseInt(System.getProperty("max.seconds", "900"));
 		// run for ten seconds
 		long t = System.currentTimeMillis();
 		long count = 0;
@@ -334,6 +334,7 @@ public final class OperatorBufferToFileTest {
 					@Override
 					public void onError(Throwable e) {
 						error.set(e);
+						latch.countDown();
 					}
 
 					@SuppressWarnings("unused")
@@ -360,9 +361,14 @@ public final class OperatorBufferToFileTest {
 						.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
 								Options.rolloverEvery(max / 10).build()))
 						.subscribe(subscriber);
+
 				if (!latch.await(10, TimeUnit.SECONDS)) {
-					System.out.println("cycle=" + count + ", list.size= " + list.size());
-					Assert.fail();
+					System.out.println("cycle=" + count + ", list.size= " + list.size() + "\n" + list);
+					if (error.get() != null) {
+						throw error.get();
+					} else {
+						Assert.fail();
+					}
 				}
 				if (error.get() != null)
 					Assert.fail(error.get().getMessage());
@@ -486,11 +492,7 @@ public final class OperatorBufferToFileTest {
 					public void call(Integer n) {
 						lock.lock();
 					}
-				})
-				// log
-				// .lift(Logging.<Integer>
-				// logger().showCount().every(1000).showMemory().log())
-				.first().toBlocking().single();
+				}).first().toBlocking().single();
 		t = System.currentTimeMillis() - t;
 		assertEquals(1, first);
 		System.out.println("rate = " + (double) max / (t) + "MB/s (1K messages)");
@@ -538,7 +540,6 @@ public final class OperatorBufferToFileTest {
 						toWrite = 0;
 					}
 				}
-				// System.out.println("written " + n);
 			}
 
 			@Override
@@ -555,7 +556,6 @@ public final class OperatorBufferToFileTest {
 						bytesRead = dummyArraySize;
 					}
 				}
-				// System.out.println("read " + value);
 				return value;
 			}
 		};

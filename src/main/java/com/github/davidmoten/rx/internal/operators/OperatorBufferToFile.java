@@ -90,6 +90,10 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 					return new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), file, dataSerializer);
 				}
 			};
+			// the wrapping class ensures that unsubscribe happens in the same
+			// thread as the offer or poll which avoids the unsubscribe action
+			// not getting a time-slice so that the open file limit is exceeded
+			// (new files are opened in the offer() call).
 			return new QueueWithResourcesNonBlockingUnsubscribe<T>(
 					new RollingSPSCQueue<T>(queueFactory, options.rolloverSizeBytes(), options.rolloverEvery()));
 		}
