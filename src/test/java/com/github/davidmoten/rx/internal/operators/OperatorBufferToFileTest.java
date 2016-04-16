@@ -308,7 +308,7 @@ public final class OperatorBufferToFileTest {
 
 	@Test
 	public void handlesTenSecondLoopOfMidStreamUnsubscribe() throws Throwable {
-		int maxSeconds = Integer.parseInt(System.getProperty("max.seconds", "900"));
+		int maxSeconds = Integer.parseInt(System.getProperty("max.seconds", "9"));
 		// run for ten seconds
 		long t = System.currentTimeMillis();
 		long count = 0;
