@@ -311,24 +311,8 @@ public final class OperatorBufferToFileTest {
 		// run for ten seconds
 		long t = System.currentTimeMillis();
 		long count = 0;
-		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1, new ThreadFactory() {
-
-			@Override
-			public Thread newThread(Runnable r) {
-				Thread t = new Thread(r);
-				t.setName("scheduler1");
-				return t;
-			}
-		}));
-		Scheduler scheduler2 = Schedulers.from(Executors.newFixedThreadPool(1, new ThreadFactory() {
-
-			@Override
-			public Thread newThread(Runnable r) {
-				Thread t = new Thread(r);
-				t.setName("scheduler2");
-				return t;
-			}
-		}));
+		Scheduler scheduler = createNamedSingleThreadScheduler("scheduler1");
+		Scheduler scheduler2 = createNamedSingleThreadScheduler("scheduler2");
 		while ((System.currentTimeMillis() - t < TimeUnit.SECONDS.toMillis(maxSeconds))) {
 			DataSerializer<Integer> serializer = DataSerializers.integer();
 			int max = 1000;
@@ -397,6 +381,18 @@ public final class OperatorBufferToFileTest {
 			count++;
 		}
 		System.out.println(count + " cycles passed");
+	}
+
+	private Scheduler createNamedSingleThreadScheduler(final String name) {
+		return Schedulers.from(Executors.newFixedThreadPool(1, new ThreadFactory() {
+
+			@Override
+			public Thread newThread(Runnable r) {
+				Thread t = new Thread(r);
+				t.setName(name);
+				return t;
+			}
+		}));
 	}
 
 	@Test
