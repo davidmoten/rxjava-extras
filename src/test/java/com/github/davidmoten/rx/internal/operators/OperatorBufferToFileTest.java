@@ -1,7 +1,6 @@
 package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.DataInput;
@@ -13,7 +12,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -38,6 +36,7 @@ import rx.Observable;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
+import rx.Subscription;
 import rx.functions.Action1;
 import rx.observers.TestSubscriber;
 import rx.plugins.RxJavaPlugins;
@@ -297,7 +296,7 @@ public final class OperatorBufferToFileTest {
 		worker.schedule(Actions.countDown(latch));
 		worker.schedule(Actions.unsubscribe(worker));
 		try {
-			if (!latch.await(duration, unit)) {
+			if (!worker.isUnsubscribed() && !latch.await(duration, unit)) {
 				throw new RuntimeException("did not complete");
 			}
 		} catch (InterruptedException e) {
@@ -314,71 +313,74 @@ public final class OperatorBufferToFileTest {
 		Scheduler scheduler = createNamedSingleThreadScheduler("scheduler1");
 		Scheduler scheduler2 = createNamedSingleThreadScheduler("scheduler2");
 		while ((System.currentTimeMillis() - t < TimeUnit.SECONDS.toMillis(maxSeconds))) {
-			DataSerializer<Integer> serializer = DataSerializers.integer();
-			int max = 1000;
-			final CountDownLatch latch = new CountDownLatch(1);
-			final AtomicInteger last = new AtomicInteger(-1);
-			final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
-			final int unsubscribeAfter = max / 2 + 1;
-			final Queue<Integer> list = new ConcurrentLinkedQueue<Integer>();
-			Subscriber<Integer> subscriber = new Subscriber<Integer>() {
-				int count = 0;
+			try {
+				DataSerializer<Integer> serializer = DataSerializers.integer();
+				int max = 1000;
+				final CountDownLatch latch = new CountDownLatch(1);
+				final AtomicInteger last = new AtomicInteger(-1);
+				final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
+				final int unsubscribeAfter = max / 2 + 1;
+				final Queue<Integer> list = new ConcurrentLinkedQueue<Integer>();
+				Subscriber<Integer> subscriber = new Subscriber<Integer>() {
+					int count = 0;
 
-				@Override
-				public void onCompleted() {
-					latch.countDown();
-				}
-
-				@Override
-				public void onError(Throwable e) {
-					error.set(e);
-				}
-
-				@SuppressWarnings("unused")
-				@Override
-				public void onNext(Integer t) {
-					count++;
-					list.add(t);
-					if (count != t) {
-						onError(new RuntimeException("count=" + count + " but t=" + t));
-					}
-					if (count == unsubscribeAfter) {
-						unsubscribe();
-						if (false)
-							System.out.println(Thread.currentThread().getName() + "|called unsubscribe");
-						last.set(count);
+					@Override
+					public void onCompleted() {
 						latch.countDown();
 					}
-				}
-			};
-			Observable.range(1, max)
-					//
-					.subscribeOn(scheduler2)
-					//
-					.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-							Options.rolloverEvery(max / 10).build()))
-					.subscribe(subscriber);
-			if (!latch.await(10, TimeUnit.SECONDS)) {
-				System.out.println("cycle=" + count + ", list.size= " + list.size());
-				Assert.fail();
-			}
-			if (error.get() != null)
-				Assert.fail(error.get().getMessage());
 
-			if (list.size() < unsubscribeAfter) {
-				System.out.println("cycle=" + count);
-				List<Integer> expected = new ArrayList<Integer>();
-				for (int i = 1; i <= unsubscribeAfter; i++) {
-					expected.add(i);
-				}
-				System.out.println("expected=" + expected);
-				System.out.println("actual  =" + list);
-			}
-			assertTrue(list.size() >= unsubscribeAfter);
+					@Override
+					public void onError(Throwable e) {
+						error.set(e);
+					}
 
-			waitUntilWorkCompleted(scheduler);
-			waitUntilWorkCompleted(scheduler2);
-			count++;
+					@SuppressWarnings("unused")
+					@Override
+					public void onNext(Integer t) {
+						count++;
+						list.add(t);
+						if (count != t) {
+							onError(new RuntimeException("count=" + count + " but t=" + t));
+						}
+						if (count == unsubscribeAfter) {
+							unsubscribe();
+							if (false)
+								System.out.println(Thread.currentThread().getName() + "|called unsubscribe");
+							last.set(count);
+							latch.countDown();
+						}
+					}
+				};
+				Observable.range(1, max)
+						//
+						.subscribeOn(scheduler2)
+						//
+						.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
+								Options.rolloverEvery(max / 10).build()))
+						.subscribe(subscriber);
+				if (!latch.await(10, TimeUnit.SECONDS)) {
+					System.out.println("cycle=" + count + ", list.size= " + list.size());
+					Assert.fail();
+				}
+				if (error.get() != null)
+					Assert.fail(error.get().getMessage());
+
+				if (list.size() < unsubscribeAfter) {
+					System.out.println("cycle=" + count);
+					List<Integer> expected = new ArrayList<Integer>();
+					for (int i = 1; i <= unsubscribeAfter; i++) {
+						expected.add(i);
+					}
+					System.out.println("expected=" + expected);
+					System.out.println("actual  =" + list);
+				}
+				assertTrue(list.size() >= unsubscribeAfter);
+
+				count++;
+			} finally {
+				waitUntilWorkCompleted(scheduler);
+				waitUntilWorkCompleted(scheduler2);
+			}
 		}
 		System.out.println(count + " cycles passed");
 	}
