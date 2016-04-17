@@ -126,7 +126,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 						}
 						long over = wp - readPosition;
 						if (over > 0) {
-							// read position is past the write position
+							// read position is not past the write position
 							readBufferLength = (int) Math.min(readBuffer.length, over);
 							synchronized (accessLock) {
 								if (accessor == null) {
@@ -139,7 +139,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 							readBufferPosition = 1;
 							return toUnsignedInteger(readBuffer[0]);
 						} else {
-							// read position is not past the write position
+							// read position is past the write position
 							int index = -(int) over;
 							if (index >= writeBuffer.length) {
 								throw EOF;
