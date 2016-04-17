@@ -334,6 +334,7 @@ Observable
           .fileFactory(fileFactory)
           .bufferSizeBytes(1024)
           .rolloverEvery(10000)
+          .rolloverSizeBytes(10000000)
           .delayError(false)
           .build()))
   ...
