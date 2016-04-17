@@ -373,8 +373,8 @@ Observable.just(1, 2, 3, 4)
 
 ###Performance
 Throughput writing to spinning disk (and reading straight away with little downstream processing cost) on an i7 with `Options.bufferSizeBytes=1024`:
-* 22MB/second with 1K messages (22,000 messages/second), 
-* 12MB/second with 4B messages (4,000,000 integers/second)
+* 41MB/second with 1K messages (41,000 messages/second), 
+* 15MB/second with 4B messages (3,750,000 integers/second)
 
 For a use case with burst write and delayed or cpu intensive downstream processing I measure
 * 87MB/second with 1K messages (just write, no read contention) - this value is about the average write speed benchmark for my drive (85MB/s) so I suspect the main limiter is the drive's max write speed rather than the code for this uncontended scenario. 
