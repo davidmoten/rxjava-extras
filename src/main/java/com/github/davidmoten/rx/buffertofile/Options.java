@@ -49,6 +49,10 @@ public final class Options {
 	public int bufferSizeBytes() {
 		return bufferSizeBytes;
 	}
+	
+	public boolean rolloverEnabled() {
+		return rolloverSizeBytes!=Long.MAX_VALUE || rolloverEvery != Long.MAX_VALUE;
+	}
 
 	/**
 	 * Defaults are {@code cacheType=CacheType.SOFT_REF},
@@ -80,7 +84,7 @@ public final class Options {
 	public static Builder disableRollover() {
 		return builder().disableRollover();
 	}
-
+	
 	public static Builder bufferSizeBytes(int bufferSizeBytes) {
 		return builder().bufferSizeBytes(bufferSizeBytes);
 	}
