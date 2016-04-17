@@ -77,7 +77,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 			final Options options) {
 		if (options.rolloverEvery() == Long.MAX_VALUE && options.rolloverSizeBytes() == Long.MAX_VALUE) {
 			// skip the Rollover version
-			return new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), options.fileFactory().call(), dataSerializer);
+			return new QueueWithResourcesNonBlockingUnsubscribe<T>(
+					new FileBasedSPSCQueue<T>(options.bufferSizeBytes(), options.fileFactory().call(), dataSerializer));
 		} else {
 			final Func0<QueueWithResources<T>> queueFactory = new Func0<QueueWithResources<T>>() {
 				@Override
@@ -92,7 +93,8 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 			};
 			// the wrapping class ensures that unsubscribe happens in the same
 			// thread as the offer or poll which avoids the unsubscribe action
-			// not getting a time-slice so that the open file limit is not exceeded
+			// not getting a time-slice so that the open file limit is not
+			// exceeded
 			// (new files are opened in the offer() call).
 			return new QueueWithResourcesNonBlockingUnsubscribe<T>(
 					new RollingSPSCQueue<T>(queueFactory, options.rolloverSizeBytes(), options.rolloverEvery()));

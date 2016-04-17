@@ -311,7 +311,20 @@ public final class OperatorBufferToFileTest {
 	}
 
 	@Test
-	public void handlesTenSecondLoopOfMidStreamUnsubscribe() throws Throwable {
+	public void handlesTenSecondLoopOfMidStreamUnsubscribeRollover() throws Throwable {
+		int max = 1000;
+		Options options = Options.rolloverEvery(max / 10).build();
+		checkTenSecondLoopOfMidStreamUnsubscribeWithOptions(max, options);
+	}
+
+	@Test
+	public void handlesTenSecondLoopOfMidStreamUnsubscribeNoRollover() throws Throwable {
+		int max = 1000;
+		Options options = Options.disableRollover().build();
+		checkTenSecondLoopOfMidStreamUnsubscribeWithOptions(max, options);
+	}
+	
+	private static void checkTenSecondLoopOfMidStreamUnsubscribeWithOptions(int max, Options options) throws InterruptedException, Throwable {
 		int maxSeconds = Integer.parseInt(System.getProperty("max.seconds", "9"));
 		// run for ten seconds
 		long t = System.currentTimeMillis();
@@ -321,7 +334,6 @@ public final class OperatorBufferToFileTest {
 		while ((System.currentTimeMillis() - t < TimeUnit.SECONDS.toMillis(maxSeconds))) {
 			try {
 				DataSerializer<Integer> serializer = DataSerializers.integer();
-				int max = 1000;
 				final CountDownLatch latch = new CountDownLatch(1);
 				final AtomicInteger last = new AtomicInteger(-1);
 				final AtomicReference<Throwable> error = new AtomicReference<Throwable>();
@@ -347,7 +359,9 @@ public final class OperatorBufferToFileTest {
 						count++;
 						list.add(t);
 						if (count != t) {
+							System.out.println(list);
 							onError(new RuntimeException("count=" + count + " but t=" + t));
+							System.exit(1);
 						}
 						if (count == unsubscribeAfter) {
 							unsubscribe();
@@ -363,10 +377,10 @@ public final class OperatorBufferToFileTest {
 						.subscribeOn(scheduler2)
 						//
 						.compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
-								Options.rolloverEvery(max / 10).build()))
+								options))
 						.subscribe(subscriber);
 
-				if (!latch.await(10, TimeUnit.SECONDS)) {
+				if (!latch.await(1000, TimeUnit.SECONDS)) {
 					System.out.println("cycle=" + count + ", list.size= " + list.size() + "\n" + list);
 					if (error.get() != null) {
 						throw error.get();
@@ -397,7 +411,7 @@ public final class OperatorBufferToFileTest {
 		System.out.println(count + " cycles passed");
 	}
 
-	private Scheduler createNamedSingleThreadScheduler(final String name) {
+	private static Scheduler createNamedSingleThreadScheduler(final String name) {
 		return Schedulers.from(Executors.newFixedThreadPool(1, new ThreadFactory() {
 
 			@Override
