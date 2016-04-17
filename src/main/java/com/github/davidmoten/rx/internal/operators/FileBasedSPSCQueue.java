@@ -42,7 +42,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 		Preconditions.checkNotNull(file);
 		Preconditions.checkNotNull(serializer);
 		this.readBuffer = new byte[bufferSizeBytes];
-		this.writeBuffer = new byte[bufferSizeBytes * 17 / 13];
+		this.writeBuffer = new byte[bufferSizeBytes];
 		try {
 			file.getParentFile().mkdirs();
 			file.createNewFile();
