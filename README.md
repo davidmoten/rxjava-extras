@@ -377,9 +377,20 @@ Throughput writing to spinning disk (and reading straight away with little downs
 * 15MB/second with 4B messages (3,750,000 integers/second)
 
 For a use case with burst write and delayed or cpu intensive downstream processing I measure
-* 87MB/second with 1K messages (just write, no read contention) - this value is about the average write speed benchmark for my drive (85MB/s) so I suspect the main limiter is the drive's max write speed rather than the code for this uncontended scenario. 
+* up to 87MB/second with 1K messages (just write, no read contention) - this value is about the average write speed benchmark for my drive (85MB/s) so I suspect the main limiter is the drive's max write speed rather than the code for this uncontended scenario. 
 
-I wouldn't be surprised to see another order of magnitude improvement on some of these benchmarks in the medium term (especially if using memory-mapped files). There are at least a couple of java file based implementations out there that have impressive throughput using memory-mapped files but I suspect without the overhead of a rolling queue for disk space recovery. 
+I wouldn't be surprised to see another order of magnitude improvement on some of these benchmarks in the medium term (especially if using memory-mapped files). There are at least a couple of java file based implementations out there that have impressive throughput using memory-mapped files.
+
+```
+rate = 71.2MB/s (1K messages, no rollover, write only)
+rate = 73.9MB/s (1K messages, rollover, write only)
+rate = 22.3MB/s (1K messages, no rollover)
+rate = 41.0MB/s (1K messages, rollover)
+rate = 15.4MB/s (4B messages, no rollover)
+rate = 5.1MB/s (4B messages, rollover)
+
+```
+ 
 
 TestingHelper
 -----------------
