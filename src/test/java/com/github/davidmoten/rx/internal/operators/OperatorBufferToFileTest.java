@@ -9,6 +9,7 @@ import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -417,6 +418,10 @@ public final class OperatorBufferToFileTest {
 	public void checkRateForSmallMessagesRollover() {
 		checkRateForSmallMessagesWithOptions(Options.rolloverSizeBytes(Long.MAX_VALUE - 1).build());
 	}
+	
+	private static String df(double d) {
+		return new DecimalFormat("0.0").format(d);
+	}
 
 	private static void checkRateForSmallMessagesWithOptions(Options options) {
 		Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
@@ -434,7 +439,7 @@ public final class OperatorBufferToFileTest {
 		t = System.currentTimeMillis() - t;
 		assertEquals(max, last);
 		System.out.println(
-				"rate = " + (double) max * 4 / (t) / 1000 + "MB/s (4B messages, " + rolloverStatus(options) + ")");
+				"rate = " + df( (double) max * 4 / (t) / 1000) + "MB/s (4B messages, " + rolloverStatus(options) + ")");
 		waitUntilWorkCompleted(scheduler);
 	}
 
@@ -467,7 +472,7 @@ public final class OperatorBufferToFileTest {
 				.last().toBlocking().single();
 		t = System.currentTimeMillis() - t;
 		assertEquals(max, last);
-		System.out.println("rate = " + (double) max / (t) + "MB/s (1K messages, " + rolloverStatus(options) + ")");
+		System.out.println("rate = " + df((double) max / (t)) + "MB/s (1K messages, " + rolloverStatus(options) + ")");
 		waitUntilWorkCompleted(scheduler);
 	}
 
@@ -528,7 +533,7 @@ public final class OperatorBufferToFileTest {
 		t = System.currentTimeMillis() - t;
 		assertEquals(1, first);
 		System.out.println(
-				"rate = " + (double) max / (t) + "MB/s (1K messages, " + rolloverStatus(options) + ", write only)");
+				"rate = " + df((double) max / (t)) + "MB/s (1K messages, " + rolloverStatus(options) + ", write only)");
 		waitUntilWorkCompleted(scheduler);
 	}
 
