@@ -84,11 +84,16 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 		@Override
 		public void write(int b) throws IOException {
-			
-				if (writeBufferPosition < writeBuffer.length) {
-					writeBuffer[writeBufferPosition] = (byte) b;
-					writeBufferPosition++;
-				} else synchronized (writeLock) {
+			if (writeBufferPosition < writeBuffer.length) {
+				writeBuffer[writeBufferPosition] = (byte) b;
+				int next = writeBufferPosition + 1;
+				synchronized (writeLock) {
+					// synchronize here to make sure the read thread sees the
+					// latest value
+					writeBufferPosition = next;
+				}
+			} else
+				synchronized (writeLock) {
 					accessor.fWrite.seek(writePosition);
 					accessor.fWrite.write(writeBuffer);
 					writeBuffer[0] = (byte) b;
@@ -146,18 +151,21 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 								final boolean writeBufferUnchanged;
 								synchronized (writeLock) {
 									writeBufferUnchanged = wp == writePosition && wbp == writeBufferPosition;
-//									if (writeBufferUnchanged) {
-//									    // reset write buffer a bit and the readPosition so that we avoid writing 
-//									    // the full contents of the write buffer
-//										if (index >= writeBuffer.length / 2 && index < writeBufferPosition) {
-//											System.arraycopy(writeBuffer, index + 1, writeBuffer, 0,
-//													writeBufferPosition - index - 1);
-//											writeBufferPosition -= index + 1;
-//											readPosition = writePosition;
-//										} else {
-//											readPosition++;
-//										}
-//									}
+									// if (writeBufferUnchanged) {
+									// // reset write buffer a bit and the
+									// readPosition so that we avoid writing
+									// // the full contents of the write buffer
+									// if (index >= writeBuffer.length / 2 &&
+									// index < writeBufferPosition) {
+									// System.arraycopy(writeBuffer, index + 1,
+									// writeBuffer, 0,
+									// writeBufferPosition - index - 1);
+									// writeBufferPosition -= index + 1;
+									// readPosition = writePosition;
+									// } else {
+									// readPosition++;
+									// }
+									// }
 								}
 								if (writeBufferUnchanged) {
 									readPosition++;
