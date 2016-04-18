@@ -147,6 +147,8 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 								synchronized (writeLock) {
 									writeBufferUnchanged = wp == writePosition && wbp == writeBufferPosition;
 //									if (writeBufferUnchanged) {
+//									    // reset write buffer a bit and the readPosition so that we avoid writing 
+//									    // the full contents of the write buffer
 //										if (index >= writeBuffer.length / 2 && index < writeBufferPosition) {
 //											System.arraycopy(writeBuffer, index + 1, writeBuffer, 0,
 //													writeBufferPosition - index - 1);
