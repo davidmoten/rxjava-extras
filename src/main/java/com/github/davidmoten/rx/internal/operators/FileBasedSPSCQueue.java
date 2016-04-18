@@ -19,7 +19,7 @@ import com.github.davidmoten.util.Preconditions;
 class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 	int readBufferPosition = 0;
-	int readPosition = 0;
+	long readPosition = 0;
 	final byte[] readBuffer;
 	int readBufferLength = 0;
 	final byte[] writeBuffer;
@@ -84,20 +84,18 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 
 		@Override
 		public void write(int b) throws IOException {
-			if (writeBufferPosition < writeBuffer.length) {
-				writeBuffer[writeBufferPosition] = (byte) b;
-				writeBufferPosition++;
-			} else {
-				synchronized (writeLock) {
+			
+				if (writeBufferPosition < writeBuffer.length) {
+					writeBuffer[writeBufferPosition] = (byte) b;
+					writeBufferPosition++;
+				} else synchronized (writeLock) {
 					accessor.fWrite.seek(writePosition);
 					accessor.fWrite.write(writeBuffer);
 					writeBuffer[0] = (byte) b;
 					writeBufferPosition = 1;
 					writePosition += writeBuffer.length;
 				}
-			}
 		}
-
 	}
 
 	private static final EOFException EOF = new EOFException();
@@ -114,9 +112,9 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 					readBufferPosition++;
 					return toUnsignedInteger(b);
 				} else {
-					// before reading more we see if we can emit directly from
-					// the writeBuffer by checking if the read position is past
-					// the write position
+					// before reading more from file we see if we can emit
+					// directly from the writeBuffer by checking if the read
+					// position is past the write position
 					while (true) {
 						long wp;
 						int wbp;
@@ -139,7 +137,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 							readBufferPosition = 1;
 							return toUnsignedInteger(readBuffer[0]);
 						} else {
-							// read position is past the write position
+							// read position is at or past the write position
 							int index = -(int) over;
 							if (index >= writeBuffer.length) {
 								throw EOF;
@@ -148,6 +146,16 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 								final boolean writeBufferUnchanged;
 								synchronized (writeLock) {
 									writeBufferUnchanged = wp == writePosition && wbp == writeBufferPosition;
+//									if (writeBufferUnchanged) {
+//										if (index >= writeBuffer.length / 2 && index < writeBufferPosition) {
+//											System.arraycopy(writeBuffer, index + 1, writeBuffer, 0,
+//													writeBufferPosition - index - 1);
+//											writeBufferPosition -= index + 1;
+//											readPosition = writePosition;
+//										} else {
+//											readPosition++;
+//										}
+//									}
 								}
 								if (writeBufferUnchanged) {
 									readPosition++;
