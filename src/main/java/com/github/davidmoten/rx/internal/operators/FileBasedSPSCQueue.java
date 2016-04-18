@@ -86,12 +86,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 		public void write(int b) throws IOException {
 			if (writeBufferPosition < writeBuffer.length) {
 				writeBuffer[writeBufferPosition] = (byte) b;
-				int next = writeBufferPosition + 1;
-				synchronized (writeLock) {
-					// synchronize here to make sure the read thread sees the
-					// latest value
-					writeBufferPosition = next;
-				}
+					writeBufferPosition += 1;
 			} else
 				synchronized (writeLock) {
 					accessor.fWrite.seek(writePosition);
@@ -100,8 +95,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 					writeBufferPosition = 1;
 					writePosition += writeBuffer.length;
 				}
-		}
-	}
+		}}
 
 	private static final EOFException EOF = new EOFException();
 
