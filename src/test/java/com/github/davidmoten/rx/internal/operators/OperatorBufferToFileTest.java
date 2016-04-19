@@ -67,7 +67,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesEmpty() {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         for (int i = 0; i < loops(); i++) {
             TestSubscriber<String> ts = TestSubscriber.create(0);
             Observable
@@ -85,7 +85,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesEmptyUsingJavaIOSerialization() {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         for (int i = 0; i < loops(); i++) {
             TestSubscriber<String> ts = TestSubscriber.create(0);
             Observable.<String> empty().compose(Transformers
@@ -102,7 +102,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesThreeUsingJavaIOSerialization() {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         for (int i = 0; i < loops(); i++) {
             TestSubscriber<String> ts = TestSubscriber.create();
             Observable.just("a", "bc", "def").compose(Transformers
@@ -137,7 +137,7 @@ public final class OperatorBufferToFileTest {
     @Test
     public void handlesThreeElementsWithBackpressureAndEnsureCompletionEventArrivesWhenThreeRequested()
             throws InterruptedException {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         for (int i = 0; i < loops(); i++) {
             TestSubscriber<String> ts = TestSubscriber.create(0);
             Observable.just("abc", "def", "ghi")
@@ -160,7 +160,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesErrorSerialization() throws InterruptedException {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         for (int i = 0; i < loops(); i++) {
             TestSubscriber<String> ts = TestSubscriber.create();
             Observable.<String> error(new IOException("boo"))
@@ -176,7 +176,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesErrorWhenDelayErrorIsFalse() throws InterruptedException {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def").concatWith(Observable.<String> error(new IOException("boo")))
                 //
@@ -204,7 +204,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesUnsubscription() throws InterruptedException {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
                 //
@@ -221,7 +221,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesUnsubscriptionDuringDrainLoop() throws InterruptedException {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
                 //
@@ -248,7 +248,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesManyLargeMessages() {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = createLargeMessageSerializer();
         int max = 100;
         int last = Observable.range(1, max)
@@ -283,7 +283,7 @@ public final class OperatorBufferToFileTest {
         for (int i = 0; i < 100; i++) {
             DataSerializer<Integer> serializer = DataSerializers.integer();
             int max = 100;
-            Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+            Scheduler scheduler = createSingleThreadScheduler();
             int last = Observable.range(1, max)
                     //
                     .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler,
@@ -444,7 +444,7 @@ public final class OperatorBufferToFileTest {
     }
 
     private static void checkRateForSmallMessagesWithOptions(Options options) {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = DataSerializers.integer();
 
         int max = Integer.parseInt(System.getProperty("max.small", "300000"));
@@ -478,7 +478,7 @@ public final class OperatorBufferToFileTest {
     }
 
     private static void checkRateForOneKMessagesWithOptions(Options options) {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = createSerializer1K();
 
         int max = Integer.parseInt(System.getProperty("max.medium", "3000"));
@@ -530,7 +530,7 @@ public final class OperatorBufferToFileTest {
     }
 
     private static void checkRateForOneKMessagesNoReadWithOptions(Options options) {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = createSerializer1K();
 
         int max = Integer.parseInt(System.getProperty("max.medium", "3000"));
@@ -563,7 +563,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void testCompletionDeletesAllFilesUsingRolloverOnSize() {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = DataSerializers.integer();
 
         int max = Integer.parseInt(System.getProperty("max.small", "300000"));
@@ -593,7 +593,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void testForReadMe() {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<String> serializer = new DataSerializer<String>() {
 
             @Override
@@ -657,13 +657,17 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void serializesListsUsingJavaIO() {
-        Scheduler scheduler = Schedulers.from(Executors.newSingleThreadExecutor());
+        Scheduler scheduler = createSingleThreadScheduler();
         List<Integer> list = Observable.just(1, 2, 3, 4).buffer(2)
                 .compose(Transformers.<List<Integer>> onBackpressureBufferToFile(
                         DataSerializers.<List<Integer>> javaIO(), scheduler))
                 .last().toBlocking().single();
         assertEquals(Arrays.asList(3, 4), list);
         waitUntilWorkCompleted(scheduler);
+    }
+
+    private static Scheduler createSingleThreadScheduler() {
+        return Schedulers.from(Executors.newSingleThreadExecutor());
     }
 
     public static void main(String[] args) throws InterruptedException {
