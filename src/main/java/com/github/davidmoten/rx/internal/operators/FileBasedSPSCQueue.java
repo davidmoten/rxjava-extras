@@ -24,6 +24,9 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
     final byte[] writeBuffer;
     final byte[] readBuffer;
     final Object writeLock = new Object();
+    private final Object accessLock = new Object();
+    private final DataOutputStream output;
+    private final DataInputStream input;
 
     //mutable state
     
@@ -35,10 +38,6 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
     // guarded by accessLock
     private FileAccessor accessor;
     private volatile boolean unsubscribed = false;
-
-    private final Object accessLock = new Object();
-    private final DataOutputStream output;
-    private final DataInputStream input;
 
     FileBasedSPSCQueue(int bufferSizeBytes, File file, DataSerializer<T> serializer) {
         Preconditions.checkArgument(bufferSizeBytes > 0,
