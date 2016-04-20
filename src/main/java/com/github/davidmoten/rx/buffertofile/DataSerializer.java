@@ -6,27 +6,26 @@ import java.io.IOException;
 
 public interface DataSerializer<T> {
 
-    /**
-     * Serializes an object to a data stream.
-     * 
-     * @param output
-     *            the data stream
-     * @param t
-     *            the object to serialize
-     * @throws IOException exception
-     */
-    void serialize(DataOutput output, T t) throws IOException;
+	/**
+	 * Serializes an object to a data stream.
+	 * 
+	 * @param output
+	 *            the data stream
+	 * @param t
+	 *            the object to serialize
+	 * @throws IOException
+	 *             exception
+	 */
+	void serialize(DataOutput output, T t) throws IOException;
 
-    /**
-     * Deserializes the bytes pointed by {@code input}.
-     * 
-     * @param input
-     *            input data to read from
-     * @param availableBytes
-     *            the number of bytes available. 0 would correspond to a null
-     *            object, -1 is EOF.
-     * @return deserialized object
-     * @throws IOException exception
-     */
-    T deserialize(DataInput input, int availableBytes) throws IOException;
+	/**
+	 * Deserializes the bytes pointed by {@code input}.
+	 * 
+	 * @param input
+	 *            input data to read from
+	 * @return deserialized object
+	 * @throws IOException
+	 *             exception
+	 */
+	T deserialize(DataInput input) throws IOException;
 }

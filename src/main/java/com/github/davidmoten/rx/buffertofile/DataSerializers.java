@@ -27,7 +27,7 @@ public final class DataSerializers {
             }
 
             @Override
-            public String deserialize(DataInput input, int availableBytes) throws IOException {
+            public String deserialize(DataInput input) throws IOException {
                 return input.readUTF();
             }
         };
@@ -46,7 +46,7 @@ public final class DataSerializers {
             }
 
             @Override
-            public Integer deserialize(DataInput input, int availableBytes) throws IOException {
+            public Integer deserialize(DataInput input) throws IOException {
                 return input.readInt();
             }
         };
@@ -66,7 +66,7 @@ public final class DataSerializers {
             }
 
             @Override
-            public byte[] deserialize(DataInput input, int availableBytes) throws IOException {
+            public byte[] deserialize(DataInput input) throws IOException {
                 int length = input.readInt();
                 byte[] bytes = new byte[length];
                 input.readFully(bytes);
@@ -96,7 +96,7 @@ public final class DataSerializers {
             }
 
             @Override
-            public Object deserialize(DataInput input, int availableBytes) throws IOException {
+            public Object deserialize(DataInput input) throws IOException {
                 int length = input.readInt();
                 byte[] array = new byte[length];
                 input.readFully(array);

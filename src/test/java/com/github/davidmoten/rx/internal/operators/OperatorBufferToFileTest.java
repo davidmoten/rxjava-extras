@@ -512,7 +512,7 @@ public final class OperatorBufferToFileTest {
 			}
 
 			@Override
-			public Integer deserialize(DataInput input, int availableBytes) throws IOException {
+			public Integer deserialize(DataInput input) throws IOException {
 				input.readFully(message);
 				return input.readInt();
 			}
@@ -602,7 +602,7 @@ public final class OperatorBufferToFileTest {
 			}
 
 			@Override
-			public String deserialize(DataInput input, int availableBytes) throws IOException {
+			public String deserialize(DataInput input) throws IOException {
 				return input.readUTF();
 			}
 		};
@@ -635,7 +635,7 @@ public final class OperatorBufferToFileTest {
 			}
 
 			@Override
-			public Integer deserialize(DataInput input, int availableBytes) throws IOException {
+			public Integer deserialize(DataInput input) throws IOException {
 				int value = input.readInt();
 				// read the filler
 				int bytesRead = 0;

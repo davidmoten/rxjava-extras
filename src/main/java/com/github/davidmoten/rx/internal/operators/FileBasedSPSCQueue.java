@@ -229,7 +229,7 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 		// poll calls must be sequential but can happen concurrently with other
 		// methods except unsubscribe
 		try {
-			T t = serializer.deserialize(input, Integer.MAX_VALUE);
+			T t = serializer.deserialize(input);
 			size.decrementAndGet();
 			if (t == null) {
 				return NullSentinel.instance();
