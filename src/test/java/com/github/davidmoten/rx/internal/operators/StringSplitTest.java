@@ -6,6 +6,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.regex.Pattern;
 
 import org.junit.Test;
 
@@ -22,6 +23,13 @@ public class StringSplitTest {
         Observable<String> o = Observable.just("boo:an", "d:you");
         List<String> expected = asList("boo", "and", "you");
         check(o, expected);
+    }
+    
+    @Test
+    public void testWithPattern() {
+        Observable<String> o = Observable.just("boo:an", "d:you");
+        List<String> expected = asList("boo", "and", "you");
+        checkWithPattern(o, expected);
     }
 
     @Test
@@ -130,6 +138,11 @@ public class StringSplitTest {
 
     private static void check(Observable<String> o, List<String> expected) {
         List<String> list = o.compose(Transformers.split(":")).toList().toBlocking().single();
+        assertEquals(expected, list);
+    }
+    
+    private static void checkWithPattern(Observable<String> o, List<String> expected) {
+        List<String> list = o.compose(Transformers.split(Pattern.compile(":"))).toList().toBlocking().single();
         assertEquals(expected, list);
     }
 
