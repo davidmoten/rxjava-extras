@@ -261,7 +261,11 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						}
 					} else {
 						// there was an item on the queue
-						child.onNext(item);
+						if (NullSentinel.isNullSentinel(item)) {
+							child.onNext(null);
+						} else {
+							child.onNext(item);
+						}
 						requests--;
 						emitted++;
 					}
