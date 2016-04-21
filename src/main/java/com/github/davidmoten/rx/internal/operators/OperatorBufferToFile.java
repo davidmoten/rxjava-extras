@@ -271,9 +271,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 					}
 				}
 				// try and avoid the addAndGet if possible because it is
-				// more expensive than an emitted comparison
+				// more expensive than an emitted comparison with zero
 				if (emitted != 0) {
-					requests = addAndGet(-emitted);
+					requests = BackpressureUtils.produced(this, emitted);
 				}
 				if (child.isUnsubscribed() || (requests == 0L && finished())) {
 					return;
