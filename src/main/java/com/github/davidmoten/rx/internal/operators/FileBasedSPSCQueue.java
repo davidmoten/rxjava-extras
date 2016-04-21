@@ -232,6 +232,9 @@ class FileBasedSPSCQueue<T> implements QueueWithResources<T> {
 			T t = serializer.deserialize(input);
 			size.decrementAndGet();
 			if (t == null) {
+				// this is a trick that we can get away with due to type erasure
+				// in java as long as the return value of poll() is checked
+				// using NullSentinel.isNullSentinel(t) (?)
 				return NullSentinel.instance();
 			} else {
 				return t;

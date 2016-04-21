@@ -94,13 +94,12 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 			// the wrapping class ensures that unsubscribe happens in the same
 			// thread as the offer or poll which avoids the unsubscribe action
 			// not getting a time-slice so that the open file limit is not
-			// exceeded
-			// (new files are opened in the offer() call).
+			// exceeded (new files are opened in the offer() call).
 			return new QueueWithResourcesNonBlockingUnsubscribe<T>(
 					new RollingSPSCQueue<T>(queueFactory, options.rolloverSizeBytes(), options.rolloverEvery()));
 		}
 	}
-
+	
 	private static final class OnSubscribeFromQueue<T> implements OnSubscribe<T> {
 
 		private final AtomicReference<QueueProducer<T>> queueProducer;
@@ -234,17 +233,21 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		private void drainNow() {
-
-			while (true) {
+			if (child.isUnsubscribed()) {
+				// leave drainRequested > 0 to prevent more
+				// scheduling of drains
+				return;
+			}
+			boolean first = true;
+			long requests = 0;
+			for (;;) {
 				// reset drainRequested counter
 				drainRequested.set(1);
-				if (child.isUnsubscribed()) {
-					// leave drainRequested > 0 to prevent more
-					// scheduling of drains
-					return;
+				if (first) {
+					// get the number of unsatisfied requests
+					requests = get();
+					first = false;
 				}
-				// get the number of unsatisfied requests
-				long requests = get();
 				long emitted = 0;
 				while (requests > 0) {
 					T item = queue.poll();
@@ -270,11 +273,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						emitted++;
 					}
 				}
-				// try and avoid the addAndGet if possible because it is
-				// more expensive than an emitted comparison with zero
-				if (emitted != 0) {
-					requests = BackpressureUtils.produced(this, emitted);
-				}
+				requests = addAndGet(-emitted);
 				if (child.isUnsubscribed() || (requests == 0L && finished())) {
 					return;
 				}
