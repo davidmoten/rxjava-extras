@@ -49,9 +49,9 @@ public final class Options {
 	public int bufferSizeBytes() {
 		return bufferSizeBytes;
 	}
-	
+
 	public boolean rolloverEnabled() {
-		return rolloverSizeBytes!=Long.MAX_VALUE || rolloverEvery != Long.MAX_VALUE;
+		return rolloverSizeBytes != Long.MAX_VALUE || rolloverEvery != Long.MAX_VALUE;
 	}
 
 	/**
@@ -81,10 +81,14 @@ public final class Options {
 		return builder().rolloverSizeBytes(rolloverSizeBytes);
 	}
 
+	public static Builder rolloverSizeMB(double rolloverSizeMB) {
+		return builder().rolloverSizeMB(rolloverSizeMB);
+	}
+
 	public static Builder disableRollover() {
 		return builder().disableRollover();
 	}
-	
+
 	public static Builder bufferSizeBytes(int bufferSizeBytes) {
 		return builder().bufferSizeBytes(bufferSizeBytes);
 	}
@@ -102,6 +106,10 @@ public final class Options {
 		private int bufferSizeBytes = 1024;
 
 		private Builder() {
+		}
+
+		public Builder rolloverSizeMB(double rolloverSizeMB) {
+			return rolloverSizeBytes(Math.round(rolloverSizeMB * 1024 * 1024));
 		}
 
 		public Builder rolloverSizeBytes(long rolloverSizeBytes) {
