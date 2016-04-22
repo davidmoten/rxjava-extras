@@ -82,6 +82,8 @@ class RollingSPSCQueue<T> implements QueueWithResources<T> {
 
 	@Override
 	public boolean isUnsubscribed() {
+		if (unsubscribed)
+			return true;
 		synchronized (queues) {
 			return unsubscribed;
 		}
