@@ -681,13 +681,14 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void testWithMultiSecondRangeAndCheckMemoryUsage() throws InterruptedException {
+        Scheduler scheduler = createSingleThreadScheduler();
         final long startMem = displayMemory();
         TestSubscriber<Integer> ts = TestSubscriber.create();
         int maxSeconds = getMaxSeconds();
         Observable.range(1, Integer.MAX_VALUE)
                 //
-                .compose(onBackpressureBufferToFile(DataSerializers.integer(),
-                        Schedulers.computation(), Options.rolloverSizeMB(1).build()))
+                .compose(onBackpressureBufferToFile(DataSerializers.integer(), scheduler,
+                        Options.rolloverSizeMB(1).build()))
                 .doOnNext(new Action1<Integer>() {
                     int count = 0;
 
@@ -717,6 +718,7 @@ public final class OperatorBufferToFileTest {
         ts.assertNoErrors();
         ts.assertCompleted();
         displayMemory();
+        waitUntilWorkCompleted(scheduler);
     }
 
     private static long displayMemory() throws InterruptedException {
