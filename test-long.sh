@@ -1,6 +1,6 @@
 #!/bin/bash
 echo ---------------------------------------------
-echo this takes about 20 minutes and tests 
+echo this takes about 35 minutes and tests 
 echo Transformer.onBackpressureBufferToFile more 
 echo intensively than a standard build.
 echo ---------------------------------------------

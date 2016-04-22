@@ -48,7 +48,7 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.7</version>
+  <version>0.7.2</version>
 </dependency>
 ```
 
@@ -261,9 +261,7 @@ source1.compose(Transformers.orderedMergeWith(source2, comparator));
 
 Transformers.onBackpressureBufferToFile
 ----------------------------------------
-This is work-in-progress still so watch this space for a release.
-
-As of 0.7.1, you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage).
+As of 0.7.2, you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage).
 
 If you use the `onBackpressureBuffer` operator you'll know that when a stream is producing faster than the downstream operators can process (perhaps the producer cannot respond meaningfully to a *slow down* request from downstream) then `onBackpressureBuffer` buffers the items to an in-memory queue until they can be processed. Of course if memory is limited then some streams might eventually cause an `OutOfMemoryError`. One solution to this problem is to increase the effectively available memory for buffering by using disk instead (and small in-memory read/write buffers). That's why `Transformers.onBackpressureBufferToFile` was created. 
 
