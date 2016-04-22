@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import static com.github.davidmoten.rx.Transformers.onBackpressureBufferToFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -38,6 +39,7 @@ import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
 
 import rx.Observable;
+import rx.Observer;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
@@ -137,7 +139,7 @@ public final class OperatorBufferToFileTest {
 	public void testNullsInStreamHandledByJavaIOSerialization() {
 		List<Integer> list = Observable.just(1, 2, (Integer) null, 4)
 				.compose(Transformers.<Integer> onBackpressureBufferToFile()).toList().toBlocking().single();
-		assertEquals(Arrays.asList(1,2, (Integer) null, 4), list);
+		assertEquals(Arrays.asList(1, 2, (Integer) null, 4), list);
 	}
 
 	@Test
@@ -664,6 +666,30 @@ public final class OperatorBufferToFileTest {
 		waitUntilWorkCompleted(scheduler);
 	}
 
+	@Test
+	public void testBufferRangeToFile() {
+		TestSubscriber<Integer> ts = TestSubscriber.create();
+		int maxSeconds = Integer.parseInt(System.getProperty("max.seconds", "16")) / 4;
+		Observable.range(1, Integer.MAX_VALUE)
+				//
+				.compose(onBackpressureBufferToFile(DataSerializers.integer(), Schedulers.computation(),
+						Options.rolloverSizeMB(10).build()))
+				.doOnNext(new Action1<Integer>() {
+					int count = 0;
+
+					@Override
+					public void call(Integer t) {
+						count++;
+						if (t != count) {
+							throw new AssertionError(t + " != " + count);
+						}
+					}
+				}).sample(maxSeconds, TimeUnit.SECONDS).first().subscribe(ts);
+		ts.awaitTerminalEvent();
+		ts.assertNoErrors();
+		ts.assertCompleted();
+	}
+
 	private static Scheduler createSingleThreadScheduler() {
 		return Schedulers.from(Executors.newSingleThreadExecutor());
 	}
@@ -685,8 +711,7 @@ public final class OperatorBufferToFileTest {
 
 					@Override
 					public void onCompleted() {
-						// TODO Auto-generated method stub
-
+						latch.countDown();
 					}
 
 					@Override
