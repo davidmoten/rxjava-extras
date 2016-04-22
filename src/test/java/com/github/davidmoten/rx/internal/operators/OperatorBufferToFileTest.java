@@ -614,7 +614,7 @@ public final class OperatorBufferToFileTest {
 		waitUntilWorkCompleted(scheduler);
 	}
 
-	private DataSerializer<Integer> createLargeMessageSerializer() {
+	private static DataSerializer<Integer> createLargeMessageSerializer() {
 		DataSerializer<Integer> serializer = new DataSerializer<Integer>() {
 
 			final static int dummyArraySize = 1000000;// 1MB
