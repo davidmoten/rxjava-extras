@@ -530,7 +530,7 @@ public final class OperatorBufferToFileTest {
             }
         };
     }
-
+    
     @Test
     public void checkRateForOneKMessagesNoReadNoRollover() {
         checkRateForOneKMessagesNoReadWithOptions(Options.disableRollover().build());

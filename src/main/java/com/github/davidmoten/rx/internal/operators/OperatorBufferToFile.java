@@ -245,7 +245,12 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 				// reset drainRequested counter
 				drainRequested.set(1);
 				long emitted = 0;
-				while (requests > 0) {
+				while (emitted < requests) {
+					if (child.isUnsubscribed()) {
+						// leave drainRequested > 0 to prevent more
+						// scheduling of drains
+						return;
+					}
 					T item = queue.poll();
 					if (item == null) {
 						// queue is empty
@@ -265,11 +270,10 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 						} else {
 							child.onNext(item);
 						}
-						requests--;
 						emitted++;
 					}
 				}
-				//update requests with emitted value and any new requests
+				// update requests with emitted value and any new requests
 				requests = BackpressureUtils.produced(this, emitted);
 				if (child.isUnsubscribed() || (requests == 0L && finished())) {
 					return;
