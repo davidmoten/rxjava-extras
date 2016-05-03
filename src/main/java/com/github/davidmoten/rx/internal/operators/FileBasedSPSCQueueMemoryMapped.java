@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
@@ -15,6 +17,7 @@ import java.util.Iterator;
 import java.util.Queue;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
+import com.google.common.io.ByteArrayDataOutput;
 
 import rx.Subscription;
 
@@ -23,11 +26,155 @@ public class FileBasedSPSCQueueMemoryMapped<T> implements Queue<T>, Subscription
 	private final MappedByteBuffer write;
 	private final MappedByteBuffer read;
 	private final DataSerializer<T> serializer;
-	private final DataOutputStream output;
-	private final DataInputStream input;
+	private final DataOutput output;
+	private final DataInput input;
+	private final ByteArrayDataOutput buffer = new ByteArrayDataOutputStream();
 
 	// mutable state
 	private long writePosition;
+
+	private static class ByteArrayDataOutputStream implements ByteArrayDataOutput {
+
+		private final ByteArrayOutputStream bytes;
+		private final DataOutputStream output;
+
+		ByteArrayDataOutputStream() {
+			this.bytes = new ByteArrayOutputStream();
+			this.output = new DataOutputStream(bytes);
+		}
+
+		@Override
+		public void write(int b) {
+			try {
+				output.write(b);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void write(byte[] b) {
+			try {
+				output.write(b);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void write(byte[] b, int off, int len) {
+			try {
+				output.write(b, off, len);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeBoolean(boolean v) {
+			try {
+				output.writeBoolean(v);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeByte(int v) {
+			try {
+				output.writeByte(v);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeBytes(String s) {
+			try {
+				output.writeBytes(s);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeChar(int v) {
+			try {
+				output.writeChar(v);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeChars(String s) {
+			try {
+				output.writeChars(s);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeDouble(double v) {
+			try {
+				output.writeDouble(v);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeFloat(float v) {
+			try {
+				output.writeFloat(v);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeInt(int v) {
+			try {
+				output.writeInt(v);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeLong(long v) {
+			try {
+				output.writeLong(v);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeShort(int v) {
+			try {
+				output.writeShort(v);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public void writeUTF(String s) {
+			try {
+				output.writeUTF(s);
+			} catch (IOException impossible) {
+				throw new AssertionError(impossible);
+			}
+		}
+
+		@Override
+		public byte[] toByteArray() {
+			return bytes.toByteArray();
+		}
+
+	}
 
 	public FileBasedSPSCQueueMemoryMapped(File file, int size, DataSerializer<T> serializer) {
 		this.serializer = serializer;
@@ -52,7 +199,7 @@ public class FileBasedSPSCQueueMemoryMapped<T> implements Queue<T>, Subscription
 				return read.get();
 			}
 		});
-		
+
 	}
 
 	@Override
