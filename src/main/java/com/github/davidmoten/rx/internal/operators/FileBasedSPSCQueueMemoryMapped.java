@@ -28,10 +28,8 @@ public class FileBasedSPSCQueueMemoryMapped<T> implements Queue<T>, Subscription
     private final DataSerializer<T> serializer;
     private final DataOutput output;
     private final DataInput input;
-    private final int size;
 
     public FileBasedSPSCQueueMemoryMapped(File file, int size, DataSerializer<T> serializer) {
-        this.size = size;
         this.serializer = serializer;
         try {
             RandomAccessFile f = new RandomAccessFile(file, "rw");
