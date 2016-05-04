@@ -16,7 +16,7 @@ import com.github.davidmoten.util.Preconditions;
 import rx.Subscription;
 import rx.functions.Func0;
 
-public final class FileBasedSPSCQueueMemoryMapped<T> implements Queue<T>, Subscription {
+public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscription<T>{
 
 	static final int EOF_MARKER = -1;
 
@@ -41,8 +41,8 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements Queue<T>, Subscr
 		this.size = size;
 		this.serializer = serializer;
 		File file = factory.call();
-		this.reader = new FileBasedSPSCQueueMemoryMappedReader<T>(file, size, serializer);
 		this.writer = new FileBasedSPSCQueueMemoryMappedWriter<T>(file, size, serializer);
+		this.reader = new FileBasedSPSCQueueMemoryMappedReader<T>(file, size, serializer);
 		this.active.offer(file);
 	}
 

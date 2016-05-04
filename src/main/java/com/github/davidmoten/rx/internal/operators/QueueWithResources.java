@@ -18,7 +18,7 @@ import rx.Subscription;
  * @param <T>
  *            type of item on queue
  */
-interface QueueWithResources<T> extends Queue<T>, Subscription {
+interface QueueWithResources<T> extends QueueWithSubscription<T> {
 
 	/**
 	 * <p>

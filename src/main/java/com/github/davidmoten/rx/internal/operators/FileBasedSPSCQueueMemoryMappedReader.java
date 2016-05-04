@@ -61,7 +61,7 @@ public class FileBasedSPSCQueueMemoryMappedReader<T> {
     public T poll() {
         read.mark();
         int length = read.getInt();
-        if (length == -1) {
+        if (length == FileBasedSPSCQueueMemoryMapped.EOF_MARKER) {
             throw EOF;
         } else if (length == 0) {
             read.reset();

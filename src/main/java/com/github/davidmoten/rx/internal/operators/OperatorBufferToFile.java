@@ -40,7 +40,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	public Subscriber<? super T> call(Subscriber<? super T> child) {
 
 		// create the file based queue
-		final QueueWithResources<T> queue = createFileBasedQueue(dataSerializer, options);
+		final QueueWithSubscription<T> queue = createFileBasedQueue(dataSerializer, options);
 
 		// hold a reference to the queueProducer which will be set on
 		// subscription to `source`
@@ -73,8 +73,11 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		return parentSubscriber;
 	}
 
-	private static <T> QueueWithResources<T> createFileBasedQueue(final DataSerializer<T> dataSerializer,
+	private static <T> QueueWithSubscription<T> createFileBasedQueue(final DataSerializer<T> dataSerializer,
 			final Options options) {
+		if (false) {
+			return new FileBasedSPSCQueueMemoryMapped(options.fileFactory(), 25000000, dataSerializer);
+		}
 		if (options.rolloverEvery() == Long.MAX_VALUE && options.rolloverSizeBytes() == Long.MAX_VALUE) {
 			// skip the Rollover version
 			return new QueueWithResourcesNonBlockingUnsubscribe<T>(
@@ -103,11 +106,11 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	private static final class OnSubscribeFromQueue<T> implements OnSubscribe<T> {
 
 		private final AtomicReference<QueueProducer<T>> queueProducer;
-		private final QueueWithResources<T> queue;
+		private final QueueWithSubscription<T> queue;
 		private final Worker worker;
 		private final Options options;
 
-		OnSubscribeFromQueue(AtomicReference<QueueProducer<T>> queueProducer, QueueWithResources<T> queue,
+		OnSubscribeFromQueue(AtomicReference<QueueProducer<T>> queueProducer, QueueWithSubscription<T> queue,
 				Worker worker, Options options) {
 			this.queueProducer = queueProducer;
 			this.queue = queue;
@@ -159,7 +162,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
 		private static final long serialVersionUID = 2521533710633950102L;
 
-		private final QueueWithResources<T> queue;
+		private final QueueWithSubscription<T> queue;
 		private final AtomicInteger drainRequested = new AtomicInteger(0);
 		private final Subscriber<? super T> child;
 		private final Worker worker;
@@ -170,7 +173,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		// `done` is read. Thus doesn't need to be volatile.
 		private Throwable error = null;
 
-		QueueProducer(QueueWithResources<T> queue, Subscriber<? super T> child, Worker worker, boolean delayError) {
+		QueueProducer(QueueWithSubscription<T> queue, Subscriber<? super T> child, Worker worker, boolean delayError) {
 			super();
 			this.queue = queue;
 			this.child = child;
