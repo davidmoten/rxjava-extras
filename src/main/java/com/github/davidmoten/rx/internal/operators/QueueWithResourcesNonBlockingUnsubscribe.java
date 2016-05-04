@@ -80,7 +80,7 @@ final class QueueWithResourcesNonBlockingUnsubscribe<T> extends AbstractQueueWit
         } finally {
             checkUnsubscribe();
         }
-    }
+   }
 
     @Override
     public void unsubscribe() {
