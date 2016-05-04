@@ -115,7 +115,7 @@ public final class FileBasedSPSCQueueMemoryMappedWriter<T> {
         }
     }
 
-    private void close() {
+    void close() {
         write.force();
         try {
             f.close();

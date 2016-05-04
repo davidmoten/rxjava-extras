@@ -54,6 +54,7 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements Queue<T> {
                 }
                 active.offerLast(nextFile);
             }
+            writer.close();
             writer = new FileBasedSPSCQueueMemoryMappedWriter<T>(nextFile, size, serializer);
             return writer.offer(t);
         } else {
@@ -75,7 +76,9 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements Queue<T> {
                 }
             }
             reader.close();
-            inactive.offer(reader.file());
+            synchronized (lock) {
+                inactive.offer(reader.file());
+            }
             reader = new FileBasedSPSCQueueMemoryMappedReader<T>(nextFile, size, serializer);
             return reader.poll();
         }
