@@ -1,144 +1,165 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.io.DataInput;
-import java.io.DataInputStream;
-import java.io.DataOutput;
-import java.io.DataOutputStream;
-import java.io.EOFException;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.RandomAccessFile;
-import java.nio.BufferOverflowException;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel.MapMode;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
+import com.github.davidmoten.rx.internal.operators.FileBasedSPSCQueueMemoryMappedReader.EOFRuntimeException;
+import com.github.davidmoten.util.Preconditions;
 
-import rx.Subscription;
+import rx.functions.Func0;
 
-public class FileBasedSPSCQueueMemoryMapped<T> implements Subscription {
+public final class FileBasedSPSCQueueMemoryMapped<T> implements Queue<T> {
 
-	private final MappedByteBuffer write;
-	private final MappedByteBuffer read;
-	private final DataSerializer<T> serializer;
-	private final DataOutput output;
-	private final DataInput input;
+    static final int EOF_MARKER = -1;
 
-	public FileBasedSPSCQueueMemoryMapped(File file, int size, DataSerializer<T> serializer) {
-		this.serializer = serializer;
-		try {
-			RandomAccessFile f = new RandomAccessFile(file, "rw");
-			write = f.getChannel().map(MapMode.READ_WRITE, 0, size);
-			write.putInt(0);
-			write.position(0);
-			read = f.getChannel().map(MapMode.READ_ONLY, 0, size);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		output = new DataOutputStream(new MappedByteBufferOutputStream(write));
-		input = new DataInputStream(new MappedByteBufferInputStream(read, size));
-	}
+    private final Queue<File> inactive = new LinkedList<File>();
+    private final Deque<File> active = new ArrayDeque<File>();
+    private final Object lock = new Object();
+    private final Func0<File> factory;
+    private final int size;
+    // only needs to be visible to thread calling poll()
+    private FileBasedSPSCQueueMemoryMappedReader<T> reader;
+    // only needs to be visible to thread calling offer()
+    private FileBasedSPSCQueueMemoryMappedWriter<T> writer;
 
-	private static class MappedByteBufferOutputStream extends OutputStream {
+    private DataSerializer<T> serializer;
 
-		private final MappedByteBuffer write;
+    public FileBasedSPSCQueueMemoryMapped(Func0<File> factory, int size,
+            DataSerializer<T> serializer) {
+        Preconditions.checkNotNull(factory);
+        Preconditions.checkNotNull(serializer);
+        this.factory = factory;
+        this.size = size;
+        this.serializer = serializer;
+        File file = factory.call();
+        this.reader = new FileBasedSPSCQueueMemoryMappedReader<T>(file, size, serializer);
+        this.writer = new FileBasedSPSCQueueMemoryMappedWriter<T>(file, size, serializer);
+        this.active.offer(file);
+    }
 
-		MappedByteBufferOutputStream(MappedByteBuffer write) {
-			this.write = write;
-		}
+    @Override
+    public boolean offer(T t) {
+        if (!writer.offer(t)) {
+            File nextFile;
+            synchronized (lock) {
+                nextFile = inactive.poll();
+                if (nextFile == null) {
+                    nextFile = factory.call();
+                }
+                active.offerLast(nextFile);
+            }
+            writer = new FileBasedSPSCQueueMemoryMappedWriter<T>(nextFile, size, serializer);
+            return writer.offer(t);
+        } else {
+            return true;
+        }
+    }
 
-		@Override
-		public void write(int b) throws IOException {
-			try {
-				write.put((byte) b);
-			} catch (BufferOverflowException e) {
-				throw EOF;
-			}
-		}
+    @Override
+    public T poll() {
+        try {
+            return reader.poll();
+        } catch (EOFRuntimeException e) {
+            File nextFile;
+            synchronized (lock) {
+                if (active.size() == 1) {
+                    return null;
+                } else {
+                    nextFile = active.pollFirst();
+                }
+            }
+            reader.close();
+            inactive.offer(reader.file());
+            reader = new FileBasedSPSCQueueMemoryMappedReader<T>(nextFile, size, serializer);
+            return reader.poll();
+        }
+    }
 
-	}
+    @Override
+    public int size() {
+        throw new UnsupportedOperationException();
+    }
 
-	private static class MappedByteBufferInputStream extends InputStream {
+    @Override
+    public boolean isEmpty() {
+        throw new UnsupportedOperationException();
+    }
 
-		private final MappedByteBuffer read;
-		private final int size;
+    @Override
+    public boolean contains(Object o) {
+        throw new UnsupportedOperationException();
+    }
 
-		MappedByteBufferInputStream(MappedByteBuffer read, int size) {
-			this.read = read;
-			this.size = size;
-		}
+    @Override
+    public Iterator<T> iterator() {
+        throw new UnsupportedOperationException();
+    }
 
-		@Override
-		public int read() throws IOException {
-			if (read.position() < size) {
-				return read.get();
-			} else
-				throw EOF;
-		}
+    @Override
+    public Object[] toArray() {
+        throw new UnsupportedOperationException();
+    }
 
-	}
+    @SuppressWarnings("hiding")
+    @Override
+    public <T> T[] toArray(T[] a) {
+        throw new UnsupportedOperationException();
+    }
 
-	// create the exception once to avoid building many Exception objects
-	private static final EOFException EOF = new EOFException();
-	private static final byte EOF_MARKER = -1;
-	private static final byte NONE_AVAILABLE_MARKER = 0;
+    @Override
+    public boolean remove(Object o) {
+        throw new UnsupportedOperationException();
+    }
 
-	public boolean offer(T t, int serializedLength) {
-		if (serializedLength + 4 > write.remaining()) {
-			write.putInt(EOF_MARKER);
-			nextWriteFile();
-		}
-		int position = write.position();
-		try {
-			serializer.serialize(output, t);
-			write.putInt(NONE_AVAILABLE_MARKER);
-			int length = write.position() - position - 4;
-			write.position(position - 4);
-			output.writeInt(length);
-			return true;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	private void nextWriteFile() {
-		// TODO Auto-generated method stub
+    @Override
+    public boolean addAll(Collection<? extends T> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	}
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	public T poll() {
-		int length = read.getInt();
-		if (length == 0) {
-			read.reset();
-			return null;
-		} else {
-			try {
-				T t = serializer.deserialize(input);
-				if (t == null) {
-					// this is a trick that we can get away with due to type
-					// erasure in java as long as the return value of poll() is
-					// checked using NullSentinel.isNullSentinel(t) (?)
-					return NullSentinel.instance();
-				} else {
-					return t;
-				}
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public boolean isUnsubscribed() {
-		throw new UnsupportedOperationException();
-	}
+    @Override
+    public void clear() {
+        throw new UnsupportedOperationException();
+    }
 
-	@Override
-	public void unsubscribe() {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public boolean add(T e) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public T remove() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public T element() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public T peek() {
+        throw new UnsupportedOperationException();
+    }
 
 }

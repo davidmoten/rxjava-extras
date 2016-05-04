@@ -57,6 +57,11 @@ public class OperatorBufferToFileHelperTest extends TestCase {
             public Integer deserialize(DataInput input) throws IOException {
                 return input.readInt();
             }
+
+            @Override
+            public int size() {
+                return 0;
+            }
         };
     }
 }

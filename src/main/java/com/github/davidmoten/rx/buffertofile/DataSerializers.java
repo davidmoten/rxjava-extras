@@ -30,6 +30,11 @@ public final class DataSerializers {
             public String deserialize(DataInput input) throws IOException {
                 return input.readUTF();
             }
+
+            @Override
+            public int size() {
+                return 0;
+            }
         };
     }
 
@@ -48,6 +53,11 @@ public final class DataSerializers {
             @Override
             public Integer deserialize(DataInput input) throws IOException {
                 return input.readInt();
+            }
+
+            @Override
+            public int size() {
+                return 0;
             }
         };
     }
@@ -71,6 +81,11 @@ public final class DataSerializers {
                 byte[] bytes = new byte[length];
                 input.readFully(bytes);
                 return bytes;
+            }
+
+            @Override
+            public int size() {
+                return 0;
             }
         };
     }
@@ -115,6 +130,11 @@ public final class DataSerializers {
                         }
                     }
                 }
+            }
+
+            @Override
+            public int size() {
+                return 0;
             }
         };
     }

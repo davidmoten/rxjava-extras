@@ -528,6 +528,11 @@ public final class OperatorBufferToFileTest {
                 input.readFully(message);
                 return input.readInt();
             }
+
+            @Override
+            public int size() {
+                return 0;
+            }
         };
     }
     
@@ -618,6 +623,11 @@ public final class OperatorBufferToFileTest {
             public String deserialize(DataInput input) throws IOException {
                 return input.readUTF();
             }
+
+            @Override
+            public int size() {
+                return 0;
+            }
         };
         List<String> list = Observable.just("a", "b", "c")
                 .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler)).toList()
@@ -663,6 +673,11 @@ public final class OperatorBufferToFileTest {
                     }
                 }
                 return value;
+            }
+
+            @Override
+            public int size() {
+                return 0;
             }
         };
         return serializer;
