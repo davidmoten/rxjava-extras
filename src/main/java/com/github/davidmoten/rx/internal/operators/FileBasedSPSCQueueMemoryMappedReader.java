@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
@@ -24,7 +25,8 @@ public class FileBasedSPSCQueueMemoryMappedReader<T> {
         this.serializer = serializer;
         try {
             f = new RandomAccessFile(file, "r");
-            read = f.getChannel().map(MapMode.READ_ONLY, 0, fileSize);
+            FileChannel channel = f.getChannel();
+            read = channel.map(MapMode.READ_ONLY, 0, channel.size());
             input = new DataInputStream(new MappedByteBufferInputStream(read));
         } catch (IOException e) {
             throw new RuntimeException(e);

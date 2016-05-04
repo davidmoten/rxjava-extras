@@ -13,7 +13,6 @@ import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.internal.operators.FileBasedSPSCQueueMemoryMappedReader.EOFRuntimeException;
 import com.github.davidmoten.util.Preconditions;
 
-import rx.Subscription;
 import rx.functions.Func0;
 
 public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscription<T>{
