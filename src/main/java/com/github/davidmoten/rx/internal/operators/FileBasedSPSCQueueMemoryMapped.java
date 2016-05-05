@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.internal.operators.FileBasedSPSCQueueMemoryMappedReader.EOFRuntimeException;
@@ -15,21 +16,22 @@ import com.github.davidmoten.util.Preconditions;
 
 import rx.functions.Func0;
 
-public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscription<T>{
+public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscription<T> {
 
 	static final int EOF_MARKER = -1;
 
-	private final Queue<File> inactive = new LinkedList<File>();
-	private final Deque<File> active = new ArrayDeque<File>();
+	private final Queue<FileBasedSPSCQueueMemoryMappedReaderWriter<T>> inactive = new LinkedList<FileBasedSPSCQueueMemoryMappedReaderWriter<T>>();
+	private final Deque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>> active = new ArrayDeque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>>();
 	private final Object lock = new Object();
 	private final Func0<File> factory;
 	private final int size;
 	// only needs to be visible to thread calling poll()
-	private FileBasedSPSCQueueMemoryMappedReader<T> reader;
+	private FileBasedSPSCQueueMemoryMappedReaderWriter<T> reader;
 	// only needs to be visible to thread calling offer()
-	private FileBasedSPSCQueueMemoryMappedWriter<T> writer;
+	private FileBasedSPSCQueueMemoryMappedReaderWriter<T> writer;
 	private final AtomicInteger wip = new AtomicInteger();
 	private volatile boolean unsubscribed = false;
+	private final AtomicLong count = new AtomicLong();
 
 	private DataSerializer<T> serializer;
 
@@ -40,9 +42,11 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
 		this.size = size;
 		this.serializer = serializer;
 		File file = factory.call();
-		this.writer = new FileBasedSPSCQueueMemoryMappedWriter<T>(file, size, serializer);
-		this.reader = new FileBasedSPSCQueueMemoryMappedReader<T>(file, size, serializer);
-		this.active.offer(file);
+		this.writer = new FileBasedSPSCQueueMemoryMappedReaderWriter<T>(file, size, serializer);
+		this.reader = writer.openForWrite().openForRead();
+		this.active.offer(writer);
+		// store store barrier
+		wip.lazySet(0);
 	}
 
 	@Override
@@ -59,22 +63,24 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
 
 	@Override
 	public boolean offer(T t) {
+		count.incrementAndGet();
 		// thread safe with poll() and unsubscribe()
 		try {
 			wip.incrementAndGet();
 			if (unsubscribed)
 				return true;
 			if (!writer.offer(t)) {
-				File nextFile;
+				FileBasedSPSCQueueMemoryMappedReaderWriter<T> nextWriter;
 				synchronized (lock) {
-					nextFile = inactive.poll();
-					if (nextFile == null) {
-						nextFile = factory.call();
+					nextWriter = inactive.poll();
+					if (nextWriter == null) {
+						nextWriter = new FileBasedSPSCQueueMemoryMappedReaderWriter<T>(factory.call(), size,
+								serializer);
 					}
-					active.offerLast(nextFile);
+					active.offerLast(nextWriter);
 				}
-				writer.close();
-				writer = new FileBasedSPSCQueueMemoryMappedWriter<T>(nextFile, size, serializer);
+				writer.closeForWrite();
+				writer = nextWriter;
 				return writer.offer(t);
 			} else {
 				return true;
@@ -105,22 +111,24 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
 				return null;
 			return reader.poll();
 		} catch (EOFRuntimeException e) {
-			File nextFile;
+			FileBasedSPSCQueueMemoryMappedReaderWriter<T> nextReader;
 			synchronized (lock) {
 				if (active.size() == 1) {
 					return null;
 				} else {
-					nextFile = active.pollFirst();
+					nextReader = active.pollFirst();
 				}
 			}
-			reader.close();
+			reader.closeForRead();
 			synchronized (lock) {
-				inactive.offer(reader.file());
+				inactive.offer(reader);
 			}
-			reader = new FileBasedSPSCQueueMemoryMappedReader<T>(nextFile, size, serializer);
+			reader = nextReader;
+			reader.openForRead();
 			return reader.poll();
 		} finally {
 			checkUnsubscribe();
+			count.decrementAndGet();
 		}
 	}
 
@@ -131,7 +139,7 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
 
 	@Override
 	public boolean isEmpty() {
-		throw new UnsupportedOperationException();
+		return count.get() == 0;
 	}
 
 	@Override
