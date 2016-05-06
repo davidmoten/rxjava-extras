@@ -64,7 +64,6 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
 
     @Override
     public boolean offer(T t) {
-        count.incrementAndGet();
         // thread safe with poll() and unsubscribe()
         try {
             wip.incrementAndGet();
@@ -89,6 +88,7 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
             }
         } finally {
             checkUnsubscribe();
+            count.incrementAndGet();
         }
     }
 

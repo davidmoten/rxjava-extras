@@ -516,7 +516,13 @@ public final class OperatorBufferToFileTest {
     private static DataSerializer<Integer> createSerializer1K() {
         return new DataSerializer<Integer>() {
 
-            private final byte[] message = new byte[MEDIUM_MESSAGE_SIZE - 4];
+            private final byte[] message = createMessage();
+            
+            private byte[] createMessage() {
+            	byte[] bytes = new byte[MEDIUM_MESSAGE_SIZE - 4];
+            	Arrays.fill(bytes, (byte) 5);
+            	return bytes;
+            }
 
             @Override
             public void serialize(DataOutput output, Integer value) throws IOException {
@@ -524,7 +530,9 @@ public final class OperatorBufferToFileTest {
                 output.writeInt(value);
             }
 
-            @Override
+            
+
+			@Override
             public Integer deserialize(DataInput input) throws IOException {
                 input.readFully(message);
                 return input.readInt();
