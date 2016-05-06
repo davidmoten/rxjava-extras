@@ -166,14 +166,14 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     }
 
     public T poll() {
-        read.mark();
+        int position = read.position();
         int length = read.getInt();
         System.out.println("read length " + length + " at position " + (read.position() - 4));
         System.out.println("remaining "+ read.remaining());
         if (length == FileBasedSPSCQueueMemoryMapped.EOF_MARKER) {
             throw EOF;
         } else if (length == 0) {
-            read.reset();
+            read.position(position);
             return null;
         } else {
             try {
@@ -203,14 +203,14 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
                 serializer.serialize(buffer, t);
                 if (bytes.size() + 4 > write.remaining()) {
                     write.putInt(EOF_MARKER);
-                    close();
+                    closeForWrite();
                     return false;
                 } else {
                     write.put(bytes.toByteArrayNoCopy(), 0, bytes.size());
                     //write the size of the next item
                     write.putInt(0);
                     // remember the position
-                    write.mark();
+                    int newPosition = write.position();
                     // rewind and update the length for the current item
                     write.position(write.position() - bytes.size() - 8);
                     // now indicate to the reader that it can read this item
@@ -219,7 +219,8 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
                     output.writeInt(bytes.size());
                     // and update the position to the write position for the
                     // next item
-                    write.reset();
+                    System.out.println(write.position());
+                    write.position(newPosition);
                     return true;
                 }
             } catch (IOException e) {
@@ -227,7 +228,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
             }
         } else if (serializedLength + 4 > write.remaining()) {
             write.putInt(EOF_MARKER);
-            close();
+            closeForWrite();
             return false;
         } else {
             int position = write.position();

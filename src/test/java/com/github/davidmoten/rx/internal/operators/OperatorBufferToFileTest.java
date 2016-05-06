@@ -256,7 +256,7 @@ public final class OperatorBufferToFileTest {
         waitUntilWorkCompleted(scheduler);
     }
 
-    @Test
+    @Test(timeout=10000)
     public void handlesManyLargeMessages() {
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = createLargeMessageSerializer();
