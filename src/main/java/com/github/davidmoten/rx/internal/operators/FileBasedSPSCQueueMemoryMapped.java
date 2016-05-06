@@ -82,6 +82,7 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
                 }
                 writer.closeForWrite();
                 writer = nextWriter;
+                writer.openForWrite();
                 return writer.offer(t);
             } else {
                 return true;

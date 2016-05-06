@@ -773,6 +773,7 @@ public final class OperatorBufferToFileTest {
 
                     @Override
                     public void onError(Throwable e) {
+                    	e.printStackTrace();
                         latch.countDown();
                     }
 

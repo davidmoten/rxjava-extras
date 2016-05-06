@@ -87,6 +87,12 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     }
 
     public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForWrite() {
+    	while (true) {
+            int st = status.get();
+            int newStatus = st ^ 2;
+            if (status.compareAndSet(st, newStatus))
+                break;
+        }
         try {
             if (f == null) {
                 f = new RandomAccessFile(file, "rw");
