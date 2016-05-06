@@ -83,7 +83,6 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 				break;
 			}
 		}
-		System.out.println("closed for read, status=" + status.get());
 	}
 
 	public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForWrite() {
@@ -118,7 +117,6 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 				break;
 			}
 		}
-		System.out.println("closed for write, status=" + status.get());
 	}
 
 	private void checkClose(int newStatus) {
@@ -159,9 +157,13 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
 		@Override
 		public int read() throws IOException {
-			return read.get();
+			return toUnsignedInteger(read.get());
 		}
 
+	}
+	
+	private static int toUnsignedInteger(byte b) {
+		return b & 0x000000FF;
 	}
 
 	private static final EOFRuntimeException EOF = new EOFRuntimeException();
@@ -175,8 +177,6 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 	public T poll() {
 		int position = read.position();
 		int length = read.getInt();
-		System.out.println("read length " + length + " at position " + (read.position() - 4));
-		System.out.println("remaining " + read.remaining());
 		if (length == FileBasedSPSCQueueMemoryMapped.EOF_MARKER) {
 			throw EOF;
 		} else if (length == 0) {
@@ -221,7 +221,6 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 					// rewind and update the length for the current item
 					write.position(write.position() - bytes.size() - 8);
 					// now indicate to the reader that it can read this item
-					System.out.println("writing length " + bytes.size() + " to position " + write.position());
 					output.writeInt(bytes.size());
 					// and update the position to the write position for the
 					// next item
