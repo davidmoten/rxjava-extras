@@ -29,6 +29,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
 
@@ -510,7 +511,7 @@ public final class OperatorBufferToFileTest {
         waitUntilWorkCompleted(scheduler);
     }
 
-    private static final int MEDIUM_MESSAGE_SIZE = 2 << 10;
+    private static final int MEDIUM_MESSAGE_SIZE = 1 << 10;
 
     private static DataSerializer<Integer> createSerializer1K() {
         return new DataSerializer<Integer>() {
