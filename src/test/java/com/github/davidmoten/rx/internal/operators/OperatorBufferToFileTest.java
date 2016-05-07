@@ -461,7 +461,7 @@ public final class OperatorBufferToFileTest {
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = DataSerializers.integer();
 
-        int max = Integer.parseInt(System.getProperty("max.small", "300000"));
+        int max = Integer.parseInt(System.getProperty("max.small", "3000000"));
         long t = System.currentTimeMillis();
         int last = Observable.range(1, max)
                 //
@@ -540,7 +540,7 @@ public final class OperatorBufferToFileTest {
 
             @Override
             public int size() {
-                return 0;
+                return MEDIUM_MESSAGE_SIZE;
             }
         };
     }
@@ -560,7 +560,7 @@ public final class OperatorBufferToFileTest {
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = createSerializer1K();
 
-        int max = Integer.parseInt(System.getProperty("max.medium", "3000"));
+        int max = Integer.parseInt(System.getProperty("max.medium", "30000"));
         long t = System.currentTimeMillis();
         final Lock lock = new ReentrantLock();
         lock.lock();
@@ -589,6 +589,7 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test
+    @Ignore
     public void testCompletionDeletesAllFilesUsingRolloverOnSize() {
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = DataSerializers.integer();
@@ -686,7 +687,7 @@ public final class OperatorBufferToFileTest {
 
             @Override
             public int size() {
-                return 0;
+                return dummyArraySize;
             }
         };
         return serializer;

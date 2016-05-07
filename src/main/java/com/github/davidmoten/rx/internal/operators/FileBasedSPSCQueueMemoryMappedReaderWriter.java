@@ -52,6 +52,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 	}
 
 	public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForRead() {
+//		System.out.println("openForRead");
 		while (true) {
 			int st = status.get();
 			int newStatus = st ^ 1;
@@ -68,6 +69,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 			}
 			read = channel.map(MapMode.READ_ONLY, 0, channel.size());
 			input = new DataInputStream(new MappedByteBufferInputStream(read));
+//			System.out.println("opened for read " + file.getName());
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -75,6 +77,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 	}
 
 	public void closeForRead() {
+//		System.out.println("closeForRead");
 		while (true) {
 			int st = status.get();
 			int newStatus = st ^ 1;
@@ -86,6 +89,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 	}
 
 	public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForWrite() {
+//		System.out.println("openForWrite");
 		while (true) {
 			int st = status.get();
 			int newStatus = st ^ 2;
@@ -102,6 +106,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 			write = channel.map(MapMode.READ_WRITE, 0, fileSize);
 			write.putInt(0);
 			output = new DataOutputStream(new MappedByteBufferOutputStream(write));
+//			System.out.println("opened for write " + file.getName());
 			return this;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -109,6 +114,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 	}
 
 	public void closeForWrite() {
+//		System.out.println("closeForWrite");
 		while (true) {
 			int st = status.get();
 			int newStatus = st ^ 2;
@@ -120,6 +126,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 	}
 
 	private void checkClose(int newStatus) {
+//		System.out.println("close status = " + newStatus + " for " + file.getName());
 		if (newStatus == 0) {
 			try {
 				channel.close();
@@ -161,7 +168,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 		}
 
 	}
-	
+
 	private static int toUnsignedInteger(byte b) {
 		return b & 0x000000FF;
 	}
@@ -221,7 +228,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 					// rewind and update the length for the current item
 					write.position(write.position() - bytes.size() - 8);
 					// now indicate to the reader that it can read this item
-					output.writeInt(bytes.size());
+					write.putInt(bytes.size());
 					// and update the position to the write position for the
 					// next item
 					write.position(newPosition);
@@ -251,7 +258,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 				write.position(position - 4);
 				// now indicate to the reader that it can read this item
 				// because the length will now be non-zero
-				output.writeInt(length);
+				write.putInt(length);
 				// and update the position to the write position for the next
 				// item
 				write.position(newWritePosition);
@@ -268,6 +275,10 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public static void main(String[] args) {
+		System.out.println(2 ^ 1);
 	}
 
 }

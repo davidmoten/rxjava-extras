@@ -57,7 +57,7 @@ public final class DataSerializers {
 
             @Override
             public int size() {
-                return 0;
+                return 4;
             }
         };
     }
