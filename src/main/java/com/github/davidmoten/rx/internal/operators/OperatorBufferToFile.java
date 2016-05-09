@@ -16,6 +16,7 @@ import rx.Producer;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
+import rx.exceptions.Exceptions;
 import rx.functions.Action0;
 import rx.functions.Func0;
 import rx.internal.operators.BackpressureUtils;
@@ -76,7 +77,7 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 	private static <T> QueueWithSubscription<T> createFileBasedQueue(final DataSerializer<T> dataSerializer,
 			final Options options) {
 		if (false) {
-			return new FileBasedSPSCQueueMemoryMapped(options.fileFactory(), 25000000, dataSerializer);
+			return new FileBasedSPSCQueueMemoryMapped(options.fileFactory(), 2500000, dataSerializer);
 		}
 		if (options.rolloverEvery() == Long.MAX_VALUE && options.rolloverSizeBytes() == Long.MAX_VALUE) {
 			// skip the Rollover version
@@ -183,12 +184,17 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 		}
 
 		void onNext(T t) {
-			if (!queue.offer(t)) {
-				onError(new RuntimeException(
-						"could not place item on queue (queue.offer(item) returned false), item= " + t));
-				return;
-			} else {
-				drain();
+			try {
+				if (!queue.offer(t)) {
+					onError(new RuntimeException(
+							"could not place item on queue (queue.offer(item) returned false), item= " + t));
+					return;
+				} else {
+					drain();
+				}
+			} catch (Throwable e) {
+				Exceptions.throwIfFatal(e);
+				onError(e);
 			}
 		}
 

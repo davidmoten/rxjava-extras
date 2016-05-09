@@ -11,14 +11,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
-import com.github.davidmoten.rx.internal.operators.FileBasedSPSCQueueMemoryMappedReader.EOFRuntimeException;
+import com.github.davidmoten.rx.internal.operators.FileBasedSPSCQueueMemoryMappedReaderWriter.EOFRuntimeException;
 import com.github.davidmoten.util.Preconditions;
 
 import rx.functions.Func0;
 
 public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscription<T> {
 
-	static final int EOF_MARKER = -1;
+	static final int EOF_MARKER = Integer.MAX_VALUE;
 
 	private final Queue<FileBasedSPSCQueueMemoryMappedReaderWriter<T>> inactive = new LinkedList<FileBasedSPSCQueueMemoryMappedReaderWriter<T>>();
 	private final Deque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>> active = new ArrayDeque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>>();
@@ -79,9 +79,9 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
 								serializer);
 					}
 					active.offerLast(nextWriter);
+					nextWriter.openForWrite();
 				}
 				writer = nextWriter;
-				writer.openForWrite();
 				return writer.offer(t);
 			} else {
 				return true;
@@ -122,9 +122,7 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
 				} else {
 					nextReader = active.pollFirst();
 				}
-			}
-			reader.closeForRead();
-			synchronized (lock) {
+				reader.closeForRead();
 				inactive.offer(reader);
 			}
 			reader = nextReader;
