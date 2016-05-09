@@ -20,273 +20,278 @@ import com.github.davidmoten.util.ByteArrayOutputStreamNoCopyUnsynchronized;
 
 public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
-	private volatile RandomAccessFile f;
-	private volatile FileChannel channel;
-	private DataInputStream input;
-	private DataOutputStream output;
-	private MappedByteBuffer read;
-	private MappedByteBuffer write;
-	private final DataSerializer<T> serializer;
-	private final File file;
-	private int fileSize;
-	private final DataOutput buffer;
-	// TODO can be passed in to constructor for reuse
-	private final ByteArrayOutputStreamNoCopyUnsynchronized bytes;
-	private volatile AtomicInteger status = new AtomicInteger(0); // 0 = closed
-																	// for both,
-																	// 1 = open
-																	// for
-																	// reading,
-																	// 2 = open
-																	// for
-																	// writing,
-																	// 3 = open
-																	// for both
+    private volatile RandomAccessFile f;
+    private volatile FileChannel channel;
+    private DataInputStream input;
+    private DataOutputStream output;
+    private MappedByteBuffer read;
+    private MappedByteBuffer write;
+    private final DataSerializer<T> serializer;
+    private final File file;
+    private final int fileSize;
+    private final DataOutput buffer;
+    // TODO can be passed in to constructor for reuse
+    private final ByteArrayOutputStreamNoCopyUnsynchronized bytes;
+    private volatile AtomicInteger status = new AtomicInteger(0); // 0 = closed
+                                                                  // for both,
+                                                                  // 1 = open
+                                                                  // for
+                                                                  // reading,
+                                                                  // 2 = open
+                                                                  // for
+                                                                  // writing,
+                                                                  // 3 = open
+                                                                  // for both
 
-	public FileBasedSPSCQueueMemoryMappedReaderWriter(File file, int fileSize, DataSerializer<T> serializer) {
-		this.file = file;
-		this.serializer = serializer;
-		this.fileSize = fileSize;
-		this.bytes = new ByteArrayOutputStreamNoCopyUnsynchronized();
-		this.buffer = new DataOutputStream(bytes);
-	}
+    public FileBasedSPSCQueueMemoryMappedReaderWriter(File file, int fileSize,
+            DataSerializer<T> serializer) {
+        this.file = file;
+        this.serializer = serializer;
+        this.fileSize = fileSize;
+        this.bytes = new ByteArrayOutputStreamNoCopyUnsynchronized();
+        this.buffer = new DataOutputStream(bytes);
+    }
 
-	public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForRead() {
-		// System.out.println("openForRead");
-		while (true) {
-			int st = status.get();
-			int newStatus = st ^ 1;
-			if (status.compareAndSet(st, newStatus))
-				break;
-		}
+    public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForRead() {
+        System.out.println("openForRead " + file);
+        while (true) {
+            int st = status.get();
+            int newStatus = st ^ 1;
+            if (status.compareAndSet(st, newStatus))
+                break;
+        }
 
-		try {
-			if (f == null) {
-				f = new RandomAccessFile(file, "r");
-			}
-			if (channel == null) {
-				channel = f.getChannel();
-			}
-			read = channel.map(MapMode.READ_ONLY, 0, channel.size());
-			input = new DataInputStream(new MappedByteBufferInputStream(read));
-			System.out.println("opened for read " + file.getName());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		return this;
-	}
+        try {
+            if (f == null) {
+                f = new RandomAccessFile(file, "r");
+            }
+            if (channel == null) {
+                channel = f.getChannel();
+            }
+            read = channel.map(MapMode.READ_ONLY, 0, channel.size());
+            input = new DataInputStream(new MappedByteBufferInputStream(read));
+            System.out.println("opened for read " + file.getName());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
 
-	public void closeForRead() {
-		// System.out.println("closeForRead");
-		while (true) {
-			int st = status.get();
-			int newStatus = st ^ 1;
-			if (status.compareAndSet(st, newStatus)) {
-				checkClose(newStatus);
-				break;
-			}
-		}
-	}
+    public void closeForRead() {
+        System.out.println("closeForRead " + file);
+        while (true) {
+            int st = status.get();
+            int newStatus = st ^ 1;
+            if (status.compareAndSet(st, newStatus)) {
+                checkClose(newStatus);
+                break;
+            }
+        }
+    }
 
-	public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForWrite() {
-		// System.out.println("openForWrite");
-		while (true) {
-			int st = status.get();
-			int newStatus = st ^ 2;
-			if (status.compareAndSet(st, newStatus))
-				break;
-		}
-		try {
-			if (f == null) {
-				f = new RandomAccessFile(file, "rw");
-			}
-			if (channel == null) {
-				channel = f.getChannel();
-			}
-			write = channel.map(MapMode.READ_WRITE, 0, fileSize);
-			write.putInt(0);
-			output = new DataOutputStream(new MappedByteBufferOutputStream(write));
-			System.out.println("opened for write " + file.getName());
-			return this;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+    public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForWrite() {
+        System.out.println("openForWrite " + file);
+        while (true) {
+            int st = status.get();
+            int newStatus = st ^ 2;
+            if (status.compareAndSet(st, newStatus))
+                break;
+        }
+        try {
+            if (f == null) {
+                f = new RandomAccessFile(file, "rw");
+            }
+            if (channel == null) {
+                channel = f.getChannel();
+            }
+            write = channel.map(MapMode.READ_WRITE, 0, fileSize);
+            output = new DataOutputStream(new MappedByteBufferOutputStream(write));
+            output.writeInt(0);
+            System.out.println("opened for write " + file.getName());
+            return this;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-	public void closeForWrite() {
-		// System.out.println("closeForWrite");
-		while (true) {
-			int st = status.get();
-			int newStatus = st ^ 2;
-			if (status.compareAndSet(st, newStatus)) {
-				checkClose(newStatus);
-				break;
-			}
-		}
-	}
+    public void closeForWrite() {
+        System.out.println("closeForWrite " + file);
+        while (true) {
+            int st = status.get();
+            int newStatus = st ^ 2;
+            if (status.compareAndSet(st, newStatus)) {
+                checkClose(newStatus);
+                break;
+            }
+        }
+    }
 
-	private void checkClose(int newStatus) {
-		// System.out.println("close status = " + newStatus + " for " +
-		// file.getName());
-		if (newStatus == 0) {
-			try {
-				channel.close();
-				channel = null;
-				read = null;
-				input = null;
-				f.close();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
+    private void checkClose(int newStatus) {
+        System.out.println("close status = " + newStatus + " for " + file.getName());
+        if (newStatus == 0) {
+            try {
+                channel.close();
+                channel = null;
+                read = null;
+                input = null;
+                f.close();
+                f = null;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
-	private static class MappedByteBufferOutputStream extends OutputStream {
+    private static class MappedByteBufferOutputStream extends OutputStream {
 
-		private final MappedByteBuffer write;
+        private final MappedByteBuffer write;
 
-		MappedByteBufferOutputStream(MappedByteBuffer write) {
-			this.write = write;
-		}
+        MappedByteBufferOutputStream(MappedByteBuffer write) {
+            this.write = write;
+        }
 
-		@Override
-		public void write(int b) throws IOException {
-			write.put((byte) b);
-		}
-	}
+        @Override
+        public void write(int b) throws IOException {
+            write.put((byte) b);
+        }
+    }
 
-	private static class MappedByteBufferInputStream extends InputStream {
+    private static class MappedByteBufferInputStream extends InputStream {
 
-		private final MappedByteBuffer read;
+        private final MappedByteBuffer read;
 
-		MappedByteBufferInputStream(MappedByteBuffer read) {
-			this.read = read;
-		}
+        MappedByteBufferInputStream(MappedByteBuffer read) {
+            this.read = read;
+        }
 
-		@Override
-		public int read() throws IOException {
-			return toUnsignedInteger(read.get());
-		}
+        @Override
+        public int read() throws IOException {
+            return toUnsignedInteger(read.get());
+        }
 
-	}
+    }
 
-	private static int toUnsignedInteger(byte b) {
-		return b & 0x000000FF;
-	}
+    private static int toUnsignedInteger(byte b) {
+        return b & 0x000000FF;
+    }
 
-	private static final EOFRuntimeException EOF = new EOFRuntimeException();
+    private static final EOFRuntimeException EOF = new EOFRuntimeException();
 
-	static final class EOFRuntimeException extends RuntimeException {
+    static final class EOFRuntimeException extends RuntimeException {
 
-		private static final long serialVersionUID = -6943467453336359472L;
+        private static final long serialVersionUID = -6943467453336359472L;
 
-	}
+    }
 
-	public T poll() {
-		int position = read.position();
-		int length;
-		try {
-			length = input.readInt();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		if (length == FileBasedSPSCQueueMemoryMapped.EOF_MARKER) {
-			throw EOF;
-		} else if (length == 0) {
-			read.position(position);
-			return null;
-		} else {
-			try {
-				T t = serializer.deserialize(input);
-				if (t == null) {
-					// this is a trick that we can get away with due to type
-					// erasure in java as long as the return value of poll() is
-					// checked using NullSentinel.isNullSentinel(t) (?)
-					return NullSentinel.instance();
-				} else {
-					return t;
-				}
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
+    public synchronized T poll() {
+        int position = read.position();
+        int length;
+        try {
+            length = input.readInt();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if (length == FileBasedSPSCQueueMemoryMapped.EOF_MARKER) {
+            throw EOF;
+        } else if (length == 0) {
+            read.position(position);
+            return null;
+        } else {
+            try {
+                T t = serializer.deserialize(input);
+                if (t == null) {
+                    // this is a trick that we can get away with due to type
+                    // erasure in java as long as the return value of poll() is
+                    // checked using NullSentinel.isNullSentinel(t) (?)
+                    return NullSentinel.instance();
+                } else {
+                    return t;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
-	public boolean offer(T t) {
-		// the current position will be just past the length bytes for this
-		// item (length bytes will be 0 at the moment)
-		int serializedLength = serializer.size();
-		if (serializedLength == 0) {
-			try {
-				bytes.reset();
-				// serialize to an in-memory buffer to calculate length
-				serializer.serialize(buffer, t);
-				if (bytes.size() + 4 > write.remaining()) {
-					write.position(write.position() - 1);
-					write.putInt(EOF_MARKER);
-					closeForWrite();
-					return false;
-				} else {
-					write.put(bytes.toByteArrayNoCopy(), 0, bytes.size());
-					// write the size of the next item
-					write.putInt(0);
-					// remember the position
-					int newPosition = write.position();
-					// rewind and update the length for the current item
-					write.position(write.position() - bytes.size() - 8);
-					// now indicate to the reader that it can read this item
-					write.putInt(bytes.size());
-					// and update the position to the write position for the
-					// next item
-					write.position(newPosition);
-					return true;
-				}
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		} else if (serializedLength + 4 > write.remaining()) {
-			write.position(write.position() - 1);
-			write.putInt(EOF_MARKER);
-			closeForWrite();
-			return false;
-		} else {
-			int position = write.position();
-			try {
-				// serialize the object t to the file
-				serializer.serialize(output, t);
-				int length = write.position() - position;
-				if (length > serializedLength) {
-					throw new IllegalArgumentException("serialized length of t was greater than serializedLength");
-				}
-				// write a length of zero for the next item
-				write.putInt(0);
-				// remember the position
-				int newWritePosition = write.position();
-				// rewind and update the length for the current item
-				write.position(position - 4);
-				// now indicate to the reader that it can read this item
-				// because the length will now be non-zero
-				write.putInt(length);
-				// and update the position to the write position for the next
-				// item
-				write.position(newWritePosition);
-				return true;
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
+    public synchronized boolean offer(T t) {
+        // the current position will be just past the length bytes for this
+        // item (length bytes will be 0 at the moment)
+        int serializedLength = serializer.size();
+        if (serializedLength == 0) {
+            try {
+                bytes.reset();
+                // serialize to an in-memory buffer to calculate length
+                serializer.serialize(buffer, t);
+                if (bytes.size() + 4 > write.remaining()) {
+                    write.position(write.position() - 4);
+                    output.writeInt(EOF_MARKER);
+                    closeForWrite();
+                    return false;
+                } else {
+                    write.put(bytes.toByteArrayNoCopy(), 0, bytes.size());
+                    // write the size of the next item
+                    output.writeInt(0);
+                    // remember the position
+                    int newPosition = write.position();
+                    // rewind and update the length for the current item
+                    write.position(write.position() - bytes.size() - 8);
+                    // now indicate to the reader that it can read this item
+                    output.writeInt(bytes.size());
+                    // and update the position to the write position for the
+                    // next item
+                    write.position(newPosition);
+                    return true;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else if (serializedLength + 4 > write.remaining()) {
+            write.position(write.position() - 4);
+            try {
+                output.writeInt(EOF_MARKER);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            closeForWrite();
+            return false;
+        } else {
+            int position = write.position();
+            try {
+                // serialize the object t to the file
+                serializer.serialize(output, t);
+                int length = write.position() - position;
+                if (length > serializedLength) {
+                    throw new IllegalArgumentException(
+                            "serialized length of t was greater than serializedLength");
+                }
+                // write a length of zero for the next item
+                output.writeInt(0);
+                // remember the position
+                int newWritePosition = write.position();
+                // rewind and update the length for the current item
+                write.position(position - 4);
+                // now indicate to the reader that it can read this item
+                // because the length will now be non-zero
+                output.writeInt(length);
+                // and update the position to the write position for the next
+                // item
+                write.position(newWritePosition);
+                return true;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
-	public void close() {
-		try {
-			f.close();
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+    public void close() {
+        try {
+            f.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-	public static void main(String[] args) {
-		System.out.println(2 ^ 1);
-	}
+    public static void main(String[] args) {
+    }
 
 }
