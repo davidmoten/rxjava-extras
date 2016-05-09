@@ -260,7 +260,7 @@ public final class OperatorBufferToFileTest {
     public void handlesManyLargeMessages() {
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = createLargeMessageSerializer();
-        int max = 2;
+        int max = 3;
         int last = Observable.range(1, max) //
                 .doOnNext(Actions.println())
                 //

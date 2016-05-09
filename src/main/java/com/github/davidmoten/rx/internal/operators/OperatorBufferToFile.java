@@ -76,6 +76,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         return parentSubscriber;
     }
 
+    private static final boolean MEMORY_MAPPED = "true"
+            .equals(System.getProperty("memory.mappped"));
+
     private static <T> QueueWithSubscription<T> createFileBasedQueue(
             final DataSerializer<T> dataSerializer, final Options options) {
         if (false) {

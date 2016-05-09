@@ -22,7 +22,7 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
     static final int EOF_MARKER = -1;
 
     private final Queue<FileBasedSPSCQueueMemoryMappedReaderWriter<T>> inactive = new LinkedList<FileBasedSPSCQueueMemoryMappedReaderWriter<T>>();
-    private final Deque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>> active = new ArrayDeque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>>();
+    private final Deque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>> toRead = new ArrayDeque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>>();
     private final Object lock = new Object();
     private final Func0<File> factory;
     private final int size;
@@ -47,7 +47,6 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
         File file = factory.call();
         this.writer = new FileBasedSPSCQueueMemoryMappedReaderWriter<T>(file, size, serializer);
         this.reader = writer.openForWrite().openForRead();
-        this.active.addLast(writer);
         // store store barrier
         wip.lazySet(0);
     }
@@ -81,7 +80,7 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
                         nextWriter = new FileBasedSPSCQueueMemoryMappedReaderWriter<T>(
                                 factory.call(), size, serializer);
                     }
-                    active.offerLast(nextWriter);
+                    toRead.offerLast(nextWriter);
                     nextWriter.openForWrite();
                 }
                 writer = nextWriter;
@@ -120,13 +119,10 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
         } catch (EOFRuntimeException e) {
             FileBasedSPSCQueueMemoryMappedReaderWriter<T> nextReader;
             synchronized (lock) {
-                if (active.size() == 1) {
+                if (toRead.isEmpty()) {
                     return null;
                 } else {
-                    if (once.compareAndSet(false, true)) {
-                        active.pollFirst();
-                    }
-                    nextReader = active.pollFirst();
+                    nextReader = toRead.pollFirst();
                 }
                 reader.closeForRead();
                 inactive.offer(reader);

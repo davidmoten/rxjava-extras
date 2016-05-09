@@ -32,16 +32,13 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     private final DataOutput buffer;
     // TODO can be passed in to constructor for reuse
     private final ByteArrayOutputStreamNoCopyUnsynchronized bytes;
-    private volatile AtomicInteger status = new AtomicInteger(0); // 0 = closed
-                                                                  // for both,
-                                                                  // 1 = open
-                                                                  // for
-                                                                  // reading,
-                                                                  // 2 = open
-                                                                  // for
-                                                                  // writing,
-                                                                  // 3 = open
-                                                                  // for both
+    private final AtomicInteger status = new AtomicInteger(WRITTEN_READ);
+
+    static final int WRITTEN_READ = 0;
+    static final int WRITTEN_READ_NOT_STARTED = 1;
+    static final int WRITTEN_READING = 2;
+    static final int WRITING_NOT_READING = 3;
+    static final int WRITING_READING = 4;
 
     public FileBasedSPSCQueueMemoryMappedReaderWriter(File file, int fileSize,
             DataSerializer<T> serializer) {
@@ -53,14 +50,24 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     }
 
     public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForRead() {
-        System.out.println("openForRead " + file);
+        // System.out.println("openForRead " + file);
+
+        if (!status.compareAndSet(WRITTEN_READ_NOT_STARTED, WRITTEN_READING))
+            status.compareAndSet(WRITING_NOT_READING, WRITING_READING);
         while (true) {
             int st = status.get();
-            int newStatus = st ^ 1;
-            if (status.compareAndSet(st, newStatus))
+            int newStatus;
+            if (st == WRITTEN_READ_NOT_STARTED)
+                newStatus = WRITTEN_READING;
+            else if (st == WRITING_NOT_READING)
+                newStatus = WRITING_READING;
+            else
+                newStatus = st;
+            if (status.compareAndSet(st, newStatus)) {
+                checkClose(newStatus);
                 break;
+            }
         }
-
         try {
             if (f == null) {
                 f = new RandomAccessFile(file, "r");
@@ -70,7 +77,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
             }
             read = channel.map(MapMode.READ_ONLY, 0, channel.size());
             input = new DataInputStream(new MappedByteBufferInputStream(read));
-            System.out.println("opened for read " + file.getName());
+            // System.out.println("opened for read " + file.getName());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -78,10 +85,14 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     }
 
     public void closeForRead() {
-        System.out.println("closeForRead " + file);
+        // System.out.println("closeForRead " + file);
         while (true) {
             int st = status.get();
-            int newStatus = st ^ 1;
+            int newStatus;
+            if (st == WRITTEN_READING)
+                newStatus = WRITTEN_READ;
+            else
+                newStatus = st;
             if (status.compareAndSet(st, newStatus)) {
                 checkClose(newStatus);
                 break;
@@ -90,12 +101,18 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     }
 
     public FileBasedSPSCQueueMemoryMappedReaderWriter<T> openForWrite() {
-        System.out.println("openForWrite " + file);
+        // System.out.println("openForWrite " + file);
         while (true) {
             int st = status.get();
-            int newStatus = st ^ 2;
-            if (status.compareAndSet(st, newStatus))
+            int newStatus;
+            if (st == WRITTEN_READ)
+                newStatus = WRITING_NOT_READING;
+            else
+                newStatus = st;
+            if (status.compareAndSet(st, newStatus)) {
+                checkClose(newStatus);
                 break;
+            }
         }
         try {
             if (f == null) {
@@ -107,7 +124,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
             write = channel.map(MapMode.READ_WRITE, 0, fileSize);
             output = new DataOutputStream(new MappedByteBufferOutputStream(write));
             output.writeInt(0);
-            System.out.println("opened for write " + file.getName());
+            // System.out.println("opened for write " + file.getName());
             return this;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -115,20 +132,27 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     }
 
     public void closeForWrite() {
-        System.out.println("closeForWrite " + file);
+        // System.out.println("closeForWrite " + file);
         while (true) {
             int st = status.get();
-            int newStatus = st ^ 2;
+            int newStatus;
+            if (st == WRITING_READING)
+                newStatus = WRITTEN_READING;
+            else if (st == WRITING_NOT_READING)
+                newStatus = WRITTEN_READ_NOT_STARTED;
+            newStatus = st;
             if (status.compareAndSet(st, newStatus)) {
                 checkClose(newStatus);
                 break;
             }
         }
+
     }
 
     private void checkClose(int newStatus) {
-        System.out.println("close status = " + newStatus + " for " + file.getName());
-        if (newStatus == 0) {
+        // System.out.println("close status = " + newStatus + " for " +
+        // file.getName());
+        if (newStatus == WRITTEN_READ) {
             try {
                 channel.close();
                 channel = null;
