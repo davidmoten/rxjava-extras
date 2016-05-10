@@ -69,6 +69,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesEmpty() {
+        System.out.println("handlesEmpty");
         Scheduler scheduler = createSingleThreadScheduler();
         for (int i = 0; i < loops(); i++) {
             TestSubscriber<String> ts = TestSubscriber.create(0);
@@ -87,6 +88,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesEmptyUsingJavaIOSerialization() {
+        System.out.println("handlesEmptyUsingJavaIOSerialization");
         Scheduler scheduler = createSingleThreadScheduler();
         for (int i = 0; i < loops(); i++) {
             TestSubscriber<String> ts = TestSubscriber.create(0);
@@ -104,6 +106,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesThreeUsingJavaIOSerialization() {
+        System.out.println("handlesThreeUsingJavaIOSerialization");
         Scheduler scheduler = createSingleThreadScheduler();
         for (int i = 0; i < loops(); i++) {
             TestSubscriber<String> ts = TestSubscriber.create();
@@ -214,6 +217,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesUnsubscription() throws InterruptedException {
+        System.out.println("handlesUnsubscription");
         Scheduler scheduler = createSingleThreadScheduler();
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
@@ -231,6 +235,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesUnsubscriptionDuringDrainLoop() throws InterruptedException {
+        System.out.println("handlesUnsubscriptionDuringDrainLoop");
         Scheduler scheduler = createSingleThreadScheduler();
         TestSubscriber<String> ts = TestSubscriber.create(0);
         Observable.just("abc", "def", "ghi")
@@ -258,6 +263,7 @@ public final class OperatorBufferToFileTest {
 
     @Test(timeout = 10000000)
     public void handlesManyLargeMessages() {
+        System.out.println("handlesManyLargeMessages");
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = createLargeMessageSerializer();
         int max = 100;
@@ -293,6 +299,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void rolloverWorks() throws InterruptedException {
+        System.out.println("rolloverWorks");
         for (int i = 0; i < 100; i++) {
             DataSerializer<Integer> serializer = DataSerializers.integer();
             int max = 100;
@@ -328,6 +335,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesMultiSecondLoopOfMidStreamUnsubscribeRollover() throws Throwable {
+        System.out.println("handlesMultiSecondLoopOfMidStreamUnsubscribeRollover");
         int max = 1000;
         Options options = Options.rolloverEvery(max / 10).build();
         checkMultiSecondLoopOfMidStreamUnsubscribeWithOptions(max, options);
@@ -335,6 +343,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void handlesMultiSecondLoopOfMidStreamUnsubscribeNoRollover() throws Throwable {
+        System.out.println("handlesMultiSecondLoopOfMidStreamUnsubscribeNoRollover");
         int max = 1000;
         Options options = Options.disableRollover().build();
         checkMultiSecondLoopOfMidStreamUnsubscribeWithOptions(max, options);
@@ -448,11 +457,13 @@ public final class OperatorBufferToFileTest {
 
     @Test(timeout = 5000)
     public void checkRateForSmallMessagesNoRollover() {
+        System.out.println("checkRateForSmallMessagesWithOptions");
         checkRateForSmallMessagesWithOptions(Options.disableRollover().build());
     }
 
     @Test(timeout = 5000)
     public void checkRateForSmallMessagesRollover() {
+        System.out.println("checkRateForSmallMessagesRollover");
         checkRateForSmallMessagesWithOptions(Options.rolloverSizeBytes(Long.MAX_VALUE - 1).build());
     }
 

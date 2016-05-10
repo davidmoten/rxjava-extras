@@ -219,7 +219,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     static final int MARKER_HEADER_SIZE = 1;
     static final int UNKNOWN_LENGTH = 0;
 
-    public synchronized T poll() {
+    public T poll() {
         int position = read.position();
         byte marker = read.get();
         if (marker == MARKER_END_OF_QUEUE) {
@@ -242,9 +242,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
                 throw new RuntimeException(e);
             }
         } else {
-            // marker update not complete
-            read.position(position);
-            return null;
+            throw new RuntimeException("unexpected");
         }
     }
 
@@ -256,7 +254,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
      *            value to write to the serialized queue
      * @return true if written, false if not enough space
      */
-    public synchronized boolean offer(T t) {
+    public boolean offer(T t) {
         // the current position will be just past the length bytes for this
         // item (length bytes will be 0 at the moment)
         int serializedLength = serializer.size();
