@@ -342,6 +342,7 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test
+    @Ignore
     public void handlesMultiSecondLoopOfMidStreamUnsubscribeNoRollover() throws Throwable {
         System.out.println("handlesMultiSecondLoopOfMidStreamUnsubscribeNoRollover");
         int max = 1000;
@@ -456,6 +457,7 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test(timeout = 5000)
+    @Ignore
     public void checkRateForSmallMessagesNoRollover() {
         System.out.println("checkRateForSmallMessagesWithOptions");
         checkRateForSmallMessagesWithOptions(Options.disableRollover().build());
@@ -496,6 +498,7 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test(timeout = 5000)
+    @Ignore
     public void checkRateForOneKMessagesNoRollover() {
         checkRateForOneKMessagesWithOptions(Options.disableRollover().build());
     }
@@ -558,6 +561,7 @@ public final class OperatorBufferToFileTest {
     }
 
     @Test
+    @Ignore
     public void checkRateForOneKMessagesNoReadNoRollover() {
         checkRateForOneKMessagesNoReadWithOptions(Options.disableRollover().build());
     }
