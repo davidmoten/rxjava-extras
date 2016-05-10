@@ -489,7 +489,7 @@ public final class OperatorBufferToFileTest {
         t = System.currentTimeMillis() - t;
         assertEquals(max, last);
         System.out.println("rate = " + df((double) max * 4 / (t) / 1000) + "MB/s (4B messages, "
-                + rolloverStatus(options) + ")");
+                + rolloverStatus(options) + ") duration="+ format(t/1000.0));
         waitUntilWorkCompleted(scheduler);
     }
 
@@ -505,6 +505,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void checkRateForOneKMessagesRollover() {
+    	System.out.println("checkRateForOneKMessagesRollover");
         checkRateForOneKMessagesWithOptions(Options.rolloverSizeBytes(Long.MAX_VALUE - 1).build());
     }
 
@@ -524,8 +525,12 @@ public final class OperatorBufferToFileTest {
         t = System.currentTimeMillis() - t;
         assertEquals(max, last);
         System.out.println("rate = " + df((double) max * MEDIUM_MESSAGE_SIZE / 1000 / (t))
-                + "MB/s (1K messages, " + rolloverStatus(options) + ")");
+                + "MB/s (1K messages, " + rolloverStatus(options) + ") duration="+ format(t/1000.0));
         waitUntilWorkCompleted(scheduler);
+    }
+    
+    public static String format(double d) {
+    	return new DecimalFormat("0.00").format(d);
     }
 
     private static final int MEDIUM_MESSAGE_SIZE = 1 << 10;
@@ -568,6 +573,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void checkRateForOneKMessagesNoReadRollover() {
+    	System.out.println("checkRateForOneKMessagesNoReadRollover");
         checkRateForOneKMessagesNoReadWithOptions(
                 Options.rolloverSizeBytes(Long.MAX_VALUE - 1).build());
     }
@@ -600,13 +606,14 @@ public final class OperatorBufferToFileTest {
         t = System.currentTimeMillis() - t;
         assertEquals(1, first);
         System.out.println("rate = " + df((double) max / (t)) + "MB/s (1K messages, "
-                + rolloverStatus(options) + ", write only)");
+                + rolloverStatus(options) + ", write only) duration="+ format(t/1000.0));
         waitUntilWorkCompleted(scheduler);
     }
 
     @Test
     @Ignore
     public void testCompletionDeletesAllFilesUsingRolloverOnSize() {
+    	System.out.println("testCompletionDeletesAllFilesUsingRolloverOnSize");
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = DataSerializers.integer();
 
@@ -637,6 +644,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void testForReadMe() {
+    	System.out.println("testForReadMe");
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<String> serializer = new DataSerializer<String>() {
 
