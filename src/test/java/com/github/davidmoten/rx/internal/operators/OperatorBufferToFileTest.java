@@ -262,7 +262,7 @@ public final class OperatorBufferToFileTest {
         DataSerializer<Integer> serializer = createLargeMessageSerializer();
         int max = 100;
         int last = Observable.range(1, max) //
-                .doOnNext(Actions.println())
+//                .doOnNext(Actions.println())
                 //
                 .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler))
                 // log

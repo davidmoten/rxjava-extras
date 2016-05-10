@@ -220,11 +220,12 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
     public T poll() {
         int position = read.position();
-        byte marker = read.get();
+        byte marker;
+        synchronized (markerLock) {
+            marker = read.get();
+        }
         if (marker == MARKER_END_OF_QUEUE) {
-            synchronized (markerLock) {
-                read.position(position);
-            }
+            read.position(position);
             return null;
         } else if (marker == MARKER_END_OF_FILE) {
             throw EOF;
@@ -310,12 +311,8 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
     private void markFileAsCompletedAndClose() {
         write.position(write.position() - MARKER_HEADER_SIZE);
-        try {
-            synchronized (markerLock) {
-                output.write(MARKER_END_OF_FILE);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        synchronized (markerLock) {
+            write.put(MARKER_END_OF_FILE);
         }
         closeForWrite();
     }
@@ -328,14 +325,14 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
     private void completeWrite(int serializedLength) throws IOException {
         // write the marker for the next item
-        output.write(MARKER_END_OF_QUEUE);
+        write.put(MARKER_END_OF_QUEUE);
         // remember the position where the next write starts
         int newWritePosition = write.position();
         // rewind and update the length for the current item
         write.position(write.position() - serializedLength - 2 * MARKER_HEADER_SIZE);
         // now indicate to the reader that it can read this item
         synchronized (markerLock) {
-            output.write(MARKER_ITEM_PRESENT);
+            write.put(MARKER_ITEM_PRESENT);
         }
         // and update the position to the write position for the
         // next item
