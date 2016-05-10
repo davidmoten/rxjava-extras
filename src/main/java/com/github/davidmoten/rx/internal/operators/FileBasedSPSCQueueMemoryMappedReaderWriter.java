@@ -41,8 +41,11 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
     public FileBasedSPSCQueueMemoryMappedReaderWriter(File file, int fileSize,
             DataSerializer<T> serializer) {
-        Preconditions.checkArgument(
-                serializer.size() == 0 || serializer.size() < fileSize - 2 * MARKER_HEADER_SIZE);
+        Preconditions
+                .checkArgument(
+                        serializer.size() == 0 || serializer.size() <= fileSize
+                                - 2 * MARKER_HEADER_SIZE,
+                "serializer.size() must be less than or equal to file based queue size - 2");
         this.file = file;
         this.serializer = serializer;
         this.fileSize = fileSize;
@@ -212,6 +215,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     static final byte MARKER_END_OF_FILE = 1;
     static final byte MARKER_ITEM_PRESENT = 2;
     static final int MARKER_HEADER_SIZE = 1;
+    static final int UNKNOWN_LENGTH = 0;
 
     public synchronized T poll() {
         int position = read.position();
@@ -248,38 +252,56 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     public synchronized boolean offer(T t) {
         // the current position will be just past the length bytes for this
         // item (length bytes will be 0 at the moment)
+        int serializedLength = serializer.size();
+        if (serializedLength == UNKNOWN_LENGTH) {
+            return offerUnknownLength(t);
+        } else {
+            return offerKnownLength(t, serializedLength);
+        }
+    }
+
+    private boolean offerKnownLength(T t, int serializedLength) {
         try {
-            int serializedLength = serializer.size();
-            if (serializedLength == 0) {
-                bytes.reset();
-                // serialize to an in-memory buffer to calculate length
-                serializer.serialize(buffer, t);
-                serializedLength = bytes.size();
-                if (notEnoughSpace(serializedLength)) {
-                    markFileAsCompletedAndClose();
-                    return false;
-                } else {
-                    write.put(bytes.toByteArrayNoCopy(), 0, bytes.size());
-                    completeWrite(serializedLength);
-                    return true;
-                }
-            } else if (notEnoughSpace(serializedLength)) {
+            if (notEnoughSpace(serializedLength)) {
+                markFileAsCompletedAndClose();
+                return false;
+            }
+            int position = write.position();
+            // serialize the object t to the file
+            serializer.serialize(output, t);
+            int length = write.position() - position;
+            checkLength(serializedLength, length);
+
+            completeWrite(serializedLength);
+            return true;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean offerUnknownLength(T t) {
+        try {
+            bytes.reset();
+            // serialize to an in-memory buffer to calculate length
+            serializer.serialize(buffer, t);
+            int serializedLength = bytes.size();
+            if (notEnoughSpace(serializedLength)) {
                 markFileAsCompletedAndClose();
                 return false;
             } else {
-                int position = write.position();
-                // serialize the object t to the file
-                serializer.serialize(output, t);
-                int length = write.position() - position;
-                if (length > serializedLength) {
-                    throw new IllegalArgumentException(
-                            "serialized length of t was greater than serializedLength");
-                }
+                write.put(bytes.toByteArrayNoCopy(), 0, bytes.size());
                 completeWrite(serializedLength);
                 return true;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private void checkLength(int serializedLength, int length) {
+        if (length > serializedLength) {
+            throw new IllegalArgumentException(
+                    "serialized length of value being offered to file queue was greater than serializer.size() value (which was non-zero)");
         }
     }
 
@@ -294,6 +316,8 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     }
 
     private boolean notEnoughSpace(int serializedLength) {
+        if (serializedLength > fileSize - 2 * MARKER_HEADER_SIZE)
+            throw new RuntimeException("serialized length is larger than can fit in one file");
         return serializedLength + MARKER_HEADER_SIZE > write.remaining();
     }
 
@@ -317,9 +341,6 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static void main(String[] args) {
     }
 
 }
