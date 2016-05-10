@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.util.ByteArrayOutputStreamNoCopyUnsynchronized;
+import com.google.common.base.Preconditions;
 
 public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
@@ -40,6 +41,8 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
     public FileBasedSPSCQueueMemoryMappedReaderWriter(File file, int fileSize,
             DataSerializer<T> serializer) {
+        Preconditions.checkArgument(
+                serializer.size() == 0 || serializer.size() < fileSize - 2 * MARKER_HEADER_SIZE);
         this.file = file;
         this.serializer = serializer;
         this.fileSize = fileSize;
@@ -234,49 +237,36 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
         }
     }
 
+    /**
+     * Returns true if value written to file or false if not enough space
+     * (writes and end-of-file marker in the fixed-length memory mapped file).
+     * 
+     * @param t
+     *            value to write to the serialized queue
+     * @return true if written, false if not enough space
+     */
     public synchronized boolean offer(T t) {
         // the current position will be just past the length bytes for this
         // item (length bytes will be 0 at the moment)
-        int serializedLength = serializer.size();
-        if (serializedLength == 0) {
-            try {
+        try {
+            int serializedLength = serializer.size();
+            if (serializedLength == 0) {
                 bytes.reset();
                 // serialize to an in-memory buffer to calculate length
                 serializer.serialize(buffer, t);
-                if (bytes.size() + MARKER_HEADER_SIZE > write.remaining()) {
-                    write.position(write.position() - MARKER_HEADER_SIZE);
-                    output.write(MARKER_END_OF_FILE);
-                    closeForWrite();
+                serializedLength = bytes.size();
+                if (notEnoughSpace(serializedLength)) {
+                    markFileAsCompletedAndClose();
                     return false;
                 } else {
                     write.put(bytes.toByteArrayNoCopy(), 0, bytes.size());
-                    // write the marker for the next item
-                    output.write(MARKER_END_OF_QUEUE);
-                    // remember the position where the next write starts
-                    int newWritePosition = write.position();
-                    // rewind and update the length for the current item
-                    write.position(write.position() - bytes.size() - 2 * MARKER_HEADER_SIZE);
-                    // now indicate to the reader that it can read this item
-                    output.write(MARKER_ITEM_PRESENT);
-                    // and update the position to the write position for the
-                    // next item
-                    write.position(newWritePosition);
+                    completeWrite(serializedLength);
                     return true;
                 }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else if (serializedLength + MARKER_HEADER_SIZE > write.remaining()) {
-            write.position(write.position() - MARKER_HEADER_SIZE);
-            try {
-                output.write(MARKER_END_OF_FILE);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            closeForWrite();
-            return false;
-        } else {
-            try {
+            } else if (notEnoughSpace(serializedLength)) {
+                markFileAsCompletedAndClose();
+                return false;
+            } else {
                 int position = write.position();
                 // serialize the object t to the file
                 serializer.serialize(output, t);
@@ -285,23 +275,40 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
                     throw new IllegalArgumentException(
                             "serialized length of t was greater than serializedLength");
                 }
-                // write a length of zero for the next item
-                output.write(MARKER_END_OF_QUEUE);
-                // remember the position
-                int newWritePosition = write.position();
-                // rewind and update the length for the current item
-                write.position(write.position() - serializedLength - 2 * MARKER_HEADER_SIZE);
-                // now indicate to the reader that it can read this item
-                // because the length will now be non-zero
-                output.write(MARKER_ITEM_PRESENT);
-                // and update the position to the write position for the next
-                // item
-                write.position(newWritePosition);
+                completeWrite(serializedLength);
                 return true;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
+    }
+
+    private void markFileAsCompletedAndClose() {
+        write.position(write.position() - MARKER_HEADER_SIZE);
+        try {
+            output.write(MARKER_END_OF_FILE);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        closeForWrite();
+    }
+
+    private boolean notEnoughSpace(int serializedLength) {
+        return serializedLength + MARKER_HEADER_SIZE > write.remaining();
+    }
+
+    private void completeWrite(int serializedLength) throws IOException {
+        // write the marker for the next item
+        output.write(MARKER_END_OF_QUEUE);
+        // remember the position where the next write starts
+        int newWritePosition = write.position();
+        // rewind and update the length for the current item
+        write.position(write.position() - serializedLength - 2 * MARKER_HEADER_SIZE);
+        // now indicate to the reader that it can read this item
+        output.write(MARKER_ITEM_PRESENT);
+        // and update the position to the write position for the
+        // next item
+        write.position(newWritePosition);
     }
 
     public void close() {
