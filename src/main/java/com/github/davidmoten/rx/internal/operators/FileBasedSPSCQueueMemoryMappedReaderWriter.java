@@ -32,6 +32,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     // TODO can be passed in to constructor for reuse
     private final ByteArrayOutputStreamNoCopyUnsynchronized bytes;
     private final AtomicInteger status = new AtomicInteger(WRITTEN_READ);
+    private final Object markerLock = new Object();
 
     static final int WRITTEN_READ = 0;
     static final int WRITTEN_READ_NOT_STARTED = 1;
@@ -217,11 +218,13 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     static final int MARKER_HEADER_SIZE = 1;
     static final int UNKNOWN_LENGTH = 0;
 
-    public synchronized T poll() {
+    public T poll() {
         int position = read.position();
         byte marker = read.get();
         if (marker == MARKER_END_OF_QUEUE) {
-            read.position(position);
+            synchronized (markerLock) {
+                read.position(position);
+            }
             return null;
         } else if (marker == MARKER_END_OF_FILE) {
             throw EOF;
@@ -249,7 +252,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
      *            value to write to the serialized queue
      * @return true if written, false if not enough space
      */
-    public synchronized boolean offer(T t) {
+    public boolean offer(T t) {
         // the current position will be just past the length bytes for this
         // item (length bytes will be 0 at the moment)
         int serializedLength = serializer.size();
@@ -308,7 +311,9 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     private void markFileAsCompletedAndClose() {
         write.position(write.position() - MARKER_HEADER_SIZE);
         try {
-            output.write(MARKER_END_OF_FILE);
+            synchronized (markerLock) {
+                output.write(MARKER_END_OF_FILE);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -329,7 +334,9 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
         // rewind and update the length for the current item
         write.position(write.position() - serializedLength - 2 * MARKER_HEADER_SIZE);
         // now indicate to the reader that it can read this item
-        output.write(MARKER_ITEM_PRESENT);
+        synchronized (markerLock) {
+            output.write(MARKER_ITEM_PRESENT);
+        }
         // and update the position to the write position for the
         // next item
         write.position(newWritePosition);
