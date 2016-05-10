@@ -253,14 +253,14 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
                     // write the marker for the next item
                     output.write(MARKER_END_OF_QUEUE);
                     // remember the position where the next write starts
-                    int newPosition = write.position();
+                    int newWritePosition = write.position();
                     // rewind and update the length for the current item
                     write.position(write.position() - bytes.size() - 2 * MARKER_HEADER_SIZE);
                     // now indicate to the reader that it can read this item
                     output.write(MARKER_ITEM_PRESENT);
                     // and update the position to the write position for the
                     // next item
-                    write.position(newPosition);
+                    write.position(newWritePosition);
                     return true;
                 }
             } catch (IOException e) {
@@ -276,8 +276,8 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
             closeForWrite();
             return false;
         } else {
-            int position = write.position();
             try {
+                int position = write.position();
                 // serialize the object t to the file
                 serializer.serialize(output, t);
                 int length = write.position() - position;
@@ -290,7 +290,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
                 // remember the position
                 int newWritePosition = write.position();
                 // rewind and update the length for the current item
-                write.position(position - MARKER_HEADER_SIZE);
+                write.position(write.position() - serializedLength - 2 * MARKER_HEADER_SIZE);
                 // now indicate to the reader that it can read this item
                 // because the length will now be non-zero
                 output.write(MARKER_ITEM_PRESENT);
