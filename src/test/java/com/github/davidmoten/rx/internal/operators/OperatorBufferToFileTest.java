@@ -285,7 +285,8 @@ public final class OperatorBufferToFileTest {
                         }
                     }
                 }) //
-                .doOnNext(Actions.println()).last().toBlocking().single();
+//                .doOnNext(Actions.println()) //
+                .last().toBlocking().single();
         assertEquals(max, last);
         waitUntilWorkCompleted(scheduler);
     }
