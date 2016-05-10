@@ -1,7 +1,5 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import static com.github.davidmoten.rx.internal.operators.FileBasedSPSCQueueMemoryMapped.EOF_MARKER;
-
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
@@ -123,7 +121,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
             }
             write = channel.map(MapMode.READ_WRITE, 0, fileSize);
             output = new DataOutputStream(new MappedByteBufferOutputStream(write));
-            output.writeInt(0);
+            output.write(MARKER_END_OF_QUEUE);
             // System.out.println("opened for write " + file.getName());
             return this;
         } catch (IOException e) {
@@ -207,33 +205,32 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
     }
 
+    static final byte MARKER_END_OF_QUEUE = 0;
+    static final byte MARKER_END_OF_FILE = 1;
+    static final byte MARKER_ITEM_PRESENT = 2;
+    static final int MARKER_HEADER_SIZE = 1;
+
     public synchronized T poll() {
         int position = read.position();
-        int length;
-        try {
-            length = input.readInt();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        if (length == FileBasedSPSCQueueMemoryMapped.EOF_MARKER) {
-            throw EOF;
-        } else if (length == 0) {
+        byte marker = read.get();
+        if (marker == MARKER_END_OF_QUEUE) {
             read.position(position);
             return null;
-        } else {
-            try {
-                T t = serializer.deserialize(input);
-                if (t == null) {
-                    // this is a trick that we can get away with due to type
-                    // erasure in java as long as the return value of poll() is
-                    // checked using NullSentinel.isNullSentinel(t) (?)
-                    return NullSentinel.instance();
-                } else {
-                    return t;
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        } else if (marker == MARKER_END_OF_FILE) {
+            throw EOF;
+        }
+        try {
+            T t = serializer.deserialize(input);
+            if (t == null) {
+                // this is a trick that we can get away with due to type
+                // erasure in java as long as the return value of poll() is
+                // checked using NullSentinel.isNullSentinel(t) (?)
+                return NullSentinel.instance();
+            } else {
+                return t;
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -246,21 +243,21 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
                 bytes.reset();
                 // serialize to an in-memory buffer to calculate length
                 serializer.serialize(buffer, t);
-                if (bytes.size() + 4 > write.remaining()) {
-                    write.position(write.position() - 4);
-                    output.writeInt(EOF_MARKER);
+                if (bytes.size() + MARKER_HEADER_SIZE > write.remaining()) {
+                    write.position(write.position() - MARKER_HEADER_SIZE);
+                    output.write(MARKER_END_OF_FILE);
                     closeForWrite();
                     return false;
                 } else {
                     write.put(bytes.toByteArrayNoCopy(), 0, bytes.size());
-                    // write the size of the next item
-                    output.writeInt(0);
-                    // remember the position
+                    // write the marker for the next item
+                    output.write(MARKER_END_OF_QUEUE);
+                    // remember the position where the next write starts
                     int newPosition = write.position();
                     // rewind and update the length for the current item
-                    write.position(write.position() - bytes.size() - 8);
+                    write.position(write.position() - bytes.size() - 2 * MARKER_HEADER_SIZE);
                     // now indicate to the reader that it can read this item
-                    output.writeInt(bytes.size());
+                    output.write(MARKER_ITEM_PRESENT);
                     // and update the position to the write position for the
                     // next item
                     write.position(newPosition);
@@ -269,10 +266,10 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-        } else if (serializedLength + 4 > write.remaining()) {
-            write.position(write.position() - 4);
+        } else if (serializedLength + MARKER_HEADER_SIZE > write.remaining()) {
+            write.position(write.position() - MARKER_HEADER_SIZE);
             try {
-                output.writeInt(EOF_MARKER);
+                output.write(MARKER_END_OF_FILE);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -289,14 +286,14 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
                             "serialized length of t was greater than serializedLength");
                 }
                 // write a length of zero for the next item
-                output.writeInt(0);
+                output.write(MARKER_END_OF_QUEUE);
                 // remember the position
                 int newWritePosition = write.position();
                 // rewind and update the length for the current item
-                write.position(position - 4);
+                write.position(position - MARKER_HEADER_SIZE);
                 // now indicate to the reader that it can read this item
                 // because the length will now be non-zero
-                output.writeInt(length);
+                output.write(MARKER_ITEM_PRESENT);
                 // and update the position to the write position for the next
                 // item
                 write.position(newWritePosition);
