@@ -261,7 +261,7 @@ public final class OperatorBufferToFileTest {
         waitUntilWorkCompleted(scheduler);
     }
 
-    @Test(timeout = 10000000)
+    @Test
     public void handlesManyLargeMessages() {
         System.out.println("handlesManyLargeMessages");
         Scheduler scheduler = createSingleThreadScheduler();
@@ -456,14 +456,14 @@ public final class OperatorBufferToFileTest {
         }));
     }
 
-    @Test(timeout = 5000)
+    @Test
     @Ignore
     public void checkRateForSmallMessagesNoRollover() {
         System.out.println("checkRateForSmallMessagesWithOptions");
         checkRateForSmallMessagesWithOptions(Options.disableRollover().build());
     }
 
-    @Test(timeout = 5000)
+    @Test
     public void checkRateForSmallMessagesRollover() {
         System.out.println("checkRateForSmallMessagesRollover");
         checkRateForSmallMessagesWithOptions(Options.rolloverSizeBytes(Long.MAX_VALUE - 1).build());
@@ -497,13 +497,13 @@ public final class OperatorBufferToFileTest {
         return options.rolloverEnabled() ? "rollover" : "no rollover";
     }
 
-    @Test(timeout = 5000)
+    @Test
     @Ignore
     public void checkRateForOneKMessagesNoRollover() {
         checkRateForOneKMessagesWithOptions(Options.disableRollover().build());
     }
 
-    @Test(timeout = 5000)
+    @Test
     public void checkRateForOneKMessagesRollover() {
         checkRateForOneKMessagesWithOptions(Options.rolloverSizeBytes(Long.MAX_VALUE - 1).build());
     }
