@@ -32,7 +32,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     // TODO can be passed in to constructor for reuse
     private final ByteArrayOutputStreamNoCopyUnsynchronized bytes;
     private final AtomicInteger status = new AtomicInteger(WRITTEN_READ);
-    private final Object markerLock = new Object();
+//    private final Object markerLock = new Object();
 
     static final int WRITTEN_READ = 0;
     static final int WRITTEN_READ_NOT_STARTED = 1;
@@ -221,27 +221,32 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
     public T poll() {
         int position = read.position();
         byte marker;
-        synchronized (markerLock) {
+//        synchronized (markerLock) {
             marker = read.get();
-        }
+//        }
         if (marker == MARKER_END_OF_QUEUE) {
             read.position(position);
             return null;
         } else if (marker == MARKER_END_OF_FILE) {
             throw EOF;
-        }
-        try {
-            T t = serializer.deserialize(input);
-            if (t == null) {
-                // this is a trick that we can get away with due to type
-                // erasure in java as long as the return value of poll() is
-                // checked using NullSentinel.isNullSentinel(t) (?)
-                return NullSentinel.instance();
-            } else {
-                return t;
+        } else if (marker == MARKER_ITEM_PRESENT) {
+            try {
+                T t = serializer.deserialize(input);
+                if (t == null) {
+                    // this is a trick that we can get away with due to type
+                    // erasure in java as long as the return value of poll() is
+                    // checked using NullSentinel.isNullSentinel(t) (?)
+                    return NullSentinel.instance();
+                } else {
+                    return t;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } else {
+            //marker update not complete
+            read.position(position);
+            return null;
         }
     }
 
@@ -275,8 +280,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
             serializer.serialize(output, t);
             int length = write.position() - position;
             checkLength(serializedLength, length);
-
-            completeWrite(serializedLength);
+            updateMarkers(serializedLength);
             return true;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -294,7 +298,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
                 return false;
             } else {
                 write.put(bytes.toByteArrayNoCopy(), 0, bytes.size());
-                completeWrite(serializedLength);
+                updateMarkers(serializedLength);
                 return true;
             }
         } catch (IOException e) {
@@ -311,9 +315,9 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
     private void markFileAsCompletedAndClose() {
         write.position(write.position() - MARKER_HEADER_SIZE);
-        synchronized (markerLock) {
+//        synchronized (markerLock) {
             write.put(MARKER_END_OF_FILE);
-        }
+//        }
         closeForWrite();
     }
 
@@ -323,7 +327,7 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
         return serializedLength + MARKER_HEADER_SIZE > write.remaining();
     }
 
-    private void completeWrite(int serializedLength) throws IOException {
+    private void updateMarkers(int serializedLength) throws IOException {
         // write the marker for the next item
         write.put(MARKER_END_OF_QUEUE);
         // remember the position where the next write starts
@@ -331,9 +335,9 @@ public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
         // rewind and update the length for the current item
         write.position(write.position() - serializedLength - 2 * MARKER_HEADER_SIZE);
         // now indicate to the reader that it can read this item
-        synchronized (markerLock) {
+//        synchronized (markerLock) {
             write.put(MARKER_ITEM_PRESENT);
-        }
+//        }
         // and update the position to the write position for the
         // next item
         write.position(newWritePosition);
