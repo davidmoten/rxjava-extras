@@ -7,7 +7,6 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -18,8 +17,6 @@ import com.github.davidmoten.util.Preconditions;
 import rx.functions.Func0;
 
 public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscription<T> {
-
-    static final int EOF_MARKER = -1;
 
     private final Queue<FileBasedSPSCQueueMemoryMappedReaderWriter<T>> inactive = new LinkedList<FileBasedSPSCQueueMemoryMappedReaderWriter<T>>();
     private final Deque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>> toRead = new ArrayDeque<FileBasedSPSCQueueMemoryMappedReaderWriter<T>>();
@@ -33,7 +30,6 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
     private final AtomicInteger wip = new AtomicInteger();
     private volatile boolean unsubscribed = false;
     private final AtomicLong count = new AtomicLong();
-    private final AtomicBoolean once = new AtomicBoolean(false);
 
     private final DataSerializer<T> serializer;
 
