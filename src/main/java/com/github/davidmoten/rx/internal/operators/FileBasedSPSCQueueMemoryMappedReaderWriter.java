@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.util.ByteArrayOutputStreamNoCopyUnsynchronized;
-import com.google.common.base.Preconditions;
+import com.github.davidmoten.util.Preconditions;
 
 public class FileBasedSPSCQueueMemoryMappedReaderWriter<T> {
 
