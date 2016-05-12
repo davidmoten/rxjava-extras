@@ -635,10 +635,14 @@ public final class Transformers {
 		return (Comparator<T>) (Comparator<?>) NaturalComparatorHolder.INSTANCE;
 	}
 
+	private static class SentinelHolder {
+		static final Object INSTANCE = new Object();
+	}
+
 	public static <T, K, R> Transformer<T, GroupedObservable<K, R>> groupByEvicting(
 			final Func1<? super T, K> keySelector, final Func1<? super T, R> elementSelector, long expiryTime,
 			TimeUnit unit, final Scheduler scheduler) {
-		final long expiryMillis = unit.toMillis(expiryTime); 
+		final long expiryMillis = unit.toMillis(expiryTime);
 		return new Transformer<T, GroupedObservable<K, R>>() {
 
 			@Override
@@ -660,23 +664,51 @@ public final class Transformers {
 										K key = g.getKey();
 										Observable<R> g2 = Observable.defer(new Func0<Observable<R>>() {
 
-											final long startTime = scheduler.now();
+											final long expiryTime = scheduler.now() + expiryMillis;
 
 											@Override
 											public Observable<R> call() {
-												return g.takeUntil(times.filter(new Func1<Long, Boolean>() {
-													@Override
-													public Boolean call(Long x) {
-														return x>=startTime + expiryMillis;
-													}
-												}));
+												return g.mergeWith( //
+														times.filter(isAfterExpiry(expiryTime))
+																.map(Transformers.<R> toSentinel()))
+														.takeWhile(notSentinel());
 											}
+
 										});
 										return GroupedObservable.from(key, g2);
 									}
 								});
 					}
 				});
+			}
+		};
+	}
+
+	private static Func1<Long, Boolean> isAfterExpiry(final long expiryTime) {
+		return new Func1<Long, Boolean>() {
+			@Override
+			public Boolean call(Long time) {
+				return time >= expiryTime;
+			}
+		};
+	}
+
+	private static <R> Func1<Long, R> toSentinel() {
+		return new Func1<Long, R>() {
+			@SuppressWarnings("unchecked")
+			@Override
+			public R call(Long x) {
+				return (R) SentinelHolder.INSTANCE;
+			}
+		};
+	}
+
+	private static <R> Func1<R, Boolean> notSentinel() {
+		return new Func1<R, Boolean>() {
+
+			@Override
+			public Boolean call(R r) {
+				return r != SentinelHolder.INSTANCE;
 			}
 		};
 	}
