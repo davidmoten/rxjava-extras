@@ -637,6 +637,19 @@ public final class Transformers {
 
 	private static class SentinelHolder {
 		static final Object INSTANCE = new Object();
+		static final Func1<Long,Object> TO_SENTINEL = new Func1<Long, Object>() {
+			@Override
+			public Object call(Long x) {
+				return SentinelHolder.INSTANCE;
+			}
+		};
+		static final Func1<Object, Boolean> NOT_SENTINEL = new Func1<Object, Boolean>() {
+
+			@Override
+			public Boolean call(Object r) {
+				return r != SentinelHolder.INSTANCE;
+			}
+		};
 	}
 
 	public static <T, K, R> Transformer<T, GroupedObservable<K, R>> groupByEvicting(
@@ -693,23 +706,13 @@ public final class Transformers {
 		};
 	}
 
+	@SuppressWarnings("unchecked")
 	private static <R> Func1<Long, R> toSentinel() {
-		return new Func1<Long, R>() {
-			@SuppressWarnings("unchecked")
-			@Override
-			public R call(Long x) {
-				return (R) SentinelHolder.INSTANCE;
-			}
-		};
+		return (Func1<Long, R>) SentinelHolder.TO_SENTINEL;
 	}
 
+	@SuppressWarnings("unchecked")
 	private static <R> Func1<R, Boolean> notSentinel() {
-		return new Func1<R, Boolean>() {
-
-			@Override
-			public Boolean call(R r) {
-				return r != SentinelHolder.INSTANCE;
-			}
-		};
+		return (Func1<R, Boolean>) SentinelHolder.NOT_SENTINEL;
 	}
 }
