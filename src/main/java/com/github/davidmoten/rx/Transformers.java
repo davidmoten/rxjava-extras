@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
@@ -44,7 +45,9 @@ import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
+import rx.observables.GroupedObservable;
 import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
 
 public final class Transformers {
 
@@ -632,4 +635,49 @@ public final class Transformers {
 		return (Comparator<T>) (Comparator<?>) NaturalComparatorHolder.INSTANCE;
 	}
 
+	public static <T, K, R> Transformer<T, GroupedObservable<K, R>> groupByEvicting(
+			final Func1<? super T, K> keySelector, final Func1<? super T, R> elementSelector, long expiryTime,
+			TimeUnit unit, final Scheduler scheduler) {
+		final long expiryMillis = unit.toMillis(expiryTime); 
+		return new Transformer<T, GroupedObservable<K, R>>() {
+
+			@Override
+			public Observable<GroupedObservable<K, R>> call(final Observable<T> o) {
+				return Observable.defer(new Func0<Observable<GroupedObservable<K, R>>>() {
+					final PublishSubject<Long> times = PublishSubject.create();
+
+					@Override
+					public Observable<GroupedObservable<K, R>> call() {
+						return o.doOnNext(new Action1<T>() {
+							@Override
+							public void call(T x) {
+								times.onNext(scheduler.now());
+							}
+						}).groupBy(keySelector, elementSelector) //
+								.map(new Func1<GroupedObservable<K, R>, GroupedObservable<K, R>>() {
+									@Override
+									public GroupedObservable<K, R> call(final GroupedObservable<K, R> g) {
+										K key = g.getKey();
+										Observable<R> g2 = Observable.defer(new Func0<Observable<R>>() {
+
+											final long startTime = scheduler.now();
+
+											@Override
+											public Observable<R> call() {
+												return g.takeUntil(times.filter(new Func1<Long, Boolean>() {
+													@Override
+													public Boolean call(Long x) {
+														return x>=startTime + expiryMillis;
+													}
+												}));
+											}
+										});
+										return GroupedObservable.from(key, g2);
+									}
+								});
+					}
+				});
+			}
+		};
+	}
 }
