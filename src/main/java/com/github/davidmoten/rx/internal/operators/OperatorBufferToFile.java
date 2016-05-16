@@ -81,8 +81,15 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
 
     private static <T> QueueWithSubscription<T> createFileBasedQueue(
             final DataSerializer<T> dataSerializer, final Options options) {
-        if (false) {
-            return new FileBasedSPSCQueueMemoryMapped(options.fileFactory(), 1500000,
+        if (MEMORY_MAPPED) {
+            // warning: still in development!
+            final int size;
+            if (options.rolloverSizeBytes() > Integer.MAX_VALUE) {
+                size = 20 * 1024 * 1024;// 20MB
+            } else {
+                size = (int) options.rolloverSizeBytes();
+            }
+            return new FileBasedSPSCQueueMemoryMapped<T>(options.fileFactory(), size,
                     dataSerializer);
         }
         if (options.rolloverEvery() == Long.MAX_VALUE

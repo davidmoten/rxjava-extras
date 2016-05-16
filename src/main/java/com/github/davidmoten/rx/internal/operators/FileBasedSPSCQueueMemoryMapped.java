@@ -60,7 +60,7 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
     }
 
     @Override
-    public boolean offer(T t) {
+    public synchronized boolean offer(T t) {
         // thread safe with poll() and unsubscribe()
         try {
             wip.incrementAndGet();
@@ -103,7 +103,7 @@ public final class FileBasedSPSCQueueMemoryMapped<T> implements QueueWithSubscri
     }
 
     @Override
-    public T poll() {
+    public synchronized T poll() {
         T value = null;
         // thread safe with offer() and unsubscribe()
         try {
