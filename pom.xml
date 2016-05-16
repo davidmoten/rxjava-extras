@@ -9,7 +9,7 @@
 		<version>0.1</version>
 	</parent>
 	<artifactId>rxjava-extras</artifactId>
-	<version>0.7.5-SNAPSHOT</version>
+	<version>0.7.5</version>
 	<name>${project.artifactId}</name>
 	<description>RxJava utilities</description>
 	<packaging>jar</packaging>
@@ -77,7 +77,7 @@
 		<connection>scm:git:https://github.com/davidmoten/rxjava-extras.git</connection>
 		<developerConnection>scm:git:https://github.com/davidmoten/rxjava-extras.git</developerConnection>
 		<url>scm:git:https://github.com:davidmoten/rxjava-extras.git</url>
-		<tag>0.7.1-RC6</tag>
+		<tag>0.7.5</tag>
 	</scm>
 
 	<dependencies>
