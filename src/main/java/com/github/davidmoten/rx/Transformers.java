@@ -666,7 +666,7 @@ public final class Transformers {
      * avoid memory leaks, you should not simply ignore those
      * {@code GroupedObservable}s that do not concern you. Instead, you can
      * signal to them that they may discard their buffers by applying an
-     * operator like {@link #ignoreElements} to them.
+     * operator like {@code .ignoreElements()} to them.
      * <dl>
      * <dt><b>Scheduler:</b></dt>
      * <dd>{@code groupBy} does not operate by default on a particular
@@ -701,6 +701,8 @@ public final class Transformers {
      *            }
      *            </pre>
      * 
+     * @param <T>
+     *            the type of the input observable
      * @param <K>
      *            the key type
      * @param <R>
