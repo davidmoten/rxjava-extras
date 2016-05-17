@@ -714,11 +714,11 @@ public final class Transformers {
      * @see <a href="http://reactivex.io/documentation/operators/groupby.html">
      *      ReactiveX operators documentation: GroupBy</a>
      */
-    public static <T, K, R> Func1<Observable<T>, Observable<GroupedObservable<K, R>>> groupByEvicting(
+    public static <T, K, R> Transformer<T, GroupedObservable<K, R>> groupByEvicting(
             final Func1<? super T, ? extends K> keySelector,
             final Func1<? super T, ? extends R> elementSelector,
             final Func1<Action1<K>, Map<K, Object>> evictingMapFactory) {
-        return new Func1<Observable<T>, Observable<GroupedObservable<K, R>>>() {
+        return new Transformer<T, GroupedObservable<K, R>>() {
 
             @Override
             public Observable<GroupedObservable<K, R>> call(Observable<T> o) {
