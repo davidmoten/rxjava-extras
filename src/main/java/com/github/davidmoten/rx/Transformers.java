@@ -267,7 +267,7 @@ public final class Transformers {
     }
     
     public static StateMachine.Builder stateMachine() {
-    	return new StateMachine.Builder();
+    	return StateMachine.builder();
     }
 
     /**

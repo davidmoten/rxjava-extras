@@ -35,27 +35,27 @@ public final class StateMachine {
     	return new Builder();
     }
     
-    public static class Builder{
+    public static final class Builder{
     	
-    	Builder() {
-    		
+    	private Builder() {
+    		//prevent instantiation from other packages
     	}
     	
-    	public <State> Builder2<State> initialStateCreator(Func0<State> initialState) {
+    	public <State> Builder2<State> initialStateFactory(Func0<State> initialState) {
 			return new Builder2<State>(initialState);
     	}
     	
-    	public <State> Builder2<State> initialState(final State state) {
-    		return new Builder2<State>(Functions.constant0(state));
+    	public <State> Builder2<State> initialState(final State initialState) {
+    		return new Builder2<State>(Functions.constant0(initialState));
     	}
     	
     }
     
-    public static class Builder2<State> {
+    public static final class Builder2<State> {
 
-		private Func0<State> initialState;
+		private final Func0<State> initialState;
 
-		Builder2(Func0<State> initialState) {
+		private Builder2(Func0<State> initialState) {
 			this.initialState = initialState;
 		}
 
@@ -65,14 +65,14 @@ public final class StateMachine {
 		
     }
     
-    public static class Builder3<State,In,Out> {
+    public static final class Builder3<State,In,Out> {
 
 		private final Func0<State> initialState;
 		private final Transition<State, In, Out> transition;
 		private Completion<State, Out> completion = CompletionAlwaysTrueHolder.instance();
 		private BackpressureStrategy backpressureStrategy = BackpressureStrategy.BUFFER;
 
-		public Builder3(Func0<State> initialState, Transition<State, In, Out> transition) {
+		private Builder3(Func0<State> initialState, Transition<State, In, Out> transition) {
 			this.initialState = initialState;
 			this.transition = transition;
 		}
