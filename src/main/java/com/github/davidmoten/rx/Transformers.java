@@ -209,7 +209,7 @@ public final class Transformers {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completion, backpressureStrategy);
     }
-
+    
     /**
      * Returns a {@link Transformer} that allows processing of the source stream
      * to be defined in a state machine where transitions of the state machine
@@ -264,6 +264,10 @@ public final class Transformers {
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completion, BackpressureStrategy.BUFFER);
+    }
+    
+    public static StateMachine.Builder stateMachine() {
+    	return new StateMachine.Builder();
     }
 
     /**
