@@ -91,6 +91,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                             if (!subscriber.isUnsubscribed())
                                 subscriber.onCompleted();
                             else {
+                            	// this is a special error to indicate that the transition 
+                            	// called unsubscribe. It will be filtered later.
                                 subscriber.onError(UnsubscribedExceptionHolder.INSTANCE);
                             }
                         } else if (in.isOnCompleted()) {
