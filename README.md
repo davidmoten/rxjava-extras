@@ -166,36 +166,39 @@ static class State {
 }
 
 int MIN_SEQUENCE_LENGTH = 2;
-Observable.just(10, 5, 2, -1, -2, -5, -1, 2, 5, 6)
-    .compose(Transformers.stateMachine(
-        () -> new State(new ArrayList<>(), false),
-        (state,t,subscriber) -> {
-                if (t < 0) {
-                    if (state.reachedThreshold) {
-                        if (subscriber.isUnsubscribed()) {
-                            return null;
-                        }
-                        subscriber.onNext(t);
-                        return s;
-                     } else if (state.list.size() == MIN_SEQUENCE_LENGTH - 1) {
-                        for (Double temperature: list) {
-                        	if (subscriber.isUnsubscribed()){
-                                return null;
-                        	}
-                    	    subscriber.onNext(temperature);
-                        }
-                        return new State(null, true);
-                     } else {
-                        List<Double> list = new ArrayList<>(state.list);
-                        list.add(t);
-                        return new State(list, false);
-                     }
-                } else {
-                    return new State(new ArrayList<>(), false);
+
+Transformer<Double, Double> trans = Transformers 
+    .stateMachine() 
+    .initialStateFactory(() -> new State(new ArrayList<>(), false))
+    .<Double, Double> transition((state, t, subscriber) -> {
+        if (t < 0) {
+            if (state.reachedThreshold) {
+                if (subscriber.isUnsubscribed()) {
+                    return null;
                 }
-            }) 
-    .forEach(System.out::println);
-```
+                subscriber.onNext(t);
+                return state;
+            } else if (state.list.size() == MIN_SEQUENCE_LENGTH - 1) {
+                for (Double temperature : state.list) {
+                    if (subscriber.isUnsubscribed()) {
+                        return null;
+                    }
+                    subscriber.onNext(temperature);
+                }
+                return new State(null, true);
+            } else {
+                List<Double> list = new ArrayList<>(state.list);
+                list.add(t);
+                return new State(list, false);
+            }
+        } else {
+            return new State(new ArrayList<>(), false);
+        }
+    }).build();
+Observable
+    .just(10.4, 5.0, 2.0, -1.0, -2.0, -5.0, -1.0, 2.0, 5.0, 6.0)
+    .compose(trans)
+    .forEach(System.out::println);```
 
 RetryWhen
 ----------------------
