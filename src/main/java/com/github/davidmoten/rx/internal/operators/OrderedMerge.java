@@ -25,22 +25,22 @@ import rx.internal.util.unsafe.MpscLinkedQueue;
  *            type of observable
  */
 public final class OrderedMerge<T> implements OnSubscribe<T> {
-    final List<Observable<? extends T>> sources;
+    final List<Observable<T>> sources;
     final Comparator<? super T> comparator;
     final boolean delayErrors;
 
     public static <U extends Comparable<? super U>> Observable<U> create(
-            Collection<Observable<? extends U>> sources) {
+            Collection<Observable<U>> sources) {
         return create(sources, false);
     }
 
-    public static <U> Observable<U> create(Collection<Observable<? extends U>> sources,
+    public static <U> Observable<U> create(Collection<Observable<U>> sources,
             Comparator<? super U> comparator) {
         return create(sources, comparator, false);
     }
 
     public static <U extends Comparable<? super U>> Observable<U> create(
-            Collection<Observable<? extends U>> sources, boolean delayErrors) {
+            Collection<Observable<U>> sources, boolean delayErrors) {
         return Observable.create(new OrderedMerge<U>(sources, new Comparator<U>() {
             @Override
             public int compare(U o1, U o2) {
@@ -49,15 +49,15 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
         }, delayErrors));
     }
 
-    public static <U> Observable<U> create(Collection<Observable<? extends U>> sources,
+    public static <U> Observable<U> create(Collection<Observable<U>> sources,
             Comparator<? super U> comparator, boolean delayErrors) {
         return Observable.create(new OrderedMerge<U>(sources, comparator, delayErrors));
     }
 
-    private OrderedMerge(Collection<Observable<? extends T>> sources,
+    private OrderedMerge(Collection<Observable<T>> sources,
             Comparator<? super T> comparator, boolean delayErrors) {
-        this.sources = sources instanceof List ? (List<Observable<? extends T>>) sources
-                : new ArrayList<Observable<? extends T>>(sources);
+        this.sources = sources instanceof List ? (List<Observable<T>>) sources
+                : new ArrayList<Observable<T>>(sources);
         this.comparator = comparator;
         this.delayErrors = delayErrors;
     }

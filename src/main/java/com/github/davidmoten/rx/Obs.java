@@ -199,21 +199,21 @@ public final class Obs {
     }
 
     public static <T extends Comparable<? super T>> Observable<T> create(
-            Collection<Observable<? extends T>> sources) {
+            Collection<Observable<T>> sources) {
         return create(sources, false);
     }
 
-    public static <T> Observable<T> create(Collection<Observable<? extends T>> sources,
+    public static <T> Observable<T> create(Collection<Observable<T>> sources,
             Comparator<? super T> comparator) {
         return create(sources, comparator, false);
     }
 
     public static <T extends Comparable<? super T>> Observable<T> create(
-            Collection<Observable<? extends T>> sources, boolean delayErrors) {
+            Collection<Observable<T>> sources, boolean delayErrors) {
         return OrderedMerge.create(sources, delayErrors);
     }
 
-    public static <T> Observable<T> create(Collection<Observable<? extends T>> sources,
+    public static <T> Observable<T> create(Collection<Observable<T>> sources,
             Comparator<? super T> comparator, boolean delayErrors) {
         return OrderedMerge.create(sources, comparator, delayErrors);
     }

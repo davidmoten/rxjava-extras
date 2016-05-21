@@ -1,9 +1,5 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import java.util.Queue;
-
-import rx.Subscription;
-
 /**
  * <p>
  * A queue with associated underlying resources that can be freed, or closed

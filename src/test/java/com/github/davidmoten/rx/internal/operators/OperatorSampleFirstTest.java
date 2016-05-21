@@ -114,7 +114,8 @@ public class OperatorSampleFirstTest {
         }, delay, TimeUnit.MILLISECONDS);
     }
 
-    private static class TestException extends Exception {
+    @SuppressWarnings("serial")
+	private static class TestException extends Exception {
 
     }
 

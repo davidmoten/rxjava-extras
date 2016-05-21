@@ -1258,7 +1258,8 @@ public class OperatorGroupByTest {
         verify(o2).onError(any(IllegalStateException.class));
     }
 
-    private static class TestException extends Exception {
+    @SuppressWarnings("serial")
+	private static class TestException extends Exception {
 
         public TestException(String string) {
             super(string);
@@ -1607,7 +1608,8 @@ public class OperatorGroupByTest {
         ts2.assertNotCompleted();
     }
 
-    @Test
+    @SuppressWarnings("unchecked")
+	@Test
     public void testGroupedObservableCollection() {
 
         final TestSubscriber<List<Integer>> inner1 = new TestSubscriber<List<Integer>>();
@@ -1657,13 +1659,14 @@ public class OperatorGroupByTest {
 
     }
 
-    @Test
+    @SuppressWarnings("unchecked")
+	@Test
     public void testCollectedGroups() {
 
         final TestSubscriber<List<Integer>> inner1 = new TestSubscriber<List<Integer>>();
         final TestSubscriber<List<Integer>> inner2 = new TestSubscriber<List<Integer>>();
 
-        final List<TestSubscriber<List<Integer>>> inners = Arrays.asList(inner1, inner2);
+		final List<TestSubscriber<List<Integer>>> inners = Arrays.asList(inner1, inner2);
 
         TestSubscriber<Observable<List<Integer>>> outer = new TestSubscriber<Observable<List<Integer>>>(
                 new Subscriber<Observable<List<Integer>>>() {
