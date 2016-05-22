@@ -35,7 +35,7 @@ public final class TransformerDelayUnsubscribeForRefCount<T> implements Transfor
                     @Override
                     public void call() {
                         if (count.incrementAndGet() == 1) {
-                            System.out.println("first");
+                            System.out.println(scheduler.now() + ": first");
                             Subscriber<T> sub = doNothing();
                             Worker w;
                             synchronized (lock) {
@@ -45,6 +45,7 @@ public final class TransformerDelayUnsubscribeForRefCount<T> implements Transfor
                             }
                             if (w != null) {
                                 w.unsubscribe();
+                                System.out.println(scheduler.now() + ": cancelled unsub");
                             }
                             o.subscribe(sub);
                         } else {
@@ -64,7 +65,7 @@ public final class TransformerDelayUnsubscribeForRefCount<T> implements Transfor
                     @Override
                     public void call() {
                         if (count.decrementAndGet() == 0) {
-                            System.out.println("to 0");
+                            System.out.println(scheduler.now()+ ": to 0");
                             final Worker newW;
                             Worker w;
                             synchronized (lock) {
@@ -74,20 +75,24 @@ public final class TransformerDelayUnsubscribeForRefCount<T> implements Transfor
                             }
                             if (w != null) {
                                 w.unsubscribe();
+                                System.out.println(scheduler.now() + ": cancelled unsub while unsub");
                             }
                             newW.schedule(new Action0() {
                                 @Override
                                 public void call() {
-                                    System.out.println("unsub action");
+                                    System.out.println(scheduler.now() + ": unsub action");
                                     Subscriber<T> sub;
                                     synchronized (lock) {
                                         sub = extra.get();
+                                        extra.set(null);
                                     }
                                     sub.unsubscribe();
-                                    System.out.println("unsubscribed extra");
+                                    System.out.println(scheduler.now() + ": unsubscribed extra");
                                     newW.unsubscribe();
+                                    worker.compareAndSet(newW, null);
                                 }
                             }, delayMs, TimeUnit.MILLISECONDS);
+                            System.out.println(scheduler.now() + ": scheduled unsub");
                         }
                     }
                 }));
