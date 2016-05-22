@@ -16,99 +16,116 @@ import rx.subscriptions.Subscriptions;
 
 public final class TransformerDelayUnsubscribeForRefCount<T> implements Transformer<T, T> {
 
-	private final long delayMs;
-	private final Scheduler scheduler;
+    private final long delayMs;
+    private final Scheduler scheduler;
 
-	public TransformerDelayUnsubscribeForRefCount(long delayMs, Scheduler scheduler) {
-		this.delayMs = delayMs;
-		this.scheduler = scheduler;
-	}
+    public TransformerDelayUnsubscribeForRefCount(long delayMs, Scheduler scheduler) {
+        this.delayMs = delayMs;
+        this.scheduler = scheduler;
+    }
 
-	@Override
-	public Observable<T> call(final Observable<T> o) {
-		final AtomicInteger count = new AtomicInteger();
-		final AtomicReference<Subscriber<T>> extra = new AtomicReference<Subscriber<T>>();
-		final AtomicReference<Worker> worker = new AtomicReference<Worker>();
-		final Object lock = new Object();
-		return o //
-				.doOnSubscribe(new Action0() {
-					@Override
-					public void call() {
-						if (count.incrementAndGet() == 1) {
-							Subscriber<T> sub = doNothing();
-							synchronized (lock) {
-								extra.set(sub);
-								Worker w = worker.get();
-								if (w != null) {
-									w.unsubscribe();
-								}
-								worker.set(null);
-							}
-							o.subscribe(sub);
-						}
-					}
-				}) //
-				.lift(new OperatorAddToSubscription<T>(new Action0() {
+    @Override
+    public Observable<T> call(final Observable<T> o) {
+        final AtomicInteger count = new AtomicInteger();
+        final AtomicReference<Subscriber<T>> extra = new AtomicReference<Subscriber<T>>();
+        final AtomicReference<Worker> worker = new AtomicReference<Worker>();
+        final Object lock = new Object();
+        return o //
+                .doOnSubscribe(new Action0() {
+                    @Override
+                    public void call() {
+                        if (count.incrementAndGet() == 1) {
+                            System.out.println("first");
+                            Subscriber<T> sub = doNothing();
+                            Worker w;
+                            synchronized (lock) {
+                                extra.set(sub);
+                                w = worker.get();
+                                worker.set(null);
+                            }
+                            if (w != null) {
+                                w.unsubscribe();
+                            }
+                            o.subscribe(sub);
+                        } else {
+                            Worker w;
+                            synchronized (lock) {
+                                w = worker.get();
+                                worker.set(null);
+                            }
+                            if (w != null) {
+                                w.unsubscribe();
+                            }
+                        }
+                    }
+                }) //
+                .lift(new OperatorAddToSubscription<T>(new Action0() {
 
-					@Override
-					public void call() {
-						if (count.decrementAndGet() == 0) {
-							final Worker newW;
-							synchronized (lock) {
-								Worker w = worker.get();
-								if (w != null) {
-									w.unsubscribe();
-								}
-								newW = scheduler.createWorker();
-								worker.set(w);
-							}
-							newW.schedule(new Action0() {
-								@Override
-								public void call() {
-									synchronized (lock) {
-									extra.get().unsubscribe();
-									newW.unsubscribe();
-										System.out.println("unsubscribed extra");
-									}
-								}
-							}, delayMs, TimeUnit.MILLISECONDS);
-						}
-					}
-				}));
-	}
+                    @Override
+                    public void call() {
+                        if (count.decrementAndGet() == 0) {
+                            System.out.println("to 0");
+                            final Worker newW;
+                            Worker w;
+                            synchronized (lock) {
+                                w = worker.get();
+                                newW = scheduler.createWorker();
+                                worker.set(newW);
+                            }
+                            if (w != null) {
+                                w.unsubscribe();
+                            }
+                            newW.schedule(new Action0() {
+                                @Override
+                                public void call() {
+                                    System.out.println("unsub action");
+                                    Subscriber<T> sub;
+                                    synchronized (lock) {
+                                        sub = extra.get();
+                                    }
+                                    sub.unsubscribe();
+                                    System.out.println("unsubscribed extra");
+                                    newW.unsubscribe();
+                                }
+                            }, delayMs, TimeUnit.MILLISECONDS);
+                        }
+                    }
+                }));
+    }
 
-	private static <T> Subscriber<T> doNothing() {
-		return new Subscriber<T>() {
+    private static <T> Subscriber<T> doNothing() {
+        return new Subscriber<T>() {
 
-			@Override
-			public void onCompleted() {
-			}
+            @Override
+            public void onCompleted() {
+            }
 
-			@Override
-			public void onError(Throwable e) {
-			}
+            @Override
+            public void onError(Throwable e) {
+            }
 
-			@Override
-			public void onNext(T t) {
-			}
-		};
-	}
+            @Override
+            public void onNext(T t) {
+            }
+        };
+    }
 
-	private static final class OperatorAddToSubscription<T> implements Operator<T, T> {
+    private static final class OperatorAddToSubscription<T> implements Operator<T, T> {
 
-		private final Action0 action;
+        private final Action0 action;
 
-		OperatorAddToSubscription(Action0 action) {
-			this.action = action;
-		}
+        OperatorAddToSubscription(Action0 action) {
+            this.action = action;
+        }
 
-		@Override
-		public Subscriber<? super T> call(Subscriber<? super T> child) {
-			Subscriber<T> parent = Subscribers.wrap(child);
-			child.add(Subscriptions.create(action));
-			return parent;
-		}
+        @Override
+        public Subscriber<? super T> call(Subscriber<? super T> child) {
+            Subscriber<T> parent = Subscribers.wrap(child);
+            child.add(Subscriptions.create(action));
+            child.add(parent);
+            return parent;
+        }
 
-	}
+    }
 
 }
