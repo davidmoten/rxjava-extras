@@ -14,6 +14,7 @@ import org.junit.Test;
 import com.github.davidmoten.rx.util.Pair;
 
 import rx.Observable;
+import rx.Subscription;
 import rx.observers.TestSubscriber;
 import rx.schedulers.TestScheduler;
 
@@ -109,6 +110,24 @@ public class TransformersTest {
         Observable.just(1, 2, 3).compose(Transformers.doOnNext(2, Actions.setAtomic(item)))
                 .subscribe();
         assertEquals(2, item.get());
+    }
+
+    @Test
+    public void testDelay() {
+        final AtomicInteger count = new AtomicInteger();
+        Observable<Long> o = Observable //
+                .<Long> never() //
+                .doOnSubscribe(Actions.increment0(count)) //
+                .share();
+        TestSubscriber<Long> ts = TestSubscriber.create();
+        Subscription s1 = o.subscribe();
+        assertEquals(1, count.get());
+        Subscription s2 = o.subscribe();
+        assertEquals(1, count.get());
+        s1.unsubscribe();
+        s2.unsubscribe();
+        Subscription s3 = o.subscribe();
+        assertEquals(2, count.get());
     }
 
     @Test
