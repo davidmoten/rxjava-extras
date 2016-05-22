@@ -24,6 +24,7 @@ import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax;
 import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax.Metric;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.internal.operators.TransformerDecode;
+import com.github.davidmoten.rx.internal.operators.TransformerDelayUnsubscribeForRefCount;
 import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
 import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.internal.operators.TransformerStringSplit;
@@ -715,5 +716,14 @@ public final class Transformers {
 			}
 		};
 	}
+	
+	public static <T> Transformer<T,T> delayUnsubscribeForRefCount(long duration, TimeUnit unit) {
+		return delayUnsubscribeForRefCount(duration, unit, Schedulers.computation());		
+	}
+	
+	public static <T> Transformer<T,T> delayUnsubscribeForRefCount(long duration, TimeUnit unit, Scheduler scheduler) {
+		return new TransformerDelayUnsubscribeForRefCount<T>(unit.toMillis(duration), scheduler);		
+	}
+
 
 }
