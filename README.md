@@ -25,6 +25,7 @@ Utilities for use with rxjava:
 * `Transformers.ignoreElementsThen`
 * `Transformers.sampleFirst`
 * `Transformers.decode`
+* `Transformers.delayFinalUnsubscribe` - to keep a source active for a period after last unsubscribe (useful with `refCount`/`share`)
 * [`Transformers.onBackpressureBufferToFile`](README.md#transformersonbackpressurebuffertofile) - buffer items to disk 
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
