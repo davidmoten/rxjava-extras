@@ -14,12 +14,12 @@ import rx.functions.Action0;
 import rx.observers.Subscribers;
 import rx.subscriptions.Subscriptions;
 
-public final class TransformerDelayUnsubscribeForRefCount<T> implements Transformer<T, T> {
+public final class TransformerDelayFinalUnsubscribe<T> implements Transformer<T, T> {
 
 	private final long delayMs;
 	private final Scheduler scheduler;
 
-	public TransformerDelayUnsubscribeForRefCount(long delayMs, Scheduler scheduler) {
+	public TransformerDelayFinalUnsubscribe(long delayMs, Scheduler scheduler) {
 		this.delayMs = delayMs;
 		this.scheduler = scheduler;
 	}

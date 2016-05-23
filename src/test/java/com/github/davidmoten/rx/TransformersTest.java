@@ -132,7 +132,7 @@ public class TransformersTest {
 
     @Test
 //    @org.junit.Ignore
-    public void testDelayUnsubscribeForRefCount() {
+    public void testDelayFinalUnsubscribeForRefCount() {
         TestScheduler s = new TestScheduler();
         final AtomicInteger count = new AtomicInteger();
         Observable<Long> o = Observable //
@@ -140,7 +140,7 @@ public class TransformersTest {
                 .doOnSubscribe(Actions.increment0(count)) //
                 .publish() //
                 .refCount() //
-                .compose(Transformers.<Long> delayUnsubscribeForRefCount(2500,
+                .compose(Transformers.<Long> delayFinalUnsubscribe(2500,
                         TimeUnit.MILLISECONDS, s));
         {
             TestSubscriber<Long> ts1 = TestSubscriber.create();

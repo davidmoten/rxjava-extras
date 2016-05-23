@@ -24,7 +24,7 @@ import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax;
 import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax.Metric;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.internal.operators.TransformerDecode;
-import com.github.davidmoten.rx.internal.operators.TransformerDelayUnsubscribeForRefCount;
+import com.github.davidmoten.rx.internal.operators.TransformerDelayFinalUnsubscribe;
 import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
 import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.internal.operators.TransformerStringSplit;
@@ -716,14 +716,49 @@ public final class Transformers {
 			}
 		};
 	}
-	
-	public static <T> Transformer<T,T> delayUnsubscribeForRefCount(long duration, TimeUnit unit) {
-		return delayUnsubscribeForRefCount(duration, unit, Schedulers.computation());		
-	}
-	
-	public static <T> Transformer<T,T> delayUnsubscribeForRefCount(long duration, TimeUnit unit, Scheduler scheduler) {
-		return new TransformerDelayUnsubscribeForRefCount<T>(unit.toMillis(duration), scheduler);		
+
+	/**
+	 * If multiple concurrently open subscriptions happen to a source
+	 * transformed by this method then an additional do-nothing subscription
+	 * will be maintained to the source and will only be closed after the
+	 * specified duration has passed from the final unsubscription of the open
+	 * subscriptions. If another subscription happens during this wait period
+	 * then the scheduled unsubscription will be cancelled.
+	 * 
+	 * @param duration
+	 *            duration of period to leave at least one source subscription
+	 *            open
+	 * @param unit
+	 *            units for duration
+	 * @param <T>
+	 *            generic type of stream
+	 * @return transformer
+	 */
+	public static <T> Transformer<T, T> delayFinalUnsubscribe(long duration, TimeUnit unit) {
+		return delayFinalUnsubscribe(duration, unit, Schedulers.computation());
 	}
 
+	/**
+	 * If multiple concurrently open subscriptions happen to a source
+	 * transformed by this method then an additional do-nothing subscription
+	 * will be maintained to the source and will only be closed after the
+	 * specified duration has passed from the final unsubscription of the open
+	 * subscriptions. If another subscription happens during this wait period
+	 * then the scheduled unsubscription will be cancelled.
+	 * 
+	 * @param duration
+	 *            duration of period to leave at least one source subscription
+	 *            open
+	 * @param unit
+	 *            units for duration
+	 * @param scheduler
+	 *            scheduler to use to schedule wait for unsubscribe
+	 * @param <T>
+	 *            generic type of stream
+	 * @return transformer
+	 */
+	public static <T> Transformer<T, T> delayFinalUnsubscribe(long duration, TimeUnit unit, Scheduler scheduler) {
+		return new TransformerDelayFinalUnsubscribe<T>(unit.toMillis(duration), scheduler);
+	}
 
 }
