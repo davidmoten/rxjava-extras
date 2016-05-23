@@ -131,7 +131,7 @@ public class TransformersTest {
     }
 
     @Test
-    @org.junit.Ignore
+//    @org.junit.Ignore
     public void testDelayUnsubscribeForRefCount() {
         TestScheduler s = new TestScheduler();
         final AtomicInteger count = new AtomicInteger();
