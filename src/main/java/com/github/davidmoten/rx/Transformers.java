@@ -795,8 +795,8 @@ public final class Transformers {
      *            generic type of stream being transformed
      * @return transformed stream
      */
-    public static <T> Transformer<T, T> removePairs(final Func1<T, Boolean> isCandidateForFirst,
-            final Func2<T, T, Boolean> remove) {
+    public static <T> Transformer<T, T> removePairs(final Func1<? super T, Boolean> isCandidateForFirst,
+            final Func2<? super T, ? super T, Boolean> remove) {
         return new Transformer<T, T>() {
 
             @Override
