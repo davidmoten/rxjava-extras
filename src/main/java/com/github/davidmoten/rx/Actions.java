@@ -13,9 +13,9 @@ import rx.functions.Action2;
 import rx.functions.Action3;
 
 public final class Actions {
-    
+
     private Actions() {
-        //prevent instantiation
+        // prevent instantiation
     }
 
     public static Action1<Integer> setAtomic(final AtomicInteger a) {
@@ -173,10 +173,15 @@ public final class Actions {
         };
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> Action1<T> println() {
-        return new Action1<T>() {
+        return (Action1<T>) PrintlnHolder.instance;
+    }
+
+    private static class PrintlnHolder {
+        static final Action1<Object> instance = new Action1<Object>() {
             @Override
-            public void call(T t) {
+            public void call(Object t) {
                 System.out.println(t);
             }
         };
@@ -202,14 +207,28 @@ public final class Actions {
         };
     }
 
-	public static Action0 countDown(final CountDownLatch latch) {
-		return new Action0() {
+    public static Action0 countDown(final CountDownLatch latch) {
+        return new Action0() {
 
             @Override
             public void call() {
                 latch.countDown();
             }
         };
-	}
+    }
+
+    public static Action1<Throwable> printStackTrace1() {
+        return PrintStackTrace1Holder.instance;
+    }
+
+    private static class PrintStackTrace1Holder {
+        static final Action1<Throwable> instance = new Action1<Throwable>() {
+
+            @Override
+            public void call(Throwable t) {
+                t.printStackTrace();
+            }
+        };
+    }
 
 }
