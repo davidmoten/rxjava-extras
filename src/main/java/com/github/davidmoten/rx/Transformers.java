@@ -8,7 +8,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,6 +34,7 @@ import com.github.davidmoten.rx.util.BackpressureStrategy;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;
+import com.github.davidmoten.util.Optional;
 
 import rx.Observable;
 import rx.Observable.Operator;
@@ -803,7 +803,7 @@ public final class Transformers {
             public Observable<T> call(Observable<T> o) {
                 return o.compose(Transformers. //
                         stateMachine() //
-                        .initialState(Optional.<T> empty()) //
+                        .initialState(Optional.<T> absent()) //
                         .transition(new Transition<Optional<T>, T, T>() {
 
                     @Override
@@ -813,19 +813,19 @@ public final class Transformers {
                                 return Optional.of(value);
                             } else {
                                 subscriber.onNext(value);
-                                return Optional.empty();
+                                return Optional.absent();
                             }
                         } else {
                             if (remove.call(state.get(), value)) {
                                 // emit nothing and reset state
-                                return Optional.empty();
+                                return Optional.absent();
                             } else {
                                 subscriber.onNext(state.get());
                                 if (isCandidateForFirst.call(value)) {
                                     return Optional.of(value);
                                 } else {
                                     subscriber.onNext(value);
-                                    return Optional.empty();
+                                    return Optional.absent();
                                 }
                             }
                         }
