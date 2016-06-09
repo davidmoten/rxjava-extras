@@ -29,5 +29,9 @@ public class TestingHelperFilterTest extends TestCase {
                 .testSuite(TestingHelperFilterTest.class);
     }
     
+
+    public void testDummy() {
+        // just here to fool eclipse
+    }
     
 }
