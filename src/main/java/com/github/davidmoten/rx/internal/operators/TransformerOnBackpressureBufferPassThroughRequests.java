@@ -105,9 +105,10 @@ public final class TransformerOnBackpressureBufferPassThroughRequests<T> impleme
 			if (r == Long.MAX_VALUE) {
 				return;
 			} else {
+				//TODO use CAS loop
 				BackpressureUtils.getAndAddRequest(requested, n);
 				r = Math.max(0, requested.get() - emitted.get());
-				request(Math.max(n, r));
+				request(Math.min(n, r));
 			}
 		}
 
