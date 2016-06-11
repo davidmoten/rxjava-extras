@@ -102,7 +102,7 @@ public final class TransformerOnBackpressureBufferPassThroughRequests<T> impleme
 
 		public void requestMore(long n) {
 			long r = requested.get();
-			if (r == Long.MAX_VALUE || r == 0) {
+			if (r == Long.MAX_VALUE || n == 0) {
 				return;
 			} else {
 				while (true) {
