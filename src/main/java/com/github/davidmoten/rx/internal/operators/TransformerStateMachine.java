@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.util.BackpressureStrategy;
 import com.github.davidmoten.util.Preconditions;
 
@@ -91,8 +92,10 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
                             if (!subscriber.isUnsubscribed())
                                 subscriber.onCompleted();
                             else {
-                            	// this is a special error to indicate that the transition 
-                            	// called unsubscribe. It will be filtered later.
+                                // this is a special error to indicate that the
+                                // transition
+                                // called unsubscribe. It will be filtered
+                                // later.
                                 subscriber.onError(UnsubscribedExceptionHolder.INSTANCE);
                             }
                         } else if (in.isOnCompleted()) {
@@ -117,7 +120,8 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     private static <Out> Observable<Notification<Out>> applyBackpressure(
             Observable<Notification<Out>> o, final BackpressureStrategy backpressureStrategy) {
         if (backpressureStrategy == BackpressureStrategy.BUFFER)
-            return o.onBackpressureBuffer();
+            return o.compose(
+                    Transformers.<Notification<Out>> onBackpressureBufferRequestLimiting());
         else if (backpressureStrategy == BackpressureStrategy.DROP)
             return o.onBackpressureDrop();
         else if (backpressureStrategy == BackpressureStrategy.LATEST)

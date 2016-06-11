@@ -95,8 +95,11 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
         }
 
         public void requestMore(long n) {
+            if (n <= 0) {
+                return;
+            }
             long r = expected.get();
-            if (r == Long.MAX_VALUE || n == 0) {
+            if (r == Long.MAX_VALUE) {
                 return;
             } else {
                 while (true) {
