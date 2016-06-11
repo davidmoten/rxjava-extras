@@ -58,23 +58,26 @@ public final class TransformerOnBackpressureBufferPassThroughRequests<T>
         public Subscriber<? super T> call(Subscriber<? super T> child) {
             // this method should only be called once for this instance
             // assume child requests MAX_VALUE
+            ParentSubscriber<T> p = new ParentSubscriber<T>(child);
             synchronized (lock) {
-                parent = new ParentSubscriber<T>(child);
-                parent.requestMore(requested.get());
+                parent = p;
             }
-            child.add(parent);
-            return parent;
+            p.requestMore(requested.get());
+            child.add(p);
+            return p;
         }
 
         public void requestMore(long n) {
-            if (parent != null) {
-                parent.requestMore(n);
+            ParentSubscriber<T> p = parent;
+            if (p != null) {
+                p.requestMore(n);
             } else {
                 synchronized (lock) {
-                    if (parent == null) {
+                    ParentSubscriber<T> par = parent;
+                    if (par == null) {
                         BackpressureUtils.getAndAddRequest(requested, n);
                     } else {
-                        parent.requestMore(n);
+                        par.requestMore(n);
                     }
                 }
             }
@@ -84,7 +87,7 @@ public final class TransformerOnBackpressureBufferPassThroughRequests<T>
     private static final class ParentSubscriber<T> extends Subscriber<T> {
 
         private final Subscriber<? super T> child;
-        private final AtomicLong emitted = new AtomicLong();
+        private final AtomicLong arrived = new AtomicLong();
         private final AtomicLong requested = new AtomicLong();
 
         public ParentSubscriber(Subscriber<? super T> child) {
@@ -103,9 +106,12 @@ public final class TransformerOnBackpressureBufferPassThroughRequests<T>
                         v = Long.MAX_VALUE;
                     }
                     if (requested.compareAndSet(u, v)) {
-                        long diff = Math.max(0, v - emitted.get());
-                        request(Math.min(n, diff));
-                        break;
+                        long diff = Math.max(0, v - arrived.get());
+                        long req = Math.min(n, diff);
+                        if (req > 0) {
+                            request(req);
+                        }
+                        return;
                     }
                 }
             }
@@ -123,7 +129,7 @@ public final class TransformerOnBackpressureBufferPassThroughRequests<T>
 
         @Override
         public void onNext(T t) {
-            emitted.incrementAndGet();
+            arrived.incrementAndGet();
             child.onNext(t);
         }
 
