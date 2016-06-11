@@ -3,6 +3,7 @@ package com.github.davidmoten.rx.internal.operators;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.github.davidmoten.rx.Actions;
+import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.util.BackpressureUtils;
 
 import rx.Observable;
@@ -14,14 +15,13 @@ import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.schedulers.Schedulers;
 
-public final class TransformerOnBackpressureBufferPassThroughRequests<T>
-        implements Transformer<T, T> {
+public final class TransformerOnBackpressureBufferRequestLimiting<T> implements Transformer<T, T> {
 
-    private static final TransformerOnBackpressureBufferPassThroughRequests<Object> instance = new TransformerOnBackpressureBufferPassThroughRequests<Object>();
+    private static final TransformerOnBackpressureBufferRequestLimiting<Object> instance = new TransformerOnBackpressureBufferRequestLimiting<Object>();
 
     @SuppressWarnings("unchecked")
-    public static final <T> TransformerOnBackpressureBufferPassThroughRequests<T> instance() {
-        return (TransformerOnBackpressureBufferPassThroughRequests<T>) instance;
+    public static final <T> TransformerOnBackpressureBufferRequestLimiting<T> instance() {
+        return (TransformerOnBackpressureBufferRequestLimiting<T>) instance;
     }
 
     @Override
@@ -148,7 +148,7 @@ public final class TransformerOnBackpressureBufferPassThroughRequests<T>
                         System.out.println("unsubscribed");
                     }
                 }) //
-                .compose(new TransformerOnBackpressureBufferPassThroughRequests<Integer>()) //
+                .compose(Transformers.<Integer> onBackpressureBufferRequestLimiting()) //
                 .take(10).subscribeOn(Schedulers.io()).doOnNext(Actions.println()).count()
                 .toBlocking().single();
         Thread.sleep(2000);
