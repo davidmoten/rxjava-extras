@@ -87,26 +87,25 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
     private static final class ParentSubscriber<T> extends Subscriber<T> {
 
         private final Subscriber<? super T> child;
-        private final AtomicLong arrived = new AtomicLong();
-        private final AtomicLong requested = new AtomicLong();
+        private final AtomicLong expected = new AtomicLong();
 
         public ParentSubscriber(Subscriber<? super T> child) {
             this.child = child;
         }
 
         public void requestMore(long n) {
-            long r = requested.get();
+            long r = expected.get();
             if (r == Long.MAX_VALUE || n == 0) {
                 return;
             } else {
                 while (true) {
-                    long u = requested.get();
+                    long u = expected.get();
                     long v = u + n;
                     if (v < 0) {
                         v = Long.MAX_VALUE;
                     }
-                    if (requested.compareAndSet(u, v)) {
-                        long diff = Math.max(0, v - arrived.get());
+                    if (expected.compareAndSet(u, v)) {
+                        long diff = Math.max(0, v);
                         long req = Math.min(n, diff);
                         if (req > 0) {
                             request(req);
@@ -129,7 +128,7 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
 
         @Override
         public void onNext(T t) {
-            arrived.incrementAndGet();
+            expected.decrementAndGet();
             child.onNext(t);
         }
 
@@ -149,8 +148,10 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
                     }
                 }) //
                 .compose(Transformers.<Integer> onBackpressureBufferRequestLimiting()) //
-                .take(10).subscribeOn(Schedulers.io()).doOnNext(Actions.println()).count()
-                .toBlocking().single();
+                .take(10) //
+                .subscribeOn(Schedulers.io()) //
+                .doOnNext(Actions.println()) //
+                .count().toBlocking().single();
         Thread.sleep(2000);
     }
 
