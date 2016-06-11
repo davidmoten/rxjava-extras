@@ -112,7 +112,7 @@ public final class TransformerOnBackpressureBufferPassThroughRequests<T> impleme
 						v = Long.MAX_VALUE;
 					}
 					if (requested.compareAndSet(u, v)) {
-						long diff = Math.max(0, r - emitted.get());
+						long diff = Math.max(0, v - emitted.get());
 						request(Math.min(n, diff));
 						break;
 					}
