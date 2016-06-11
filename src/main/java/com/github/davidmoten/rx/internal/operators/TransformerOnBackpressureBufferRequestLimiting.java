@@ -92,6 +92,7 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
 
         public ParentSubscriber(Subscriber<? super T> child) {
             this.child = child;
+            request(0);
         }
 
         public void requestMore(long n) {
@@ -109,6 +110,7 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
                         v = Long.MAX_VALUE;
                     }
                     if (expected.compareAndSet(u, v)) {
+                        // if v negative (more have arrived than requested)
                         long diff = Math.max(0, v);
                         long req = Math.min(n, diff);
                         if (req > 0) {

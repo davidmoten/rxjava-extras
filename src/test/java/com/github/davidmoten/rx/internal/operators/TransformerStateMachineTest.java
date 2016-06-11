@@ -2,23 +2,28 @@ package com.github.davidmoten.rx.internal.operators;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Functions;
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.slf4j.Logging;
+import com.github.davidmoten.rx.util.BackpressureUtils;
 
 import rx.Observable;
 import rx.Observable.Transformer;
 import rx.Observer;
 import rx.Subscriber;
+import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func2;
 import rx.functions.Func3;
@@ -265,5 +270,23 @@ public class TransformerStateMachineTest {
         ts.assertValues(123);
         ts.assertCompleted();
         assertEquals(1, count.get());
+    }
+
+    @Test
+    @Ignore
+    public void testDoesNotRequestMaxValueOfUpstreamIfBackpressureBufferOptionSelected() {
+        final AtomicLong requested = new AtomicLong();
+        Observable<Integer> o = Observable.just(1, 1, 1, 2, 2, 3).doOnRequest(new Action1<Long>() {
+            @Override
+            public void call(Long n) {
+                BackpressureUtils.getAndAddRequest(requested, n);
+            }
+        });
+        TestSubscriber<List<Integer>> ts = TestSubscriber.create(0);
+        o.compose(Transformers.<Integer> toListUntilChanged())
+                // get as list
+                .subscribe(ts);
+        ts.requestMore(4);
+        assertNotEquals(Long.MAX_VALUE, requested.get());
     }
 }
