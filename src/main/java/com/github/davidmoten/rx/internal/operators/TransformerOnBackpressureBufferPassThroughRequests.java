@@ -102,13 +102,21 @@ public final class TransformerOnBackpressureBufferPassThroughRequests<T> impleme
 
 		public void requestMore(long n) {
 			long r = requested.get();
-			if (r == Long.MAX_VALUE) {
+			if (r == Long.MAX_VALUE || r == 0) {
 				return;
 			} else {
-				//TODO use CAS loop
-				BackpressureUtils.getAndAddRequest(requested, n);
-				r = Math.max(0, requested.get() - emitted.get());
-				request(Math.min(n, r));
+				while (true) {
+					long u = requested.get();
+					long v = u + n;
+					if (v < 0) {
+						v = Long.MAX_VALUE;
+					}
+					if (requested.compareAndSet(u, v)) {
+						long diff = Math.max(0, r - emitted.get());
+						request(Math.min(n, diff));
+						break;
+					}
+				}
 			}
 		}
 
