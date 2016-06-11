@@ -1,6 +1,7 @@
 package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.sql.SQLException;
 import java.util.concurrent.TimeUnit;
@@ -8,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
+import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Functions;
 import com.github.davidmoten.rx.RetryWhen;
 import com.github.davidmoten.rx.RetryWhen.ErrorAndDuration;
@@ -16,6 +18,7 @@ import rx.Observable;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observers.TestSubscriber;
+import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
 public class RetryWhenTest {
@@ -185,4 +188,23 @@ public class RetryWhenTest {
         ts.assertValues(1, 2);
         ts.assertError(ex);
     }
+
+    @Test
+    public void testRetryWhenMultipleRetriesWorkOnSingleDelay() {
+        AtomicInteger count = new AtomicInteger();
+        TestSubscriber<Object> ts = TestSubscriber.create();
+        Exception exception = new Exception("boo");
+        Observable.error(exception) //
+                .doOnSubscribe(Actions.increment0(count)) //
+                .retryWhen(RetryWhen //
+                        .delay(1, TimeUnit.MILLISECONDS) //
+                        .scheduler(Schedulers.trampoline()) //
+                        .maxRetries(10).build()) //
+                .subscribe(ts);
+        ts.assertTerminalEvent();
+        assertFalse(ts.getOnErrorEvents().isEmpty());
+        assertEquals(exception, ts.getOnErrorEvents().get(0));
+        assertEquals(11, count.get());
+    }
+    
 }

@@ -154,7 +154,7 @@ public final class RetryWhen {
         return new Builder().delays(delays, unit);
     }
 
-    public static Builder delay(Long delay, final TimeUnit unit) {
+    public static Builder delay(long delay, final TimeUnit unit) {
         return new Builder().delay(delay, unit);
     }
 
@@ -215,7 +215,7 @@ public final class RetryWhen {
         }
 
         public Builder delay(Long delay, final TimeUnit unit) {
-            this.delays = Observable.just(delay).map(toMillis(unit));
+            this.delays = Observable.just(delay).map(toMillis(unit)).repeat();
             return this;
         }
 

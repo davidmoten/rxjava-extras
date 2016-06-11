@@ -9,15 +9,21 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import com.github.davidmoten.rx.util.Pair;
 
 import rx.Observable;
+import rx.Observable.Transformer;
 import rx.Subscription;
+import rx.functions.Func1;
+import rx.functions.Func2;
 import rx.observers.TestSubscriber;
 import rx.schedulers.TestScheduler;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TransformersTest {
 
     @Test
@@ -131,7 +137,7 @@ public class TransformersTest {
     }
 
     @Test
-//    @org.junit.Ignore
+    // @org.junit.Ignore
     public void testDelayFinalUnsubscribeForRefCount() {
         TestScheduler s = new TestScheduler();
         final AtomicInteger count = new AtomicInteger();
@@ -140,8 +146,7 @@ public class TransformersTest {
                 .doOnSubscribe(Actions.increment0(count)) //
                 .publish() //
                 .refCount() //
-                .compose(Transformers.<Long> delayFinalUnsubscribe(2500,
-                        TimeUnit.MILLISECONDS, s));
+                .compose(Transformers.<Long> delayFinalUnsubscribe(2500, TimeUnit.MILLISECONDS, s));
         {
             TestSubscriber<Long> ts1 = TestSubscriber.create();
             o.subscribe(ts1);
@@ -170,6 +175,79 @@ public class TransformersTest {
             ts3.assertValues(0L);
         }
 
+    }
+
+    @Test
+    public void testRemovePairsLeavesEmpty() {
+        List<Integer> list = Observable.just(1, 2).compose(removePairs()).toList().toBlocking()
+                .single();
+        assertTrue(list.isEmpty());
+    }
+
+    @Test
+    public void testRemovePairsFromRepeatedLeavesEmpty() {
+        List<Integer> list = Observable.just(1, 2, 1, 2).compose(removePairs()).toList()
+                .toBlocking().single();
+        assertTrue(list.isEmpty());
+    }
+
+    @Test
+    public void testRemovePairsFromRepeatedLeavesLast() {
+        List<Integer> list = Observable.just(1, 2, 1, 2, 3).compose(removePairs()).toList()
+                .toBlocking().single();
+        assertEquals(Arrays.asList(3), list);
+    }
+
+    @Test
+    public void testRemovePairsFromRepeatedLeavesFirst() {
+        List<Integer> list = Observable.just(3, 1, 2, 1, 2).compose(removePairs()).toList()
+                .toBlocking().single();
+        assertEquals(Arrays.asList(3), list);
+    }
+
+    @Test
+    public void testRemovePairsFromRepeatedLeavesMiddle() {
+        List<Integer> list = Observable.just(1, 2, 3, 1, 2).compose(removePairs()).toList()
+                .toBlocking().single();
+        assertEquals(Arrays.asList(3), list);
+    }
+
+    @Test
+    public void testRemovePairsFromEmpty() {
+        List<Integer> list = Observable.<Integer> empty().compose(removePairs()).toList()
+                .toBlocking().single();
+        assertTrue(list.isEmpty());
+    }
+
+    @Test
+    public void testRemovePairs1() {
+        List<Integer> list = Observable.just(1, 2, 3, 1).compose(removePairs()).toList()
+                .toBlocking().single();
+        assertEquals(Arrays.asList(3, 1), list);
+    }
+    
+    @Test
+    public void testRemovePairsDoesNotRecurse() {
+        List<Integer> list = Observable.just(1, 1, 2, 2).compose(removePairs()).toList()
+                .toBlocking().single();
+        assertEquals(Arrays.asList(1, 2), list);
+    }
+
+    private static Transformer<Integer, Integer> removePairs() {
+        Func1<Integer, Boolean> isCandidateForFirst = new Func1<Integer, Boolean>() {
+            @Override
+            public Boolean call(Integer t) {
+                return t == 1;
+            }
+        };
+        Func2<Integer, Integer, Boolean> remove = new Func2<Integer, Integer, Boolean>() {
+
+            @Override
+            public Boolean call(Integer t1, Integer t2) {
+                return t1 == 1 && t2 == 2;
+            }
+        };
+        return Transformers.removePairs(isCandidateForFirst, remove);
     }
 
 }
