@@ -30,7 +30,13 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
             @Override
             public Observable<T> call() {
                 final OperatorPassThroughRequest<T> op = new OperatorPassThroughRequest<T>();
-                return o.lift(op).onBackpressureBuffer().doOnRequest(op);
+                return o.lift(op).onBackpressureBuffer().doOnRequest(new Action1<Long>() {
+
+                    @Override
+                    public void call(Long n) {
+                        op.requestMore(n);
+                    }
+                });
             }
         });
     }
@@ -43,8 +49,7 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
      * @param <T>
      *            stream item type
      */
-    private static final class OperatorPassThroughRequest<T>
-            implements Operator<T, T>, Action1<Long> {
+    private static final class OperatorPassThroughRequest<T> implements Operator<T, T> {
 
         private volatile ParentSubscriber<T> parent;
         private final AtomicLong requested = new AtomicLong();
@@ -79,10 +84,6 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
             }
         }
 
-        @Override
-        public void call(Long n) {
-            requestMore(n);
-        }
     }
 
     private static final class ParentSubscriber<T> extends Subscriber<T> {
