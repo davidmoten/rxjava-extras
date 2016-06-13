@@ -125,14 +125,13 @@ public class TransformersTest {
                 .<Long> never() //
                 .doOnSubscribe(Actions.increment0(count)) //
                 .share();
-        TestSubscriber<Long> ts = TestSubscriber.create();
         Subscription s1 = o.subscribe();
         assertEquals(1, count.get());
         Subscription s2 = o.subscribe();
         assertEquals(1, count.get());
         s1.unsubscribe();
         s2.unsubscribe();
-        Subscription s3 = o.subscribe();
+        o.subscribe();
         assertEquals(2, count.get());
     }
 
@@ -225,7 +224,7 @@ public class TransformersTest {
                 .toBlocking().single();
         assertEquals(Arrays.asList(3, 1), list);
     }
-    
+
     @Test
     public void testRemovePairsDoesNotRecurse() {
         List<Integer> list = Observable.just(1, 1, 2, 2).compose(removePairs()).toList()
