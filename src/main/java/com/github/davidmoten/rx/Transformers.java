@@ -221,9 +221,9 @@ public final class Transformers {
             Func0<State> initialStateFactory,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
-            BackpressureStrategy backpressureStrategy, int initialBatch) {
+            BackpressureStrategy backpressureStrategy, int initialRequest) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
-                completion, backpressureStrategy, initialBatch);
+                completion, backpressureStrategy, initialRequest);
     }
 
     /**

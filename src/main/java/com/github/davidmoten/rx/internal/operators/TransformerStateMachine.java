@@ -29,7 +29,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         Preconditions.checkNotNull(transition);
         Preconditions.checkNotNull(completion);
         Preconditions.checkNotNull(backpressureStrategy);
-        Preconditions.checkArgument(initialRequest > 0, "initialBatch must be greater than zero");
+        Preconditions.checkArgument(initialRequest > 0, "initialRequest must be greater than zero");
         this.initialState = initialState;
         this.transition = transition;
         this.completion = completion;
@@ -40,9 +40,9 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
     public static <State, In, Out> Transformer<In, Out> create(Func0<? extends State> initialState,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
-            BackpressureStrategy backpressureStrategy, int initialBatch) {
+            BackpressureStrategy backpressureStrategy, int initialRequest) {
         return new TransformerStateMachine<State, In, Out>(initialState, transition, completion,
-                backpressureStrategy, initialBatch);
+                backpressureStrategy, initialRequest);
     }
 
     @Override

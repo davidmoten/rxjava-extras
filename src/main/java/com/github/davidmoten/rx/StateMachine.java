@@ -72,7 +72,7 @@ public final class StateMachine {
         private final Transition<State, In, Out> transition;
         private Completion<State, Out> completion = CompletionAlwaysTrueHolder.instance();
         private BackpressureStrategy backpressureStrategy = BackpressureStrategy.BUFFER;
-        private int initialBatch = Transformers.DEFAULT_INITIAL_BATCH;
+        private int initialRequest = Transformers.DEFAULT_INITIAL_BATCH;
 
         private Builder3(Func0<State> initialState, Transition<State, In, Out> transition) {
             this.initialState = initialState;
@@ -90,14 +90,14 @@ public final class StateMachine {
             return this;
         }
 
-        public Builder3<State, In, Out> initialBatch(int value) {
-            this.initialBatch = value;
+        public Builder3<State, In, Out> initialRequest(int value) {
+            this.initialRequest = value;
             return this;
         }
 
         public Transformer<In, Out> build() {
             return Transformers.stateMachine(initialState, transition, completion,
-                    backpressureStrategy, initialBatch);
+                    backpressureStrategy, initialRequest);
         }
 
     }
