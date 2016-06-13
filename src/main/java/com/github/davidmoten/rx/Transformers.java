@@ -55,6 +55,8 @@ import rx.schedulers.Schedulers;
 
 public final class Transformers {
 
+    static final int DEFAULT_INITIAL_BATCH = 1;
+
     public static <T, R> Operator<R, T> toOperator(
             Func1<? super Observable<T>, ? extends Observable<R>> function) {
         return OperatorFromTransformer.toOperator(function);
@@ -212,7 +214,16 @@ public final class Transformers {
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
             BackpressureStrategy backpressureStrategy) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
-                completion, backpressureStrategy);
+                completion, backpressureStrategy, DEFAULT_INITIAL_BATCH);
+    }
+
+    public static <State, In, Out> Transformer<In, Out> stateMachine(
+            Func0<State> initialStateFactory,
+            Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
+            Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
+            BackpressureStrategy backpressureStrategy, int initialBatch) {
+        return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
+                completion, backpressureStrategy, initialBatch);
     }
 
     /**
@@ -268,7 +279,7 @@ public final class Transformers {
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
         return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
-                completion, BackpressureStrategy.BUFFER);
+                completion, BackpressureStrategy.BUFFER, DEFAULT_INITIAL_BATCH);
     }
 
     public static StateMachine.Builder stateMachine() {

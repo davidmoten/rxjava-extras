@@ -103,11 +103,14 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
             if (r == Long.MAX_VALUE) {
                 return;
             } else {
+                long u = r;
                 while (true) {
-                    long u = expected.get();
-                    long v = u + n;
-                    if (v < 0) {
+                    long sum = u + n;
+                    final long v;
+                    if (sum < 0) {
                         v = Long.MAX_VALUE;
+                    } else {
+                        v = sum;
                     }
                     if (expected.compareAndSet(u, v)) {
                         // if v negative (more have arrived than requested)
@@ -117,6 +120,8 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
                             request(req);
                         }
                         return;
+                    } else {
+                        u = expected.get();
                     }
                 }
             }
