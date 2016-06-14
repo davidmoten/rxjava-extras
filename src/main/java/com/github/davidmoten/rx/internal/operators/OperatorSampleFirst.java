@@ -8,6 +8,7 @@ import rx.Subscriber;
 
 /**
  * Throttle by windowing a stream and returning the first value in each window.
+ * @param <T> the value type
  */
 public final class OperatorSampleFirst<T> implements Operator<T, T> {
 
