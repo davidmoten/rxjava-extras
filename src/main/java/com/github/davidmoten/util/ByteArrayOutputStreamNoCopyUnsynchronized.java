@@ -135,6 +135,7 @@ public class ByteArrayOutputStreamNoCopyUnsynchronized extends OutputStream {
      * @param b
      *            the byte to be written.
      */
+    @Override
     public void write(int b) {
         ensureCapacity(count + 1);
         buf[count] = (byte) b;
@@ -152,6 +153,7 @@ public class ByteArrayOutputStreamNoCopyUnsynchronized extends OutputStream {
      * @param len
      *            the number of bytes to write.
      */
+    @Override
     public void write(byte b[], int off, int len) {
         if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) - b.length > 0)) {
             throw new IndexOutOfBoundsException();
@@ -181,7 +183,7 @@ public class ByteArrayOutputStreamNoCopyUnsynchronized extends OutputStream {
      * discarded. The output stream can be used again, reusing the already
      * allocated buffer space.
      *
-     * @see java.io.ByteArrayInputStream#count
+     * @see java.io.ByteArrayInputStream#reset()
      */
     public void reset() {
         count = 0;
@@ -208,7 +210,7 @@ public class ByteArrayOutputStreamNoCopyUnsynchronized extends OutputStream {
      *
      * @return the value of the <code>count</code> field, which is the number of
      *         valid bytes in this output stream.
-     * @see java.io.ByteArrayOutputStream#count
+     * @see java.io.ByteArrayOutputStream#size()
      */
     public int size() {
         return count;
@@ -229,6 +231,7 @@ public class ByteArrayOutputStreamNoCopyUnsynchronized extends OutputStream {
      * @return String decoded from the buffer's contents.
      * @since JDK1.1
      */
+    @Override
     public String toString() {
         return new String(buf, 0, count);
     }
@@ -293,6 +296,7 @@ public class ByteArrayOutputStreamNoCopyUnsynchronized extends OutputStream {
      * this class can be called after the stream has been closed without
      * generating an <tt>IOException</tt>.
      */
+    @Override
     public void close() throws IOException {
     }
 
