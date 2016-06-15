@@ -49,8 +49,19 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.7.9.1</version>
+  <version>0.7.9.6</version>
 </dependency>
+```
+
+Add this to your build.gradle:
+```
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.github.davidmoten:rxjava-extras:0.7.9.6'
+}
 ```
 
 Checked
