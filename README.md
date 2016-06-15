@@ -53,7 +53,7 @@ Add this to your pom.xml:
 </dependency>
 ```
 
-Add this to your build.gradle:
+Or add this to your build.gradle:
 ```
 repositories {
     mavenCentral()
