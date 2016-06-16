@@ -854,7 +854,7 @@ public final class Transformers {
      * overproduces.
      * 
      * @param <T> the value type
-     * @return transfomer that buffers on backpressure but only requests of
+     * @return transformer that buffers on backpressure but only requests of
      *         upstream what is requested of it
      */
     public static <T> Transformer<T, T> onBackpressureBufferRequestLimiting() {
@@ -887,6 +887,32 @@ public final class Transformers {
     public static final <T> Transformer<T, List<T>> bufferUntil(Func1<? super T, Boolean> predicate) {
         return bufferUntil(predicate, 10);
     }
+    
+    /**
+     * Buffers the elements into continuous, non-overlapping Lists where the boundary is
+     * determined by a predicate receiving each item, after being buffered, and returns true to
+     * indicate a new buffer should start.
+     * 
+     * <p>
+     * The operator won't return an empty first or last buffer.
+     * 
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator supports backpressure.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>This operator does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * @param <T> the input value type
+     * @param predicate the Func1 that receives each item, after being buffered, and should
+     * return true to indicate a new buffer has to start.
+     * @return the new Observable instance
+     * @see #bufferWhile(Func1)
+     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical
+     *        with the release number)
+     */
+    public static final <T> Transformer<T, List<T>> toListUntil(Func1<? super T, Boolean> predicate) {
+        return bufferUntil(predicate);
+    }
 
     /**
      * Buffers the elements into continuous, non-overlapping Lists where the boundary is
@@ -915,6 +941,34 @@ public final class Transformers {
     public static final <T> Transformer<T, List<T>> bufferUntil(Func1<? super T, Boolean> predicate, int capacityHint) {
         return new OperatorBufferPredicateBoundary<T>(predicate, RxRingBuffer.SIZE, capacityHint, true);
     }
+    
+    /**
+     * Buffers the elements into continuous, non-overlapping Lists where the boundary is
+     * determined by a predicate receiving each item, after being buffered, and returns true to
+     * indicate a new buffer should start.
+     * 
+     * <p>
+     * The operator won't return an empty first or last buffer.
+     * 
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator supports backpressure.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>This operator does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param <T> the input value type
+     * @param predicate the Func1 that receives each item, after being buffered, and should
+     * return true to indicate a new buffer has to start.
+     * @param capacityHint the expected number of items in each buffer
+     * @return the new Observable instance
+     * @see #bufferWhile(Func1)
+     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical
+     *        with the release number)
+     */
+    public static final <T> Transformer<T, List<T>> toListUntil(Func1<? super T, Boolean> predicate, int capacityHint) {
+        return bufferUntil(predicate, capacityHint);
+    }
 
     /**
      * Buffers the elements into continuous, non-overlapping Lists where the boundary is
@@ -941,6 +995,33 @@ public final class Transformers {
      */
     public static final <T> Transformer<T, List<T>> bufferWhile(Func1<? super T, Boolean> predicate) {
         return bufferWhile(predicate, 10);
+    }
+    
+    /**
+     * Buffers the elements into continuous, non-overlapping Lists where the boundary is
+     * determined by a predicate receiving each item, before or after being buffered, and returns true to
+     * indicate a new buffer should start.
+     * 
+     * <p>
+     * The operator won't return an empty first or last buffer.
+     * 
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator supports backpressure.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>This operator does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param <T> the input value type
+     * @param predicate the Func1 that receives each item, before being buffered, and should
+     * return true to indicate a new buffer has to start.
+     * @return the new Observable instance
+     * @see #bufferWhile(Func1)
+     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical
+     *        with the release number)
+     */
+    public static final <T> Transformer<T, List<T>> toListWhile(Func1<? super T, Boolean> predicate) {
+        return bufferWhile(predicate);
     }
 
     /**
@@ -969,5 +1050,33 @@ public final class Transformers {
      */
     public static final <T> Transformer<T, List<T>> bufferWhile(Func1<? super T, Boolean> predicate, int capacityHint) {
         return new OperatorBufferPredicateBoundary<T>(predicate, RxRingBuffer.SIZE, capacityHint, false);
+    }
+    
+    /**
+     * Buffers the elements into continuous, non-overlapping Lists where the boundary is
+     * determined by a predicate receiving each item, before being buffered, and returns true to
+     * indicate a new buffer should start.
+     * 
+     * <p>
+     * The operator won't return an empty first or last buffer.
+     * 
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator supports backpressure.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>This operator does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param <T> the input value type
+     * @param predicate the Func1 that receives each item, before being buffered, and should
+     * return true to indicate a new buffer has to start.
+     * @param capacityHint the expected number of items in each buffer
+     * @return the new Observable instance
+     * @see #bufferWhile(Func1)
+     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical
+     *        with the release number)
+     */
+    public static final <T> Transformer<T, List<T>> toListWhile(Func1<? super T, Boolean> predicate, int capacityHint) {
+        return bufferWhile(predicate, capacityHint);
     }
 }
