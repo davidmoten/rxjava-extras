@@ -13,7 +13,7 @@ public final class Schedulers {
     }
 
     private static Scheduler withId(Scheduler scheduler) {
-        return new SchedulerWithId(Schedulers.computation(), describeCallSite());
+        return new SchedulerWithId(scheduler, describeCallSite());
     }
 
     private static String describeCallSite() {
