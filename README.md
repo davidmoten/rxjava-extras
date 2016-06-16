@@ -211,7 +211,8 @@ Transformer<Double, Double> trans = Transformers
 Observable
     .just(10.4, 5.0, 2.0, -1.0, -2.0, -5.0, -1.0, 2.0, 5.0, 6.0)
     .compose(trans)
-    .forEach(System.out::println);```
+    .forEach(System.out::println);
+```
 
 RetryWhen
 ----------------------
