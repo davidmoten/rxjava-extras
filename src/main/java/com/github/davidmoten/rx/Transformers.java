@@ -18,19 +18,8 @@ import com.github.davidmoten.rx.StateMachine.Transition;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
-import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
-import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
-import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
-import com.github.davidmoten.rx.internal.operators.OperatorSampleFirst;
-import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax;
+import com.github.davidmoten.rx.internal.operators.*;
 import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax.Metric;
-import com.github.davidmoten.rx.internal.operators.OrderedMerge;
-import com.github.davidmoten.rx.internal.operators.TransformerDecode;
-import com.github.davidmoten.rx.internal.operators.TransformerDelayFinalUnsubscribe;
-import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
-import com.github.davidmoten.rx.internal.operators.TransformerOnBackpressureBufferRequestLimiting;
-import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
-import com.github.davidmoten.rx.internal.operators.TransformerStringSplit;
 import com.github.davidmoten.rx.util.BackpressureStrategy;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
@@ -50,6 +39,7 @@ import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
+import rx.internal.util.RxRingBuffer;
 import rx.observables.GroupedObservable;
 import rx.schedulers.Schedulers;
 
@@ -863,6 +853,7 @@ public final class Transformers {
      * what is requested of it. Thus an operator can be written that
      * overproduces.
      * 
+     * @param <T> the value type
      * @return transfomer that buffers on backpressure but only requests of
      *         upstream what is requested of it
      */
@@ -870,4 +861,113 @@ public final class Transformers {
         return TransformerOnBackpressureBufferRequestLimiting.instance();
     }
 
+    
+    /**
+     * Buffers the elements into continuous, non-overlapping Lists where the boundary is
+     * determined by a predicate receiving each item, after being buffered, and returns true to
+     * indicate a new buffer should start.
+     * 
+     * <p>
+     * The operator won't return an empty first or last buffer.
+     * 
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator supports backpressure.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>This operator does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * @param <T> the input value type
+     * @param predicate the Func1 that receives each item, after being buffered, and should
+     * return true to indicate a new buffer has to start.
+     * @return the new Observable instance
+     * @see #bufferWhile(Func1)
+     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical
+     *        with the release number)
+     */
+    public static final <T> Transformer<T, List<T>> bufferUntil(Func1<? super T, Boolean> predicate) {
+        return bufferUntil(predicate, 10);
+    }
+
+    /**
+     * Buffers the elements into continuous, non-overlapping Lists where the boundary is
+     * determined by a predicate receiving each item, after being buffered, and returns true to
+     * indicate a new buffer should start.
+     * 
+     * <p>
+     * The operator won't return an empty first or last buffer.
+     * 
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator supports backpressure.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>This operator does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param <T> the input value type
+     * @param predicate the Func1 that receives each item, after being buffered, and should
+     * return true to indicate a new buffer has to start.
+     * @param capacityHint the expected number of items in each buffer
+     * @return the new Observable instance
+     * @see #bufferWhile(Func1)
+     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical
+     *        with the release number)
+     */
+    public static final <T> Transformer<T, List<T>> bufferUntil(Func1<? super T, Boolean> predicate, int capacityHint) {
+        return new OperatorBufferPredicateBoundary<T>(predicate, RxRingBuffer.SIZE, capacityHint, true);
+    }
+
+    /**
+     * Buffers the elements into continuous, non-overlapping Lists where the boundary is
+     * determined by a predicate receiving each item, before or after being buffered, and returns true to
+     * indicate a new buffer should start.
+     * 
+     * <p>
+     * The operator won't return an empty first or last buffer.
+     * 
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator supports backpressure.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>This operator does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param <T> the input value type
+     * @param predicate the Func1 that receives each item, before being buffered, and should
+     * return true to indicate a new buffer has to start.
+     * @return the new Observable instance
+     * @see #bufferWhile(Func1)
+     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical
+     *        with the release number)
+     */
+    public static final <T> Transformer<T, List<T>> bufferWhile(Func1<? super T, Boolean> predicate) {
+        return bufferWhile(predicate, 10);
+    }
+
+    /**
+     * Buffers the elements into continuous, non-overlapping Lists where the boundary is
+     * determined by a predicate receiving each item, before being buffered, and returns true to
+     * indicate a new buffer should start.
+     * 
+     * <p>
+     * The operator won't return an empty first or last buffer.
+     * 
+     * <dl>
+     *  <dt><b>Backpressure Support:</b></dt>
+     *  <dd>This operator supports backpressure.</dd>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>This operator does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     * 
+     * @param <T> the input value type
+     * @param predicate the Func1 that receives each item, before being buffered, and should
+     * return true to indicate a new buffer has to start.
+     * @param capacityHint the expected number of items in each buffer
+     * @return the new Observable instance
+     * @see #bufferWhile(Func1)
+     * @since (if this graduates from Experimental/Beta to supported, replace this parenthetical
+     *        with the release number)
+     */
+    public static final <T> Transformer<T, List<T>> bufferWhile(Func1<? super T, Boolean> predicate, int capacityHint) {
+        return new OperatorBufferPredicateBoundary<T>(predicate, RxRingBuffer.SIZE, capacityHint, false);
+    }
 }
