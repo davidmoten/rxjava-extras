@@ -29,7 +29,7 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
         return Observable.defer(new Func0<Observable<T>>() {
             @Override
             public Observable<T> call() {
-                final OperatorPassThroughRequest<T> op = new OperatorPassThroughRequest<T>();
+                final OperatorPassThroughAdjustedRequest<T> op = new OperatorPassThroughAdjustedRequest<T>();
                 return o.lift(op).onBackpressureBuffer().doOnRequest(new Action1<Long>() {
 
                     @Override
@@ -49,7 +49,7 @@ public final class TransformerOnBackpressureBufferRequestLimiting<T> implements 
      * @param <T>
      *            stream item type
      */
-    private static final class OperatorPassThroughRequest<T> implements Operator<T, T> {
+    private static final class OperatorPassThroughAdjustedRequest<T> implements Operator<T, T> {
 
         private volatile ParentSubscriber<T> parent;
         private final AtomicLong requested = new AtomicLong();
