@@ -308,6 +308,9 @@ public final class OperatorBufferToFile<T> implements Operator<T, T> {
         }
 
         private boolean finished() {
+        	//cannot pass queueKnownToBeEmpty flag to this method because 
+        	//to avoid a race condition we must do an actual check on queue.isEmpty()
+        	//after finding done is true
             if (done) {
                 Throwable t = error;
                 if (queue.isEmpty()) {
