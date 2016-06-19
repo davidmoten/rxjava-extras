@@ -71,6 +71,12 @@ To ignore the elements of an observable (but wait for completion) and then emit 
 
 <img src="src/docs/ignoreElementsThen.png?raw=true"/>
 
+Tranformers.mapWithIndex
+-------------------------
+Maps each item to an item wrapped with a zero-based index:
+
+<img src="src/docs/mapWithIndex.png?raw=true" />
+
 Transformers.orderedMerge
 --------------------------
 To merge two streams in order (according to a `Comparator`):
