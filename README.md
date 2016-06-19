@@ -25,11 +25,9 @@ Utilities for use with rxjava:
 * `Transformers.doOnNth`
 * [`Transformers.onBackpressureBufferToFile`](#transformersonbackpressurebuffertofile) - buffer items to disk 
 * [`Transformers.toOperator`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toOperator-rx.functions.Func1-)
-
 * `Transformers.sampleFirst`
 * `Transformers.decode`
 * `Transformers.delayFinalUnsubscribe` - to keep a source active for a period after last unsubscribe (useful with `refCount`/`share`)
-
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
