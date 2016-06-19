@@ -286,6 +286,8 @@ To merge two streams in order (according to a `Comparator`):
 source1.compose(Transformers.orderedMergeWith(source2, comparator));
 ```
 
+<img src="src/docs/orderedMerge.png?raw=true" />
+
 Transformers.onBackpressureBufferToFile
 ----------------------------------------
 As of 0.7.2, you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage).
