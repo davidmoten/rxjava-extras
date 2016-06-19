@@ -10,8 +10,8 @@ Utilities for use with rxjava:
 
 * `Functions.identity, alwaysTrue, alwaysFalse, constant, not`
 * [`Checked`](#checked) provides lambda helpers for dealing with checked exceptions in functions and actions
-* `TestingHelper`
-* `RetryWhen` builder for use with `.retryWhen(Func1)` operator
+* [`TestingHelper`](#testinghelper)
+* [`RetryWhen`](#retrywhen) builder for use with `.retryWhen(Func1)` operator
 * [`Transformers.toOperator`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toOperator-rx.functions.Func1-)
 * [`Transformers.mapWithIndex`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#mapWithIndex--)
 * [`Transformers.stateMachine`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#stateMachine-rx.functions.Func0-rx.functions.Func3-rx.functions.Action2-)
@@ -23,7 +23,7 @@ Utilities for use with rxjava:
 * `Transformers.collectStats` 
 * [`Transformers.doOnFirst`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#doOnFirst-rx.functions.Action1-)
 * `Transformers.doOnNth`
-* `Transformers.ignoreElementsThen`
+* [`Transformers.ignoreElementsThen`](#transformersignoreelementsthen)
 * `Transformers.sampleFirst`
 * `Transformers.decode`
 * `Transformers.delayFinalUnsubscribe` - to keep a source active for a period after last unsubscribe (useful with `refCount`/`share`)
