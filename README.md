@@ -116,6 +116,8 @@ Custom operators are difficult things to get right in RxJava mainly because of t
 
 * each source emission is mapped to 0 to many emissions (of a different type perhaps) to downstream but those emissions are calculated based on accumulated state
 
+<img src="src/docs/stateMachine.png?raw=true" />
+
 An example of such a transformation might be from a list of temperatures you only want to emit sequential values that are less than zero but are part of a sub-zero sequence at least 1 hour in duration. You could use `toListWhile` above but `Transformers.stateMachine` offers the additional efficiency that it will immediately emit temperatures as soon as the duration criterion is met. 
 
 To implement this example, suppose the source is half-hourly temperature measurements:
