@@ -118,7 +118,7 @@ produces
 [2, 5, 6]
 ```
 
-Tranformers.collectWhile
+Transformers.collectWhile
 -------------------------
 Behaves as per `toListWhile` but allows control over the data structure used. 
 
