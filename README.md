@@ -65,72 +65,6 @@ dependencies {
 }
 ```
 
-Checked
-------------------
-
-Checked exceptions can be annoying. If you are happy to wrap a checked exception with a ```RuntimeException``` then the function and action helpers in ```Checked``` are great:
-
-Instead of 
-```java
-OutputStream os =  ...;
-Observable<String> source = ...;
-source.doOnNext(s -> {
-	    try {
-	        os.write(s.getBytes());
-	    } catch (IOException e) {
-	        throw new RuntimeException(e);
-	    }
-    })
-    .subscribe();
-```
-
-you can write:
-```java
-source.doOnNext(Checked.a1(s -> os.write(s.getBytes())))
-      .subscribe();
-```
-
-Serialized
-------------------
-To read serialized objects from a file:
-
-```java
-Observable<Item> items = Serialized.read(file);
-```
-
-To write an Observable to a file:
-
-```java
-Serialized.write(observable, file).subscribe();
-```
-
-### Kryo
-`Serialized` also has support for the very fast serialization library [kryo](https://github.com/EsotericSoftware/kryo). Unlike standard Java serialization *Kryo* can also serialize/deserialize objects that don't implement `Serializable`. 
-
-Add this to your pom.xml:
-
-```xml
-<dependency>
-    <groupId>com.esotericsoftware</groupId>
-    <artifactId>kryo</artifactId>
-    <version>3.0.3</version>
-</dependency>
-```
-
-For example,
-
-To read:
-```java
-Observable<Item> items = Serialized.kryo().read(file);
-```
-
-To write:
-```java
-Serialized.write(observable, file).subscribe();
-```
-
-You can also call `Serialized.kryo(kryo)` to use an instance of `Kryo` that you have configured specially. 
-
 Transformers.ignoreElementsThen
 ------------------------------------
 To ignore the elements of an observable (but wait for completion) and then emit a second observable, use `Transformers.ignoreElementsThen`:
@@ -397,6 +331,72 @@ rate = 9.3MB/s (4B messages, rollover)
 ```
 
 I wouldn't be surprised to see significant improvement on some of these benchmarks in the medium term (perhaps using memory-mapped files). There are at least a couple of java file based implementations out there that have impressive throughput using memory-mapped files.
+
+Checked
+------------------
+
+Checked exceptions can be annoying. If you are happy to wrap a checked exception with a ```RuntimeException``` then the function and action helpers in ```Checked``` are great:
+
+Instead of 
+```java
+OutputStream os =  ...;
+Observable<String> source = ...;
+source.doOnNext(s -> {
+	    try {
+	        os.write(s.getBytes());
+	    } catch (IOException e) {
+	        throw new RuntimeException(e);
+	    }
+    })
+    .subscribe();
+```
+
+you can write:
+```java
+source.doOnNext(Checked.a1(s -> os.write(s.getBytes())))
+      .subscribe();
+```
+
+Serialized
+------------------
+To read serialized objects from a file:
+
+```java
+Observable<Item> items = Serialized.read(file);
+```
+
+To write an Observable to a file:
+
+```java
+Serialized.write(observable, file).subscribe();
+```
+
+### Kryo
+`Serialized` also has support for the very fast serialization library [kryo](https://github.com/EsotericSoftware/kryo). Unlike standard Java serialization *Kryo* can also serialize/deserialize objects that don't implement `Serializable`. 
+
+Add this to your pom.xml:
+
+```xml
+<dependency>
+    <groupId>com.esotericsoftware</groupId>
+    <artifactId>kryo</artifactId>
+    <version>3.0.3</version>
+</dependency>
+```
+
+For example,
+
+To read:
+```java
+Observable<Item> items = Serialized.kryo().read(file);
+```
+
+To write:
+```java
+Serialized.write(observable, file).subscribe();
+```
+
+You can also call `Serialized.kryo(kryo)` to use an instance of `Kryo` that you have configured specially. 
 
 Unzipping
 -----------------------
