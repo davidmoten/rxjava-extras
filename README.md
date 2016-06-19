@@ -12,7 +12,6 @@ Utilities for use with rxjava:
 * [`Checked`](#checked) provides lambda helpers for dealing with checked exceptions in functions and actions
 * [`TestingHelper`](#testinghelper)
 * [`RetryWhen`](#retrywhen) builder for use with `.retryWhen(Func1)` operator
-* [`Transformers.toOperator`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toOperator-rx.functions.Func1-)
 * [`Transformers.mapWithIndex`](#mapwithindex)
 * [`Transformers.stateMachine`](#transformersstatemachine)
 * [`Transformers.orderedMerge`](#transformersorderedmerge)
@@ -24,10 +23,13 @@ Utilities for use with rxjava:
 * [`Transformers.doOnFirst`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#doOnFirst-rx.functions.Action1-)
 * `Transformers.doOnNth`
 * [`Transformers.ignoreElementsThen`](#transformersignoreelementsthen)
+* [`Transformers.onBackpressureBufferToFile`](#transformersonbackpressurebuffertofile) - buffer items to disk 
+* [`Transformers.toOperator`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toOperator-rx.functions.Func1-)
+
 * `Transformers.sampleFirst`
 * `Transformers.decode`
 * `Transformers.delayFinalUnsubscribe` - to keep a source active for a period after last unsubscribe (useful with `refCount`/`share`)
-* [`Transformers.onBackpressureBufferToFile`](#transformersonbackpressurebuffertofile) - buffer items to disk 
+
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
