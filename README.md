@@ -13,11 +13,11 @@ Utilities for use with rxjava:
 * [`TestingHelper`](#testinghelper)
 * [`RetryWhen`](#retrywhen) builder for use with `.retryWhen(Func1)` operator
 * [`Transformers.toOperator`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toOperator-rx.functions.Func1-)
-* [`Transformers.mapWithIndex`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#mapWithIndex--)
-* [`Transformers.stateMachine`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#stateMachine-rx.functions.Func0-rx.functions.Func3-rx.functions.Action2-)
-* [`Transformers.orderedMerge`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#orderedMergeWith-rx.Observable-rx.functions.Func2-)
-* [`Transformers.collectWhile`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectWhile-rx.functions.Func0-rx.functions.Action2-rx.functions.Func2-)
-* [`Transformers.toListWhile`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListWhile-rx.functions.Func2-)
+* [`Transformers.mapWithIndex`](#mapwithindex)
+* [`Transformers.stateMachine`](#transformersstatemachine)
+* [`Transformers.orderedMerge`](#transformersorderedmerge)
+* [`Transformers.collectWhile`](#transformerscollectwhile)
+* [`Transformers.toListWhile`](#transformerstolistwhile)
 * [`Transformers.toListUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntilChanged--)
 * [`Transformers.toListUntil`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntil-rx.functions.Func1-)
 * `Transformers.collectStats` 
@@ -27,7 +27,7 @@ Utilities for use with rxjava:
 * `Transformers.sampleFirst`
 * `Transformers.decode`
 * `Transformers.delayFinalUnsubscribe` - to keep a source active for a period after last unsubscribe (useful with `refCount`/`share`)
-* [`Transformers.onBackpressureBufferToFile`](README.md#transformersonbackpressurebuffertofile) - buffer items to disk 
+* [`Transformers.onBackpressureBufferToFile`](#transformersonbackpressurebuffertofile) - buffer items to disk 
 * `Serialized.read/write`
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
@@ -77,6 +77,8 @@ Maps each item to an item wrapped with a zero-based index:
 
 <img src="src/docs/mapWithIndex.png?raw=true" />
 
+[javadoc]((http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#mapWithIndex--)
+
 Transformers.orderedMerge
 --------------------------
 To merge two streams in order (according to a `Comparator`):
@@ -87,11 +89,15 @@ source1.compose(Transformers.orderedMergeWith(source2, comparator));
 
 <img src="src/docs/orderedMerge.png?raw=true" />
 
+[javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#orderedMergeWith-rx.Observable-rx.functions.Func2-)
+
 Transformers.toListWhile
 ---------------------------
 You may want to group emissions from an Observable into lists of variable size. This can be achieved safely using `toListWhile`.
 
 <img src="src/docs/toListWhile.png?raw=true" />
+
+[javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListWhile-rx.functions.Func2-)
 
 As an example from a sequence of temperatures lets group the sub-zero and zero or above temperatures into contiguous lists:
 
@@ -116,6 +122,8 @@ Behaves as per `toListWhile` but allows control over the data structure used.
 
 <img src="src/docs/collectWhile.png?raw=true" />
 
+[javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectWhile-rx.functions.Func0-rx.functions.Action2-rx.functions.Func2-)
+
 Transformers.stateMachine
 --------------------------
 Custom operators are difficult things to get right in RxJava mainly because of the complexity of supporting backpressure efficiently. `Transformers.stateMachine` enables a custom operator implementation when:
@@ -123,6 +131,8 @@ Custom operators are difficult things to get right in RxJava mainly because of t
 * each source emission is mapped to 0 to many emissions (of a different type perhaps) to downstream but those emissions are calculated based on accumulated state
 
 <img src="src/docs/stateMachine.png?raw=true" />
+
+[javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#stateMachine-rx.functions.Func0-rx.functions.Func3-rx.functions.Action2-)
 
 An example of such a transformation might be from a list of temperatures you only want to emit sequential values that are less than zero but are part of a sub-zero sequence at least 1 hour in duration. You could use `toListWhile` above but `Transformers.stateMachine` offers the additional efficiency that it will immediately emit temperatures as soon as the duration criterion is met. 
 
