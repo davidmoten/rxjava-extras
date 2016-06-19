@@ -137,6 +137,16 @@ To ignore the elements of an observable (but wait for completion) and then emit 
 
 <img src="src/docs/ignoreElementsThen.png?raw=true"/>
 
+Transformers.orderedMerge
+--------------------------
+To merge two streams in order (according to a `Comparator`):
+
+```java
+source1.compose(Transformers.orderedMergeWith(source2, comparator));
+```
+
+<img src="src/docs/orderedMerge.png?raw=true" />
+
 Transformers.toListWhile
 ---------------------------
 You may want to group emissions from an Observable into lists of variable size. This can be achieved safely using `toListWhile`.
@@ -276,17 +286,6 @@ Observable<String> lines =
 Note that above you don't need to worry about closing `entry.getInputStream()` because it is handled in the unsubscribe of the `Bytes.unzip` source.
 
 You must process the emissions of `ZippedEntry` synchronously (don't replace the `concatMap()` with a `flatMap(...  .subscribeOn(Schedulers.computation())` for instance. This is because the `InputStream` of each `ZippedEntry` must be processed fullly (which could mean ignoring it of course) before moving on to the next one.
-
-
-Transformers.orderedMerge
---------------------------
-To merge two streams in order (according to a `Comparator`):
-
-```java
-source1.compose(Transformers.orderedMergeWith(source2, comparator));
-```
-
-<img src="src/docs/orderedMerge.png?raw=true" />
 
 Transformers.onBackpressureBufferToFile
 ----------------------------------------
