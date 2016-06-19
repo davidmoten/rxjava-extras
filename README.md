@@ -9,7 +9,7 @@ rxjava-extras
 Utilities for use with rxjava:
 
 * `Functions.identity, alwaysTrue, alwaysFalse, constant, not`
-* [`Checked`](README.md#checked) provides lambda helpers for dealing with checked exceptions in functions and actions
+* [`Checked`](#checked) provides lambda helpers for dealing with checked exceptions in functions and actions
 * `TestingHelper`
 * `RetryWhen` builder for use with `.retryWhen(Func1)` operator
 * [`Transformers.toOperator`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toOperator-rx.functions.Func1-)
