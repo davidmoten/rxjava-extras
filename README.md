@@ -271,25 +271,11 @@ observable.retryWhen(
         .build());
 ```
 
-Unzipping
------------------------
-
-Suppose you have a a zip file `file.zip` and you want to stream the lines of the file `doc.txt` extracted from the archive:
-
-```java
-Observable<String> lines = 
-    Bytes.unzip(new File("file.zip"))
-       .filter(entry -> entry.getName().equals("doc.txt"))
-       .concatMap(entry -> Strings.from(entry.getInputStream))
-       .compose(o-> Strings.split(o, "\n"));
-```
-Note that above you don't need to worry about closing `entry.getInputStream()` because it is handled in the unsubscribe of the `Bytes.unzip` source.
-
-You must process the emissions of `ZippedEntry` synchronously (don't replace the `concatMap()` with a `flatMap(...  .subscribeOn(Schedulers.computation())` for instance. This is because the `InputStream` of each `ZippedEntry` must be processed fullly (which could mean ignoring it of course) before moving on to the next one.
-
 Transformers.onBackpressureBufferToFile
 ----------------------------------------
 As of 0.7.2, you can offload an observable's emissions to disk to reduce memory pressure when you have a fast producer + slow consumer (or just to minimize memory usage).
+
+<img src="src/docs/onBackpressureBufferToFile.png?raw=true" />
 
 If you use the `onBackpressureBuffer` operator you'll know that when a stream is producing faster than the downstream operators can process (perhaps the producer cannot respond meaningfully to a *slow down* request from downstream) then `onBackpressureBuffer` buffers the items to an in-memory queue until they can be processed. Of course if memory is limited then some streams might eventually cause an `OutOfMemoryError`. One solution to this problem is to increase the effectively available memory for buffering by using disk instead (and small in-memory read/write buffers). That's why `Transformers.onBackpressureBufferToFile` was created. 
 
@@ -411,6 +397,21 @@ rate = 9.3MB/s (4B messages, rollover)
 ```
 
 I wouldn't be surprised to see significant improvement on some of these benchmarks in the medium term (perhaps using memory-mapped files). There are at least a couple of java file based implementations out there that have impressive throughput using memory-mapped files.
+
+Unzipping
+-----------------------
+Suppose you have a a zip file `file.zip` and you want to stream the lines of the file `doc.txt` extracted from the archive:
+
+```java
+Observable<String> lines = 
+    Bytes.unzip(new File("file.zip"))
+       .filter(entry -> entry.getName().equals("doc.txt"))
+       .concatMap(entry -> Strings.from(entry.getInputStream))
+       .compose(o-> Strings.split(o, "\n"));
+```
+Note that above you don't need to worry about closing `entry.getInputStream()` because it is handled in the unsubscribe of the `Bytes.unzip` source.
+
+You must process the emissions of `ZippedEntry` synchronously (don't replace the `concatMap()` with a `flatMap(...  .subscribeOn(Schedulers.computation())` for instance. This is because the `InputStream` of each `ZippedEntry` must be processed fullly (which could mean ignoring it of course) before moving on to the next one.
 
 
 TestingHelper
