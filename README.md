@@ -73,7 +73,7 @@ To ignore the elements of an observable (but wait for completion) and then emit 
 
 <img src="src/docs/ignoreElementsThen.png?raw=true"/>
 
-Tranformers.mapWithIndex
+Transformers.mapWithIndex
 -------------------------
 Maps each item to an item wrapped with a zero-based index:
 
