@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.internal.operators;
+package com.github.davidmoten.rx;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
