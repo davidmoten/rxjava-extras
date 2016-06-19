@@ -12,9 +12,10 @@ Utilities for use with rxjava:
 * [`Checked`](#checked) provides lambda helpers for dealing with checked exceptions in functions and actions
 * [`TestingHelper`](#testinghelper)
 * [`RetryWhen`](#retrywhen) builder for use with `.retryWhen(Func1)` operator
-* [`Transformers.mapWithIndex`](#mapwithindex)
-* [`Transformers.stateMachine`](#transformersstatemachine)
+* [`Transformers.ignoreElementsThen`](#transformersignoreelementsthen)
+* [`Transformers.mapWithIndex`](#transformersmapwithindex)
 * [`Transformers.orderedMerge`](#transformersorderedmerge)
+* [`Transformers.stateMachine`](#transformersstatemachine)
 * [`Transformers.collectWhile`](#transformerscollectwhile)
 * [`Transformers.toListWhile`](#transformerstolistwhile)
 * [`Transformers.toListUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntilChanged--)
@@ -22,7 +23,6 @@ Utilities for use with rxjava:
 * `Transformers.collectStats` 
 * [`Transformers.doOnFirst`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#doOnFirst-rx.functions.Action1-)
 * `Transformers.doOnNth`
-* [`Transformers.ignoreElementsThen`](#transformersignoreelementsthen)
 * [`Transformers.onBackpressureBufferToFile`](#transformersonbackpressurebuffertofile) - buffer items to disk 
 * [`Transformers.toOperator`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toOperator-rx.functions.Func1-)
 
