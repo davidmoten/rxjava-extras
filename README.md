@@ -133,6 +133,8 @@ You can also call `Serialized.kryo(kryo)` to use an instance of `Kryo` that you 
 
 Transformers.toListWhile
 ---------------------------
+<img src="src/docs/toListWhile.png?raw=true" />
+
 You may want to group emissions from an Observable into lists of variable size. This can be achieved safely using `toListWhile`.
 
 As an example from a sequence of temperatures lets group the sub-zero and zero or above temperatures into contiguous lists:
