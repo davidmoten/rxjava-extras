@@ -131,6 +131,10 @@ Serialized.write(observable, file).subscribe();
 
 You can also call `Serialized.kryo(kryo)` to use an instance of `Kryo` that you have configured specially. 
 
+Transformers.ignoreElementsThen
+------------------------------------
+<img src="src/docs/ignoreElementsThen.png?raw=true"/>
+
 Transformers.toListWhile
 ---------------------------
 <img src="src/docs/toListWhile.png?raw=true" />
