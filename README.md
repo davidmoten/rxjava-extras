@@ -20,7 +20,7 @@ Utilities for use with rxjava:
 * [`Transformers.toListWhile`](#transformerstolistwhile)
 * [`Transformers.toListUntilChanged`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntilChanged--)
 * [`Transformers.toListUntil`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#toListUntil-rx.functions.Func1-)
-* `Transformers.collectStats` 
+* [`Transformers.collectStats`](#transformerscollectstats) 
 * [`Transformers.doOnFirst`](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#doOnFirst-rx.functions.Action1-)
 * `Transformers.doOnNth`
 * [`Transformers.onBackpressureBufferToFile`](#transformersonbackpressurebuffertofile) - buffer items to disk 
@@ -123,6 +123,12 @@ Behaves as per `toListWhile` but allows control over the data structure used.
 <img src="src/docs/collectWhile.png?raw=true" />
 
 [javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#collectWhile-rx.functions.Func0-rx.functions.Action2-rx.functions.Func2-)
+
+Transformers.collectStats
+---------------------------
+Accumulate statistics, emitting the accumulated results with each item.
+
+<img src="src/docs/collectStats.png?raw=true" />
 
 Transformers.stateMachine
 --------------------------
