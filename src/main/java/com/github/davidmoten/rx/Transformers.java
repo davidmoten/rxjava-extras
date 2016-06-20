@@ -139,7 +139,7 @@ public final class Transformers {
 	 *  }
 	 * </pre>
 	 * 
-	 * <img src=
+	 * <p><img src=
 	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/mapWithIndex.png?raw=true"
 	 * alt="marble diagram">
 	 * 
@@ -160,7 +160,7 @@ public final class Transformers {
 	 * chain so the source may experience requests for more items than are
 	 * strictly required by the endpoint subscriber.
 	 * 
-	 * <img src=
+	 * <p><img src=
 	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/stateMachine.png?raw=true"
 	 * alt="marble diagram">
 	 * 
@@ -231,7 +231,7 @@ public final class Transformers {
 	 * {@link BackpressureStrategy#BUFFER} which corresponds to
 	 * {@link Observable#onBackpressureBuffer}.
 	 * 
-	 * <img src=
+	 * <p><img src=
 	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/stateMachine.png?raw=true"
 	 * alt="marble diagram">
 	 * 
@@ -289,7 +289,7 @@ public final class Transformers {
 	 * is that the source and other are already ordered. This transformer
 	 * supports backpressure and its inputs must also support backpressure.
 	 * 
-	 * <img src=
+	 * <p><img src=
 	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/orderedMerge.png?raw=true"
 	 * alt="marble diagram">
 	 * 
@@ -314,7 +314,7 @@ public final class Transformers {
 	 * is that the source and other are already ordered. This transformer
 	 * supports backpressure and its inputs must also support backpressure.
 	 * 
-	 * <img src=
+	 * <p><img src=
 	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/orderedMerge.png?raw=true"
 	 * alt="marble diagram">
 	 * 
@@ -378,7 +378,7 @@ public final class Transformers {
 	 * a buffering of the source Observable into lists of sequential items that
 	 * satisfy the condition {@code condition}.
 	 * 
-	 * <img src=
+	 * <p><img src=
 	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/toListWhile.png?raw=true"
 	 * alt="marble diagram">
 	 * 
@@ -414,7 +414,7 @@ public final class Transformers {
 	 * that are emitted when the collection and latest emission do not satisfy
 	 * {@code condition} or on completion.
 	 * 
-	 * <img src=
+	 * <p><img src=
 	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/collectWhile.png?raw=true"
 	 * alt="marble diagram">
 	 * 
@@ -470,7 +470,7 @@ public final class Transformers {
 	 * collected into {@code Collection} instances created by {@code factory}
 	 * that are emitted when items are not equal or on completion.
 	 * 
-	 * <img src=
+	 * <p><img src=
 	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/collectWhile.png?raw=true"
 	 * alt="marble diagram">
 	 * 
@@ -542,7 +542,7 @@ public final class Transformers {
 	 * completion but doesn't emit any items and once completes emits the
 	 * {@code next} observable.
 	 * 
-	 * <img src=
+	 * <p><img src=
 	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/ignoreElementsThen.png?raw=true"
 	 * alt="marble diagram">
 	 * 
