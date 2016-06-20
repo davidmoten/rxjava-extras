@@ -16,7 +16,7 @@
    version="1.1"
    inkscape:version="0.48.4 r9939"
    sodipodi:docname="collectStats.svg"
-   inkscape:export-filename="/home/dave/Development/ide/eclipse/workspace-4.3/rxjava-extras/src/docs/toListWhile.png"
+   inkscape:export-filename="/home/dave/Development/ide/eclipse/workspace-4.3/rxjava-extras/src/docs/collectStatistics.png"
    inkscape:export-xdpi="90"
    inkscape:export-ydpi="90">
   <defs
@@ -965,7 +965,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -1161,7 +1161,7 @@
    style="font-size:65.00091553%;baseline-shift:super"
    id="flowSpan3221">2</flowSpan></flowPara><flowPara
          style="font-size:16px"
-         id="flowPara3227">n, x̄</flowPara><flowPara
+         id="flowPara3227">n, x̄, δ</flowPara><flowPara
          style="font-size:16px"
          id="flowPara3223" /><flowPara
          style="font-size:16px"
@@ -1191,7 +1191,7 @@
    style="font-size:65.00091553%;baseline-shift:super"
    id="flowSpan3221-1">2</flowSpan></flowPara><flowPara
          style="font-size:16px"
-         id="flowPara3227-2">n, x̄</flowPara><flowPara
+         id="flowPara3227-2">n, x̄, δ</flowPara><flowPara
          style="font-size:16px"
          id="flowPara3223-1" /><flowPara
          style="font-size:16px"
@@ -1221,7 +1221,7 @@
    style="font-size:65.00091553%;baseline-shift:super"
    id="flowSpan3221-2">2</flowSpan></flowPara><flowPara
          style="font-size:16px"
-         id="flowPara3227-1">n, x̄</flowPara><flowPara
+         id="flowPara3227-1">n, x̄, δ</flowPara><flowPara
          style="font-size:16px"
          id="flowPara3223-16" /><flowPara
          style="font-size:16px"
