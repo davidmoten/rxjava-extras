@@ -153,7 +153,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Returns a {@link Transformer} that allows processing of the source stream
+	 * <p>Returns a {@link Transformer} that allows processing of the source stream
 	 * to be defined in a state machine where transitions of the state machine
 	 * may also emit items to downstream that are buffered if necessary when
 	 * backpressure is requested. <code>flatMap</code> is part of the processing
@@ -221,7 +221,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Returns a {@link Transformer} that allows processing of the source stream
+	 * <p>Returns a {@link Transformer} that allows processing of the source stream
 	 * to be defined in a state machine where transitions of the state machine
 	 * may also emit items to downstream that are buffered if necessary when
 	 * backpressure is requested. <code>flatMap</code> is part of the processing
@@ -284,7 +284,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Returns the source {@link Observable} merged with the <code>other</code>
+	 * <p>Returns the source {@link Observable} merged with the <code>other</code>
 	 * observable using the given {@link Comparator} for order. A precondition
 	 * is that the source and other are already ordered. This transformer
 	 * supports backpressure and its inputs must also support backpressure.
@@ -309,7 +309,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Returns the source {@link Observable} merged with all of the other
+	 * <p>Returns the source {@link Observable} merged with all of the other
 	 * observables using the given {@link Comparator} for order. A precondition
 	 * is that the source and other are already ordered. This transformer
 	 * supports backpressure and its inputs must also support backpressure.
@@ -374,7 +374,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Returns a {@link Transformer} that returns an {@link Observable} that is
+	 * <p>Returns a {@link Transformer} that returns an {@link Observable} that is
 	 * a buffering of the source Observable into lists of sequential items that
 	 * satisfy the condition {@code condition}.
 	 * 
@@ -409,7 +409,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Returns a {@link Transformer} that returns an {@link Observable} that is
+	 * <p>Returns a {@link Transformer} that returns an {@link Observable} that is
 	 * collected into {@code Collection} instances created by {@code factory}
 	 * that are emitted when the collection and latest emission do not satisfy
 	 * {@code condition} or on completion.
@@ -466,7 +466,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Returns a {@link Transformer} that returns an {@link Observable} that is
+	 * <p>Returns a {@link Transformer} that returns an {@link Observable} that is
 	 * collected into {@code Collection} instances created by {@code factory}
 	 * that are emitted when items are not equal or on completion.
 	 * 
@@ -538,7 +538,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Returns an observable that subscribes to {@code this} and wait for
+	 * <p>Returns an observable that subscribes to {@code this} and wait for
 	 * completion but doesn't emit any items and once completes emits the
 	 * {@code next} observable.
 	 * 
@@ -550,8 +550,12 @@ public final class Transformers {
 	 *            input observable type
 	 * @param <T>
 	 *            output observable type
-	 * @param next observable to be emitted after ignoring elements of {@code this}
-	 * @return Transformer that applied to a source Observable ignores the elements of the source and emits the elements of a second observable
+	 * @param next
+	 *            observable to be emitted after ignoring elements of
+	 *            {@code this}
+	 * @return Transformer that applied to a source Observable ignores the
+	 *         elements of the source and emits the elements of a second
+	 *         observable
 	 */
 	public static <R, T> Transformer<T, R> ignoreElementsThen(final Observable<R> next) {
 		return new Transformer<T, R>() {
@@ -573,7 +577,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Decodes a stream of multibyte chunks into a stream of strings that works
+	 * <p>Decodes a stream of multibyte chunks into a stream of strings that works
 	 * on infinite streams and handles when a multibyte character spans two
 	 * chunks. This method allows for more control over how malformed and
 	 * unmappable characters are handled.
@@ -691,7 +695,7 @@ public final class Transformers {
 	}
 
 	/**
-	 * Groups the items emitted by an {@code Observable} according to a
+	 * <p>Groups the items emitted by an {@code Observable} according to a
 	 * specified criterion, and emits these grouped items as
 	 * {@link GroupedObservable}s. The emitted {@code GroupedObservable} allows
 	 * only a single {@link Subscriber} during its lifetime and if this
