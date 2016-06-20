@@ -14,7 +14,7 @@ Utilities for use with rxjava:
 * [`RetryWhen`](#retrywhen) builder for use with `.retryWhen(Func1)` operator
 * [`Transformers.ignoreElementsThen`](#transformersignoreelementsthen)
 * [`Transformers.mapWithIndex`](#transformersmapwithindex)
-* [`Transformers.orderedMerge`](#transformersorderedmerge)
+* [`Transformers.orderedMergeWith`](#transformersorderedmergewith)
 * [`Transformers.stateMachine`](#transformersstatemachine)
 * [`Transformers.collectWhile`](#transformerscollectwhile)
 * [`Transformers.toListWhile`](#transformerstolistwhile)
@@ -79,8 +79,8 @@ Maps each item to an item wrapped with a zero-based index:
 
 [javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#mapWithIndex--)
 
-Transformers.orderedMerge
---------------------------
+Transformers.orderedMergeWith
+------------------------------
 To merge two streams in order (according to a `Comparator`):
 
 ```java
