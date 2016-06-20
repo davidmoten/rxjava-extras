@@ -28,11 +28,11 @@ Utilities for use with rxjava:
 * `Transformers.sampleFirst`
 * `Transformers.decode`
 * `Transformers.delayFinalUnsubscribe` - to keep a source active for a period after last unsubscribe (useful with `refCount`/`share`)
-* `Serialized.read/write`
+* [`Serialized.read/write`](#serialized)
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
 * `Bytes.from`
-* `Bytes.unzip` unzips zip archives
+* [`Bytes.unzip`](#unzipping) unzips zip archives
 * `Strings.from`
 * `Strings.lines` - supports backpressure (not available in rxjava-string 1.0.1)
 * `Strings.split` - supports backpressure (not available in rxjava-string 1.0.1)
