@@ -11,6 +11,7 @@ import java.nio.charset.CharsetDecoder;
 import org.junit.Test;
 
 import rx.Observable;
+import rx.functions.Func2;
 
 public class StringsTest {
 
@@ -79,5 +80,16 @@ public class StringsTest {
         } catch (RuntimeException e) {
             assertEquals(IOException.class, e.getCause().getClass());
         }
+    }
+    
+    @Test
+    public void testFromClasspath() {
+    	String expected = "hello world\nincoming message";
+    	assertEquals(expected, Strings.fromClasspath("/test2.txt").reduce(new Func2<String, String, String>() {
+			@Override
+			public String call(String a, String b) {
+				return a+b;
+			}
+		}).toBlocking().single());
     }
 }
