@@ -9,6 +9,7 @@ rxjava-extras
 Utilities for use with rxjava:
 
 * `Functions.identity, alwaysTrue, alwaysFalse, constant, not`
+* `Actions.setAtomic, doNothing, unsubscribe, increment, decrement, addTo, println, setToTrue, countDown, printStackTrace`
 * [`Checked`](#checked) provides lambda helpers for dealing with checked exceptions in functions and actions
 * [`TestingHelper`](#testinghelper)
 * [`RetryWhen`](#retrywhen) builder for use with `.retryWhen(Func1)` operator
