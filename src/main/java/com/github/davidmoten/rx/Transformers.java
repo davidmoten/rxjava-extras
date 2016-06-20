@@ -140,7 +140,8 @@ public final class Transformers {
 	 * </pre>
 	 * 
 	 * <img src=
-	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/mapWithIndex.png?raw=true"/>
+	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/mapWithIndex.png?raw=true"
+	 * alt="marble diagram">
 	 * 
 	 * @param <T>
 	 *            generic type of the stream being supplemented with an index
@@ -160,7 +161,8 @@ public final class Transformers {
 	 * strictly required by the endpoint subscriber.
 	 * 
 	 * <img src=
-	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/stateMachine.png?raw=true"/>
+	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/stateMachine.png?raw=true"
+	 * alt="marble diagram">
 	 * 
 	 * @param initialStateFactory
 	 *            the factory to create the initial state of the state machine.
@@ -230,7 +232,8 @@ public final class Transformers {
 	 * {@link Observable#onBackpressureBuffer}.
 	 * 
 	 * <img src=
-	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/stateMachine.png?raw=true"/>
+	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/stateMachine.png?raw=true"
+	 * alt="marble diagram">
 	 * 
 	 * @param initialStateFactory
 	 *            the factory to create the initial state of the state machine.
@@ -287,7 +290,8 @@ public final class Transformers {
 	 * supports backpressure and its inputs must also support backpressure.
 	 * 
 	 * <img src=
-	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/orderedMerge.png?raw=true"/>
+	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/orderedMerge.png?raw=true"
+	 * alt="marble diagram">
 	 * 
 	 * @param other
 	 *            the other already ordered observable
@@ -311,7 +315,8 @@ public final class Transformers {
 	 * supports backpressure and its inputs must also support backpressure.
 	 * 
 	 * <img src=
-	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/orderedMerge.png?raw=true"/>
+	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/orderedMerge.png?raw=true"
+	 * alt="marble diagram">
 	 * 
 	 * @param others
 	 *            a collection of already ordered observables to merge with
@@ -374,7 +379,8 @@ public final class Transformers {
 	 * satisfy the condition {@code condition}.
 	 * 
 	 * <img src=
-	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/toListWhile.png?raw=true"/>
+	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/toListWhile.png?raw=true"
+	 * alt="marble diagram">
 	 * 
 	 * @param condition
 	 *            condition function that must return true if an item is to be
@@ -409,7 +415,8 @@ public final class Transformers {
 	 * {@code condition} or on completion.
 	 * 
 	 * <img src=
-	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/collectWhile.png?raw=true"/>
+	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/collectWhile.png?raw=true"
+	 * alt="marble diagram">
 	 * 
 	 * @param factory
 	 *            collection instance creator
@@ -464,7 +471,8 @@ public final class Transformers {
 	 * that are emitted when items are not equal or on completion.
 	 * 
 	 * <img src=
-	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/collectWhile.png?raw=true"/>
+	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/collectWhile.png?raw=true"
+	 * alt="marble diagram">
 	 * 
 	 * @param factory
 	 *            collection instance creator
@@ -534,14 +542,16 @@ public final class Transformers {
 	 * completion but doesn't emit any items and once completes emits the
 	 * {@code next} observable.
 	 * 
-	 * <img src="https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/ignoreElementsThen.png?raw=true"/>
+	 * <img src=
+	 * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/ignoreElementsThen.png?raw=true"
+	 * alt="marble diagram">
 	 * 
 	 * @param <R>
 	 *            input observable type
 	 * @param <T>
 	 *            output observable type
-	 * @param next
-	 * @return
+	 * @param next observable to be emitted after ignoring elements of {@code this}
+	 * @return Transformer that applied to a source Observable ignores the elements of the source and emits the elements of a second observable
 	 */
 	public static <R, T> Transformer<T, R> ignoreElementsThen(final Observable<R> next) {
 		return new Transformer<T, R>() {
