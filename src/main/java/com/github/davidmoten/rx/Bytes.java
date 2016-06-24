@@ -1,5 +1,6 @@
 package com.github.davidmoten.rx;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -26,8 +27,7 @@ public final class Bytes {
 
     /**
      * Returns an Observable stream of byte arrays from the given
-     * {@link InputStream} of {@code size} bytes. The final byte array may be less
-     * than {@code size} bytes.
+     * {@link InputStream} between 1 and {@code size} bytes. 
      * 
      * @param is input stream of bytes
      * @param size max emitted byte array size
@@ -36,7 +36,40 @@ public final class Bytes {
     public static Observable<byte[]> from(InputStream is, int size) {
         return Observable.create(new OnSubscribeInputStream(is, size));
     }
+    
+    public static Observable<byte[]> from(File file) {
+    	return from(file, 8192);
+    }
 
+    public static Observable<byte[]> from(final File file, final int size) {
+    	Func0<InputStream> resourceFactory = new Func0<InputStream> () {
+
+			@Override
+			public InputStream call() {
+				try {
+					return new BufferedInputStream(new FileInputStream(file), size);
+				} catch (FileNotFoundException e) {
+					throw new RuntimeException(e);
+				}
+			}};
+		Func1<InputStream,Observable<byte[]>> observableFactory = new Func1<InputStream, Observable<byte[]>>() {
+
+			@Override
+			public Observable<byte[]> call(InputStream is) {
+				return from(is, size);
+			}};
+		Action1<InputStream> disposeAction = new Action1<InputStream>() {
+
+			@Override
+			public void call(InputStream is) {
+				try {
+					is.close();
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}};
+		return Observable.using(resourceFactory, observableFactory, disposeAction, true);
+    }
     /**
      * Returns an Observable stream of byte arrays from the given
      * {@link InputStream} of {@code 8192} bytes. The final byte array may be less
