@@ -112,7 +112,7 @@ public final class TransformerStateMachine<State, In, Out> implements Transforme
         };
     }
     
-    private static class UnsubscribedNotificationHolder {
+    private static final class UnsubscribedNotificationHolder {
         private static final Notification<Object> INSTANCE = Notification.createOnNext(null);
         
         @SuppressWarnings("unchecked")
