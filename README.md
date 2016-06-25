@@ -429,7 +429,6 @@ Bytes.from
 To read bytes from an `InputStream` in chunks:
 
 ```java
-InputStream inputStream = ...
 Observable<byte[]> chunks = Bytes.from(inputStream, chunkSize);
 ```
 
