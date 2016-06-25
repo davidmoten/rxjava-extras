@@ -1212,7 +1212,7 @@ public final class Transformers {
                             public Observable<T> call(T t) {
                                 return Observable.just(t) //
                                         .delay(delay(startActual, startTime, time.call(t), playRate,
-                                                scheduler.now()), TimeUnit.MILLISECONDS);
+                                                scheduler.now()), TimeUnit.MILLISECONDS, scheduler);
                             }
 
                         });
@@ -1228,5 +1228,5 @@ public final class Transformers {
         long elapsedActual = now - startActual;
         return Math.max(0, Math.round((emissionTimestamp - startTime) / playRate - elapsedActual));
     }
-    
+
 }

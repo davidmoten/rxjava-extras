@@ -249,4 +249,28 @@ public class TransformersTest {
         return Transformers.removePairs(isCandidateForFirst, remove);
     }
 
+    @Test
+    public void testDelayWithPlayRate() {
+        TestSubscriber<Object> ts = TestSubscriber.create();
+        TestScheduler scheduler = new TestScheduler();
+        Func1<Integer, Long> time = new Func1<Integer, Long>() {
+
+            @Override
+            public Long call(Integer t) {
+                return (long) t;
+            }
+        };
+        Observable //
+                .just(1, 2, 3) //
+                .compose(Transformers.delay(time, 0.001, 0, scheduler)) //
+                .subscribe(ts);
+        ts.assertNoValues();
+        scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
+        ts.assertValue(1);
+        scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
+        ts.assertValues(1,2);
+        scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
+        ts.assertValues(1,2,3);
+        ts.assertCompleted();
+    }
 }
