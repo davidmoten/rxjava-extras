@@ -262,7 +262,7 @@ public class TransformersTest {
         };
         Observable //
                 .just(1, 2, 3) //
-                .compose(Transformers.delay(time, 0.001, 0, scheduler)) //
+                .compose(Transformers.delay(time, Functions.constant0(0.001), 0, scheduler)) //
                 .subscribe(ts);
         ts.assertNoValues();
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);

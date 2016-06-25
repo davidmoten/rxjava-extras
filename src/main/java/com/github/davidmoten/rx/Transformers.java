@@ -1196,7 +1196,7 @@ public final class Transformers {
     }
 
     public static final <T> Transformer<T, T> delay(final Func1<? super T, Long> time,
-            final double playRate, final long startTime, final Scheduler scheduler) {
+            final Func0<Double> playRate, final long startTime, final Scheduler scheduler) {
         return new Transformer<T, T>() {
 
             @Override
@@ -1224,9 +1224,9 @@ public final class Transformers {
     }
 
     private static long delay(long startActual, long startTime, long emissionTimestamp,
-            double playRate, long now) {
+            Func0<Double> playRate, long now) {
         long elapsedActual = now - startActual;
-        return Math.max(0, Math.round((emissionTimestamp - startTime) / playRate - elapsedActual));
+        return Math.max(0, Math.round((emissionTimestamp - startTime) / playRate.call() - elapsedActual));
     }
 
 }
