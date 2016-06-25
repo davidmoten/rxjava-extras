@@ -33,8 +33,8 @@ Utilities for use with rxjava:
 * [`Serialized.read/write`](#serialized)
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
-* [`Bytes.from`](#bytesfrom# - read bytes from resources (`InputStream`, `File`)
-* [`Bytes.unzip`](#bytesunzip) unzips zip archives
+* [`Bytes.from`](#bytesfrom) - read bytes from resources (`InputStream`, `File`)
+* [`Bytes.unzip`](#bytesunzip) - unzips zip archives
 * `Strings.from`
 * `Strings.lines` - supports backpressure (not available in rxjava-string 1.0.1)
 * `Strings.split` - supports backpressure (not available in rxjava-string 1.0.1)
