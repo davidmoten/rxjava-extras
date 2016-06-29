@@ -18,8 +18,21 @@ import com.github.davidmoten.rx.StateMachine.Transition;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
-import com.github.davidmoten.rx.internal.operators.*;
+import com.github.davidmoten.rx.internal.operators.OperatorBufferPredicateBoundary;
+import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
+import com.github.davidmoten.rx.internal.operators.OperatorDoOnEmpty;
+import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
+import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
+import com.github.davidmoten.rx.internal.operators.OperatorSampleFirst;
+import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax;
 import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax.Metric;
+import com.github.davidmoten.rx.internal.operators.OrderedMerge;
+import com.github.davidmoten.rx.internal.operators.TransformerDecode;
+import com.github.davidmoten.rx.internal.operators.TransformerDelayFinalUnsubscribe;
+import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
+import com.github.davidmoten.rx.internal.operators.TransformerOnBackpressureBufferRequestLimiting;
+import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
+import com.github.davidmoten.rx.internal.operators.TransformerStringSplit;
 import com.github.davidmoten.rx.util.BackpressureStrategy;
 import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
@@ -27,13 +40,13 @@ import com.github.davidmoten.rx.util.Pair;
 import com.github.davidmoten.util.Optional;
 
 import rx.Observable;
-import rx.Observable.OnSubscribe;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
 import rx.Observer;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
+import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func0;
@@ -1229,4 +1242,13 @@ public final class Transformers {
         return Math.max(0, Math.round((emissionTimestamp - startTime) / playRate.call() - elapsedActual));
     }
 
+    public static final <T> Transformer<T,T> doOnEmpty(final Action0 action) {
+        return new Transformer<T,T> () {
+
+            @Override
+            public Observable<T> call(Observable<T> o) {
+                return o.lift(new OperatorDoOnEmpty<T>(action));
+            }};
+    }
+    
 }
