@@ -19,8 +19,7 @@ public final class OnSubscribeDoOnEmpty<T> implements OnSubscribe<T> {
     @Override
     public void call(final Subscriber<? super T> child) {
         Subscriber<T> parent = createSubscriber(child, onEmpty);
-        child.add(parent);
-        observable.unsafeSubscribe(subscriber);
+        observable.unsafeSubscribe(parent);
     }
 
     private static <T> Subscriber<T> createSubscriber(final Subscriber<? super T> child, final Action0 onEmpty) {
