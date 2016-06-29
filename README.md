@@ -52,18 +52,18 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.7.9.7</version>
+  <version>0.7.9.8</version>
 </dependency>
 ```
 
 Or add this to your build.gradle:
-```
+```groovy
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    compile 'com.github.davidmoten:rxjava-extras:0.7.9.7'
+    compile 'com.github.davidmoten:rxjava-extras:0.7.9.8'
 }
 ```
 
