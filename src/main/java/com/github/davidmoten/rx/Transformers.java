@@ -18,9 +18,9 @@ import com.github.davidmoten.rx.StateMachine.Transition;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
+import com.github.davidmoten.rx.internal.operators.OnSubscribeDoOnEmpty;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferPredicateBoundary;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
-import com.github.davidmoten.rx.internal.operators.OperatorDoOnEmpty;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
 import com.github.davidmoten.rx.internal.operators.OperatorSampleFirst;
@@ -1247,7 +1247,7 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> o) {
-                return o.lift(new OperatorDoOnEmpty<T>(action));
+                return Observable.create(new OnSubscribeDoOnEmpty<T>(o, action));
             }};
     }
     

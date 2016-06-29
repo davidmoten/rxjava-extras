@@ -17,7 +17,7 @@ import rx.functions.Func0;
 import rx.observers.TestSubscriber;
 import rx.subjects.PublishSubject;
 
-public final class OperatorDoOnEmptyTest {
+public final class OnSubscribeDoOnEmptyTest {
 
     @Test
     public void testNonEmpty() {

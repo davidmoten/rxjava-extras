@@ -1,21 +1,28 @@
 package com.github.davidmoten.rx.internal.operators;
 
 import rx.Observable;
+import rx.Observable.OnSubscribe;
 import rx.Subscriber;
 import rx.exceptions.Exceptions;
 import rx.functions.Action0;
 
-public final class OperatorDoOnEmpty<T> implements Observable.Operator<T, T> {
+public final class OnSubscribeDoOnEmpty<T> implements OnSubscribe<T> {
 
     private final Action0 onEmpty;
+    private Observable<T> observable;
 
-    public OperatorDoOnEmpty(Action0 onEmpty) {
+    public OnSubscribeDoOnEmpty(Observable<T> observable, Action0 onEmpty) {
+        this.observable = observable;
         this.onEmpty = onEmpty;
     }
 
     @Override
-    public Subscriber<? super T> call(final Subscriber<? super T> child) {
+    public void call(final Subscriber<? super T> child) {
+        Subscriber<T> subscriber = createSubscriber(child, onEmpty);
+        observable.unsafeSubscribe(subscriber);
+    }
 
+    private static <T> Subscriber<T> createSubscriber(final Subscriber<? super T> child, final Action0 onEmpty) {
         return new Subscriber<T>(child) {
 
             private boolean isEmpty = true;
