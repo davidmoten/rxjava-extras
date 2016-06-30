@@ -1242,12 +1242,25 @@ public final class Transformers {
         return Math.max(0, Math.round((emissionTimestamp - startTime) / playRate.call() - elapsedActual));
     }
 
-    public static final <T> Transformer<T,T> doOnEmpty(final Action0 action) {
+    /**
+     * Modifies the source Observable so that it invokes an action when it calls {@code onCompleted} and no items were emitted.
+     * <p>
+     * <dl>
+     *  <dt><b>Scheduler:</b></dt>
+     *  <dd>{@code doOnEmpty} does not operate by default on a particular {@link Scheduler}.</dd>
+     * </dl>
+     *
+     * @param onEmpty
+     *            the action to invoke when the source Observable calls {@code onCompleted}, contingent on no items were emitted
+     * @param <T> generic type of observable being transformed
+     * @return the source Observable with the side-effecting behavior applied
+     */
+    public static final <T> Transformer<T,T> doOnEmpty(final Action0 onEmpty) {
         return new Transformer<T,T> () {
 
             @Override
             public Observable<T> call(Observable<T> o) {
-                return Observable.create(new OnSubscribeDoOnEmpty<T>(o, action));
+                return Observable.create(new OnSubscribeDoOnEmpty<T>(o, onEmpty));
             }};
     }
     
