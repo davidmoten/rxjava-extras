@@ -26,13 +26,9 @@ public final class OnSubscribeDoOnEmpty<T> implements OnSubscribe<T> {
         return new Subscriber<T>(child) {
 
             private boolean isEmpty = true;
-            private boolean done = false;
 
             @Override
             public void onCompleted() {
-                if (done) {
-                    return;
-                }
                 if (isEmpty) {
                     try {
                         onEmpty.call();
@@ -46,22 +42,15 @@ public final class OnSubscribeDoOnEmpty<T> implements OnSubscribe<T> {
                 } else {
                     child.onCompleted();
                 }
-                done = true;
             }
 
             @Override
             public void onError(Throwable e) {
-                if (done) {
-                    return;
-                }
                 child.onError(e);
             }
 
             @Override
             public void onNext(T t) {
-                if (done) {
-                    return;
-                }
                 isEmpty = false;
                 child.onNext(t);
             }

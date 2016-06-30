@@ -231,4 +231,13 @@ public final class Actions {
         };
     }
 
+    public static Action0 throw0(final RuntimeException ex) {
+        return new Action0() {
+
+            @Override
+            public void call() {
+                throw ex;
+            }};
+    }
+
 }
