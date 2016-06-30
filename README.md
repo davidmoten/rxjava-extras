@@ -30,6 +30,7 @@ Utilities for use with rxjava:
 * `Transformers.sampleFirst`
 * `Transformers.decode`
 * `Transformers.delayFinalUnsubscribe` - to keep a source active for a period after last unsubscribe (useful with `refCount`/`share`)
+* [`Transformers.doOnEmpty`](#transformersdoonempty) 
 * [`Serialized.read/write`](#serialized)
 * [`Bytes.from`](#bytesfrom) - read bytes from resources (`InputStream`, `File`)
 * [`Bytes.unzip`](#bytesunzip) - unzips zip archives
@@ -52,7 +53,7 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.7.9.8</version>
+  <version>0.7.9.9</version>
 </dependency>
 ```
 
@@ -63,7 +64,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.github.davidmoten:rxjava-extras:0.7.9.8'
+    compile 'com.github.davidmoten:rxjava-extras:0.7.9.9'
 }
 ```
 
@@ -131,6 +132,10 @@ Transformers.collectStats
 Accumulate statistics, emitting the accumulated results with each item.
 
 <img src="src/docs/collectStats.png?raw=true" />
+
+Transformers.doOnNext
+-------------------------
+Performs an action only if a stream completes without emitting an item.
 
 Transformers.stateMachine
 --------------------------
