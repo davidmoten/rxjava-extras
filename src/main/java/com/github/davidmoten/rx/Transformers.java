@@ -1243,8 +1243,7 @@ public final class Transformers {
     }
 
     /**
-     * Modifies the source Observable so that it invokes an action when it calls {@code onCompleted} and no items were emitted.
-     * <p>
+     * <p>Modifies the source Observable so that it invokes an action when it calls {@code onCompleted} and no items were emitted.
      * <dl>
      *  <dt><b>Scheduler:</b></dt>
      *  <dd>{@code doOnEmpty} does not operate by default on a particular {@link Scheduler}.</dd>

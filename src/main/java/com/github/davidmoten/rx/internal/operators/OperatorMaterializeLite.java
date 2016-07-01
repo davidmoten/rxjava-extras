@@ -10,14 +10,6 @@ import rx.Producer;
 import rx.Subscriber;
 import rx.plugins.RxJavaPlugins;
 
-/**
- * Turns all of the notifications from an Observable into {@code onNext} emissions, and marks
- * them with their original notification types within {@link NotificationLite} objects.
- * <p>
- * <img width="640" src="https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/materialize.png" alt="">
- * <p>
- * See <a href="http://msdn.microsoft.com/en-us/library/hh229453.aspx">here</a> for the Microsoft Rx equivalent.
- */
 public final class OperatorMaterializeLite<T> implements Operator<Object, T> {
 
     /** Lazy initialization via inner-class holder. */
@@ -26,9 +18,6 @@ public final class OperatorMaterializeLite<T> implements Operator<Object, T> {
         static final OperatorMaterializeLite<Object> INSTANCE = new OperatorMaterializeLite<Object>();
     }
 
-    /**
-     * @return a singleton instance of this stateless operator.
-     */
     @SuppressWarnings("unchecked")
     public static <T> OperatorMaterializeLite<T> instance() {
         return (OperatorMaterializeLite<T>) Holder.INSTANCE;

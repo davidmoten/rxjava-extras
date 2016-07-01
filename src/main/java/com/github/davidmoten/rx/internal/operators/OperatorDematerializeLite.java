@@ -3,23 +3,7 @@ package com.github.davidmoten.rx.internal.operators;
 import rx.Observable.Operator;
 import rx.Subscriber;
 import rx.internal.operators.NotificationLite;
-import rx.internal.operators.OperatorMaterialize;
 
-/**
- * Reverses the effect of {@link OperatorMaterialize} by transforming the
- * Notification objects emitted by a source Observable into the items or
- * notifications they represent.
- * <p>
- * <img width="640" src=
- * "https://github.com/ReactiveX/RxJava/wiki/images/rx-operators/dematerialize.png"
- * alt="">
- * <p>
- * See <a href="http://msdn.microsoft.com/en-us/library/hh229047.aspx">here</a>
- * for the Microsoft Rx equivalent.
- * 
- * @param <T>
- *            the wrapped value type
- */
 public final class OperatorDematerializeLite<T> implements Operator<T, Object> {
     /** Lazy initialization via inner-class holder. */
     private static final class Holder {

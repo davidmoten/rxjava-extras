@@ -1,10 +1,12 @@
 package com.github.davidmoten.rx;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -273,4 +275,16 @@ public class TransformersTest {
         ts.assertValues(1,2,3);
         ts.assertCompleted();
     }
+    
+    @Test
+    public void testSplitLongPattern() {
+        Iterator<String> iter = Strings.split(Observable.just("asdfqw", "erasdf"), "qwer")
+                .toBlocking().getIterator();
+        assertTrue(iter.hasNext());
+        assertEquals("asdf", iter.next());
+        assertTrue(iter.hasNext());
+        assertEquals("asdf", iter.next());
+        assertFalse(iter.hasNext());
+    }
+     
 }

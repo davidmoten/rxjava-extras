@@ -18,15 +18,17 @@ public final class TransformerStringSplit {
 
 			@Override
 			public String call(String leftOver, String s, Subscriber<String> observer) {
+                // prepend leftover to the string before splitting
+			    if (leftOver != null) {
+			        s = leftOver + s;
+			    }
+			    
 				String[] parts;
 				if (compiledPattern != null) {
 					parts = compiledPattern.split(s, -1);
 				} else {
 					parts = s.split(pattern, -1);
 				}
-				// prepend leftover to the first part
-				if (leftOver != null)
-					parts[0] = leftOver + parts[0];
 
 				// can emit all parts except the last part because it hasn't
 				// been terminated by the pattern/end-of-stream yet
