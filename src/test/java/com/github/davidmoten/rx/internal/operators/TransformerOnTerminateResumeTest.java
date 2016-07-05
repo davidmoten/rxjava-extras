@@ -9,12 +9,12 @@ import rx.Observable.Transformer;
 import rx.functions.Func1;
 import rx.observers.TestSubscriber;
 
-public class OperatorOnTerminateResumeTest {
+public class TransformerOnTerminateResumeTest {
 
     @Test
     public void mainCompletes() {
         
-        Transformer<Integer, Integer> op = new OperatorOnTerminateResume<Integer>(new Func1<Throwable, Observable<Integer>>() {
+        Transformer<Integer, Integer> op = new TransformerOnTerminateResume<Integer>(new Func1<Throwable, Observable<Integer>>() {
             @Override
             public Observable<Integer> call(Throwable e) {
                 return Observable.just(11);
@@ -35,7 +35,7 @@ public class OperatorOnTerminateResumeTest {
     @Test
     public void mainCompletesBackpressure() {
         
-        Transformer<Integer, Integer> op = new OperatorOnTerminateResume<Integer>(new Func1<Throwable, Observable<Integer>>() {
+        Transformer<Integer, Integer> op = new TransformerOnTerminateResume<Integer>(new Func1<Throwable, Observable<Integer>>() {
             @Override
             public Observable<Integer> call(Throwable e) {
                 return Observable.just(11);
@@ -72,7 +72,7 @@ public class OperatorOnTerminateResumeTest {
     @Test
     public void mainErrors() {
         
-        Transformer<Integer, Integer> op = new OperatorOnTerminateResume<Integer>(new Func1<Throwable, Observable<Integer>>() {
+        Transformer<Integer, Integer> op = new TransformerOnTerminateResume<Integer>(new Func1<Throwable, Observable<Integer>>() {
             @Override
             public Observable<Integer> call(Throwable e) {
                 return Observable.just(11);
@@ -93,7 +93,7 @@ public class OperatorOnTerminateResumeTest {
     @Test
     public void mainErrorsBackpressure() {
         
-        Transformer<Integer, Integer> op = new OperatorOnTerminateResume<Integer>(new Func1<Throwable, Observable<Integer>>() {
+        Transformer<Integer, Integer> op = new TransformerOnTerminateResume<Integer>(new Func1<Throwable, Observable<Integer>>() {
             @Override
             public Observable<Integer> call(Throwable e) {
                 return Observable.just(11);

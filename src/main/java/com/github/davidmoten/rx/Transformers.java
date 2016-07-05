@@ -23,6 +23,7 @@ import com.github.davidmoten.rx.internal.operators.OperatorBufferPredicateBounda
 import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
+import com.github.davidmoten.rx.internal.operators.TransformerOnTerminateResume;
 import com.github.davidmoten.rx.internal.operators.OperatorSampleFirst;
 import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax;
 import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax.Metric;
@@ -1263,4 +1264,9 @@ public final class Transformers {
             }};
     }
     
+    public static final <T> Transformer<T, T> onTerminateResume(
+            final Func1<Throwable, Observable<T>> onError, final Observable<T> onCompleted) {
+        return new TransformerOnTerminateResume<T>(onError, onCompleted);
+    }
+
 }

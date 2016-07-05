@@ -11,13 +11,13 @@ import rx.internal.producers.ProducerArbiter;
  *
  * @param <T> the value type
  */
-public final class OperatorOnTerminateResume<T> implements Transformer<T, T> {
+public final class TransformerOnTerminateResume<T> implements Transformer<T, T> {
     
     final Func1<Throwable, Observable<T>> onError;
     
     final Observable<T> onCompleted;
 
-    public OperatorOnTerminateResume(Func1<Throwable, Observable<T>> onError, Observable<T> onCompleted) {
+    public TransformerOnTerminateResume(Func1<Throwable, Observable<T>> onError, Observable<T> onCompleted) {
         this.onError = onError;
         this.onCompleted = onCompleted;
     }
@@ -27,7 +27,7 @@ public final class OperatorOnTerminateResume<T> implements Transformer<T, T> {
         return Observable.create(new OnSubscribe<T>() {
             @Override
             public void call(Subscriber<? super T> t) {
-                OnTerimateResumeSubscriber<T> parent = new OnTerimateResumeSubscriber<T>(t, onError, onCompleted);
+                OnTerminateResumeSubscriber<T> parent = new OnTerminateResumeSubscriber<T>(t, onError, onCompleted);
                 
                 t.add(parent);
                 t.setProducer(parent.arbiter);
@@ -37,7 +37,7 @@ public final class OperatorOnTerminateResume<T> implements Transformer<T, T> {
         });
     }
     
-    static final class OnTerimateResumeSubscriber<T> extends Subscriber<T> {
+    static final class OnTerminateResumeSubscriber<T> extends Subscriber<T> {
 
         final Subscriber<? super T> actual;
         
@@ -49,7 +49,7 @@ public final class OperatorOnTerminateResume<T> implements Transformer<T, T> {
         
         long produced;
         
-        public OnTerimateResumeSubscriber(Subscriber<? super T> actual, Func1<Throwable, 
+        public OnTerminateResumeSubscriber(Subscriber<? super T> actual, Func1<Throwable, 
                 Observable<T>> onError,
                 Observable<T> onCompleted) {
             this.arbiter = new ProducerArbiter();
