@@ -13,3 +13,4 @@ env:
 
 after_success:
   - src/deploy/deploy.sh
+  - bash <(curl -s https://codecov.io/bash)
