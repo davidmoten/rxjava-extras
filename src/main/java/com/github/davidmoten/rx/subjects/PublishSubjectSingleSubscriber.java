@@ -18,11 +18,11 @@ public final class PublishSubjectSingleSubscriber<T> extends Subject<T, T> {
     // Visible for testing
     static final String ONLY_ONE_SUBSCRIPTION_IS_ALLOWED = "only one subscription is allowed";
 
-    private final SingleSubscribeOnSubscribe<T> subscriberHolder;
+    private final SingleSubscribeOnSubscribe<T> onSubscribe;
 
     private PublishSubjectSingleSubscriber(SingleSubscribeOnSubscribe<T> onSubscribe) {
         super(onSubscribe);
-        subscriberHolder = onSubscribe;
+        this.onSubscribe = onSubscribe;
     }
 
     private PublishSubjectSingleSubscriber() {
@@ -42,21 +42,26 @@ public final class PublishSubjectSingleSubscriber<T> extends Subject<T, T> {
 
     @Override
     public void onCompleted() {
-        if (subscriberHolder.subscriber.get() != null) {
-            subscriberHolder.subscriber.get().onCompleted();
+    	Subscriber<? super T> sub = onSubscribe.subscriber.get();
+        if (sub != null) {
+            sub.onCompleted();
         }
     }
 
     @Override
     public void onError(Throwable e) {
-        if (subscriberHolder.subscriber.get() != null)
-            subscriberHolder.subscriber.get().onError(e);
+    	Subscriber<? super T> sub = onSubscribe.subscriber.get();
+        if (sub != null) {
+            sub.onError(e);
+        }
     }
 
     @Override
     public void onNext(T t) {
-        if (subscriberHolder.subscriber.get() != null)
-            subscriberHolder.subscriber.get().onNext(t);
+        Subscriber<? super T> sub = onSubscribe.subscriber.get();
+        if (sub != null) {
+            sub.onNext(t);
+        }
     }
 
     private static class SingleSubscribeOnSubscribe<T> implements OnSubscribe<T> {
@@ -73,7 +78,7 @@ public final class PublishSubjectSingleSubscriber<T> extends Subject<T, T> {
 
     @Override
     public boolean hasObservers() {
-        return subscriberHolder.subscriber.get() != null;
+        return onSubscribe.subscriber.get() != null;
     }
 
 }
