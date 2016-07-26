@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.rx.internal.operators.OnSubscribeFromQueue;
-import com.github.davidmoten.rx.internal.operators.OperatorCollectWhile;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.internal.operators.Permutations;
 import com.github.davidmoten.rx.internal.operators.Permutations.Swap;
@@ -23,7 +22,6 @@ import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action0;
-import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 
@@ -190,12 +188,6 @@ public final class Obs {
                 });
             }
         });
-    }
-
-    public static <T, R> Observable<R> collectWhile(final Observable<T> source,
-            final Func0<R> factory, final Func2<R, T, R> aggregator,
-            final Func2<R, T, Boolean> condition) {
-        return source.lift(new OperatorCollectWhile<R, T>(factory, aggregator, condition));
     }
 
     public static <T extends Comparable<? super T>> Observable<T> create(
