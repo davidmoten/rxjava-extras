@@ -86,13 +86,19 @@ Maps each item to an item wrapped with a zero-based index:
 
 Transformers.orderedMergeWith
 ------------------------------
-To merge two streams in order (according to a `Comparator`):
+To merge two (or more) streams in order (according to a `Comparator`):
 
 ```java
 source1.compose(Transformers.orderedMergeWith(source2, comparator));
 ```
 
 <img src="src/docs/orderedMerge.png?raw=true" />
+
+To merge with many:
+
+```java
+source1.compose(Transformers.orderedMergeWith(Arrays.asList(source2, source3), comparator));
+```
 
 [javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#orderedMergeWith-rx.Observable-rx.functions.Func2-)
 
