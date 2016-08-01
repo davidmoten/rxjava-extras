@@ -141,9 +141,13 @@ Accumulate statistics, emitting the accumulated results with each item.
 
 <img src="src/docs/collectStats.png?raw=true" />
 
-Transformers.doOnNext
+Transformers.doOnEmpty
 -------------------------
 Performs an action only if a stream completes without emitting an item.
+
+```java
+source.compose(Transformers.doOnEmpty(action));
+```
 
 Transformers.stateMachine
 --------------------------
