@@ -22,6 +22,7 @@ import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action0;
+import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
 
@@ -244,6 +245,26 @@ public final class Obs {
                 return b;
             }
         });
+    }
+    
+    
+    public static Observable<Long> intervalLong(final long duration, final TimeUnit unit, final Scheduler scheduler) {
+        return Observable.defer(new Func0<Observable<Long>>() {
+            long[] count = new long[1];
+            @Override
+            public Observable<Long> call() {
+                return Observable.interval(duration, unit, scheduler)
+                        .map(new Func1<Long, Long>() {
+
+                            @Override
+                            public Long call(Long t) {
+                                return count[0]++;
+                            }});
+            }});
+    }
+    
+    public static Observable<Long> intervalLong(long duration, TimeUnit unit) {
+        return intervalLong(duration, unit, Schedulers.computation());
     }
 
 }

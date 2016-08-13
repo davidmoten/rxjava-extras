@@ -13,6 +13,7 @@ import rx.Scheduler.Worker;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func0;
+import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
@@ -113,5 +114,18 @@ public class ObsTest {
         assertEquals(24,
                 (int) Obs.permutations(Observable.range(0, 4).toList().toBlocking().single())
                         .count().toBlocking().single());
+    }
+    @Test
+    public void testIntervalLong() {
+        TestSubscriber<Long> ts = TestSubscriber.create();
+        TestScheduler sched = new TestScheduler();
+        Obs.intervalLong(1, TimeUnit.SECONDS, sched).subscribe(ts);
+        ts.assertNoValues();
+        ts.assertNotCompleted();
+        sched.advanceTimeBy(1, TimeUnit.SECONDS);
+        ts.assertValue(0L);
+        sched.advanceTimeBy(1, TimeUnit.SECONDS);
+        ts.assertValues(0L,1L);
+        ts.assertNotCompleted();
     }
 }
