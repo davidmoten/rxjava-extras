@@ -1,5 +1,8 @@
 package com.github.davidmoten.rx;
 
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.nio.channels.AsynchronousServerSocketChannel;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -11,10 +14,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeFromQueue;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.internal.operators.Permutations;
+import com.github.davidmoten.rx.internal.operators.SourceServerSocket;
 import com.github.davidmoten.rx.internal.operators.Permutations.Swap;
 import com.github.davidmoten.rx.observables.CachedObservable;
 import com.github.davidmoten.util.Optional;
 
+import rx.AsyncEmitter;
+import rx.AsyncEmitter.BackpressureMode;
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Producer;
@@ -22,6 +28,7 @@ import rx.Scheduler;
 import rx.Scheduler.Worker;
 import rx.Subscriber;
 import rx.functions.Action0;
+import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -265,6 +272,10 @@ public final class Obs {
     
     public static Observable<Long> intervalLong(long duration, TimeUnit unit) {
         return intervalLong(duration, unit, Schedulers.computation());
+    }
+    
+    public static Observable<ConnectionNotification> serverSocket(int port, long timeout, TimeUnit unit) {
+        return SourceServerSocket.create(port, timeout, unit);
     }
 
 }
