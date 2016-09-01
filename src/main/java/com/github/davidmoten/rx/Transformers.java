@@ -816,9 +816,7 @@ public final class Transformers {
 
             @Override
             public Observable<GroupedObservable<K, R>> call(Observable<T> o) {
-                return o.lift(
-                        new com.github.davidmoten.rx.internal.operators.OperatorGroupBy<T, K, R>(
-                                keySelector, elementSelector, evictingMapFactory));
+                return o.groupBy(keySelector, elementSelector, evictingMapFactory);
             }
         };
     }
