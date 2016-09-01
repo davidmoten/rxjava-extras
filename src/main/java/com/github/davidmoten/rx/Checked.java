@@ -2,6 +2,7 @@ package com.github.davidmoten.rx;
 
 import rx.functions.Action0;
 import rx.functions.Action1;
+import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.functions.Func2;
@@ -55,6 +56,10 @@ public final class Checked {
 
     public static interface A1<T> {
         void call(T t) throws Exception;
+    }
+    
+    public static interface A2<T,R> {
+        void call(T t, R r) throws Exception;
     }
 
     /**
@@ -136,5 +141,18 @@ public final class Checked {
             }
         };
     }
-
+    
+    public static <T,R> Action2<T, R> a2(final A2<T, R> a) {
+        return new Action2<T, R>() {
+            @Override
+            public void call(T t, R r) {
+                try {
+                    a.call(t, r);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+    }
+    
 }
