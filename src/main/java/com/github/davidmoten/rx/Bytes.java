@@ -1,6 +1,7 @@
 package com.github.davidmoten.rx;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -13,8 +14,10 @@ import com.github.davidmoten.rx.internal.operators.OnSubscribeInputStream;
 import com.github.davidmoten.rx.util.ZippedEntry;
 
 import rx.Observable;
+import rx.Observable.Transformer;
 import rx.Observer;
 import rx.functions.Action1;
+import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
 import rx.observables.SyncOnSubscribe;
@@ -149,6 +152,52 @@ public final class Bytes {
                 return zis;
             }
         });
+    }
+
+    public static Transformer<byte[], byte[]> collect() {
+        return new Transformer<byte[], byte[]>() {
+
+            @Override
+            public Observable<byte[]> call(Observable<byte[]> source) {
+                return source.collect(BosCreatorHolder.INSTANCE, BosCollectorHolder.INSTANCE)
+                        .map(BosToArrayHolder.INSTANCE);
+            }
+        };
+    }
+
+    private static final class BosCreatorHolder {
+
+        static final Func0<ByteArrayOutputStream> INSTANCE = new Func0<ByteArrayOutputStream>() {
+
+            @Override
+            public ByteArrayOutputStream call() {
+                return new ByteArrayOutputStream();
+            }
+        };
+    }
+
+    private static final class BosCollectorHolder {
+
+        static final Action2<ByteArrayOutputStream, byte[]> INSTANCE = new Action2<ByteArrayOutputStream, byte[]>() {
+
+            @Override
+            public void call(ByteArrayOutputStream bos, byte[] bytes ) {
+                try {
+                    bos.write(bytes);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+    }
+
+    private static final class BosToArrayHolder {
+        static final Func1<ByteArrayOutputStream, byte[]> INSTANCE = new Func1<ByteArrayOutputStream, byte[]>() {
+            @Override
+            public byte[] call(ByteArrayOutputStream bos) {
+                return bos.toByteArray();
+            }
+        };
     }
 
 }
