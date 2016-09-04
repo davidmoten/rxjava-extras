@@ -3,6 +3,8 @@ package com.github.davidmoten.rx;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,4 +49,17 @@ public class ActionsTest {
         Asserts.assertIsUtilityClass(Actions.class);
     }
 
+    @Test
+    public void testClose() {
+        final AtomicBoolean closed = new AtomicBoolean();
+        Closeable c = new Closeable() {
+
+            @Override
+            public void close() throws IOException {
+                closed.set(true);
+            }};
+        Actions.close().call(c);
+        assertTrue(closed.get());
+    }
+    
 }

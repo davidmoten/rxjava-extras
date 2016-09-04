@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -237,7 +239,27 @@ public final class Actions {
             @Override
             public void call() {
                 throw ex;
-            }};
+            }
+        };
     }
-    
+
+    public static Action1<Closeable> close() {
+        return CloseHolder.INSTANCE;
+    }
+
+    private static final class CloseHolder {
+        
+        final static Action1<Closeable> INSTANCE = new Action1<Closeable>() {
+
+            @Override
+            public void call(Closeable c) {
+                try {
+                    c.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+    }
+
 }
