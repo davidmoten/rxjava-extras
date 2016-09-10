@@ -29,7 +29,7 @@ public class RollingSPSCQueueTest {
 	@Ignore
 	@Test
 	public void testPushAndPollUsingThreadWeaver() {
-		// Create an AnnotatedTestRunner that wisll run the threaded tests
+		// Create an AnnotatedTestRunner that will run the threaded tests
 		// defined in this class.
 		AnnotatedTestRunner runner = new AnnotatedTestRunner();
 		HashSet<String> methods = new HashSet<String>();

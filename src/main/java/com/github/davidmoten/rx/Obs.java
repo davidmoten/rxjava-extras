@@ -250,7 +250,7 @@ public final class Obs {
     
     public static Observable<Long> intervalLong(final long duration, final TimeUnit unit, final Scheduler scheduler) {
         return Observable.defer(new Func0<Observable<Long>>() {
-            long[] count = new long[1];
+            final long[] count = new long[1];
             @Override
             public Observable<Long> call() {
                 return Observable.interval(duration, unit, scheduler)
