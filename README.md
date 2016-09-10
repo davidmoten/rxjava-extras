@@ -36,6 +36,7 @@ Utilities for use with rxjava:
 * [`Serialized.read/write`](#serialized)
 * [`Bytes.from`](#bytesfrom) - read bytes from resources (`InputStream`, `File`)
 * [`Bytes.unzip`](#bytesunzip) - unzips zip archives
+* [`Bytes.collect`](#bytescollect) - collect bytes into single byte array
 * `Strings.from`
 * `Strings.lines` - supports backpressure (not available in rxjava-string 1.0.1)
 * `Strings.split` - supports backpressure (not available in rxjava-string 1.0.1)
@@ -469,6 +470,14 @@ Note that above you don't need to worry about closing `entry.getInputStream()` b
 
 You must process the emissions of `ZippedEntry` synchronously (don't replace the `concatMap()` with a `flatMap(...  .subscribeOn(Schedulers.computation())` for instance. This is because the `InputStream` of each `ZippedEntry` must be processed fullly (which could mean ignoring it of course) before moving on to the next one.
 
+Bytes.collect
+---------------------------
+Given a stream of byte arrays this is an easy way of collecting those bytes into one byte array:
+
+```java
+Observable<byte[]> chunks = ...
+byte[] allBytes = chunks.compose(Bytes::collect).toBlocking().single();
+```
 
 TestingHelper
 -----------------
