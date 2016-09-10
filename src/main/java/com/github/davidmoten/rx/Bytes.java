@@ -103,13 +103,13 @@ public final class Bytes {
                 }
             }
         };
-        Func1<ZipInputStream, Observable<ZippedEntry>> observableFactory = new Func1<ZipInputStream, Observable<ZippedEntry>>() {
-            @Override
-            public Observable<ZippedEntry> call(ZipInputStream zis) {
-                return unzip(zis);
-            }
-        };
-        Action1<ZipInputStream> disposeAction = new Action1<ZipInputStream>() {
+        Func1<ZipInputStream, Observable<ZippedEntry>> observableFactory = ZipHolder.OBSERVABLE_FACTORY;
+        Action1<ZipInputStream> disposeAction = ZipHolder.DISPOSER;
+        return Observable.using(resourceFactory, observableFactory, disposeAction);
+    }
+
+    private static final class ZipHolder {
+        static final Action1<ZipInputStream> DISPOSER = new Action1<ZipInputStream>() {
 
             @Override
             public void call(ZipInputStream zis) {
@@ -120,7 +120,12 @@ public final class Bytes {
                 }
             }
         };
-        return Observable.using(resourceFactory, observableFactory, disposeAction);
+        final static Func1<ZipInputStream, Observable<ZippedEntry>> OBSERVABLE_FACTORY = new Func1<ZipInputStream, Observable<ZippedEntry>>() {
+            @Override
+            public Observable<ZippedEntry> call(ZipInputStream zis) {
+                return unzip(zis);
+            }
+        };
     }
 
     public static Observable<ZippedEntry> unzip(final InputStream is) {
@@ -136,8 +141,7 @@ public final class Bytes {
             }
 
             @Override
-            protected ZipInputStream next(ZipInputStream zis,
-                    Observer<? super ZippedEntry> observer) {
+            protected ZipInputStream next(ZipInputStream zis, Observer<? super ZippedEntry> observer) {
                 try {
                     ZipEntry zipEntry = zis.getNextEntry();
                     if (zipEntry != null) {
@@ -181,7 +185,7 @@ public final class Bytes {
         static final Action2<ByteArrayOutputStream, byte[]> INSTANCE = new Action2<ByteArrayOutputStream, byte[]>() {
 
             @Override
-            public void call(ByteArrayOutputStream bos, byte[] bytes ) {
+            public void call(ByteArrayOutputStream bos, byte[] bytes) {
                 try {
                     bos.write(bytes);
                 } catch (IOException e) {
