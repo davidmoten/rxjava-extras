@@ -387,10 +387,11 @@ public final class ObservableServerSocketTest {
                         return g //
                                 .compose(Bytes.collect()) //
                                 .doOnNext(new Action1<byte[]>() {
+                                    
                                     @Override
                                     public void call(byte[] bytes) {
                                         System.out.println(Thread.currentThread().getName() + ": "
-                                                + new String(bytes));
+                                                + new String(bytes).trim());
                                     }
                                 }) //
                                 .onErrorResumeNext(Observable.<byte[]> empty()) //
