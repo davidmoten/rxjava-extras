@@ -46,6 +46,13 @@ public final class ObservableServerSocketTest {
     private static final int PORT = 12345;
     private static final String TEXT = "hello there";
 
+    private static final int POOL_SIZE = 10;
+    private static final Scheduler scheduler = Schedulers
+            .from(Executors.newFixedThreadPool(POOL_SIZE));
+    
+    private static final Scheduler clientScheduler = Schedulers
+            .from(Executors.newFixedThreadPool(POOL_SIZE));
+
     @Test
     public void serverSocketReadsTcpPushWhenBufferIsSmallerThanInput()
             throws UnknownHostException, IOException, InterruptedException {
@@ -135,9 +142,15 @@ public final class ObservableServerSocketTest {
         }
     }
 
+    private static void reset() {
+        com.github.davidmoten.rx.Schedulers.blockUntilWorkFinished(scheduler, POOL_SIZE);
+        com.github.davidmoten.rx.Schedulers.blockUntilWorkFinished(clientScheduler, POOL_SIZE);
+    }
+
     @Test
     public void testEarlyUnsubscribe()
             throws UnknownHostException, IOException, InterruptedException {
+        reset();
         TestSubscriber<Object> ts = TestSubscriber.create();
         final AtomicReference<byte[]> result = new AtomicReference<byte[]>();
         try {
@@ -158,10 +171,10 @@ public final class ObservableServerSocketTest {
                                         }
                                     }) //
                                     .onErrorResumeNext(Observable.<byte[]> empty()) //
-                                    .subscribeOn(Schedulers.io());
+                                    .subscribeOn(scheduler);
                         }
                     }) //
-                    .subscribeOn(Schedulers.io()) //
+                    .subscribeOn(scheduler) //
                     .subscribe(ts);
             Thread.sleep(300);
             Socket socket = new Socket("localhost", PORT);
@@ -180,6 +193,7 @@ public final class ObservableServerSocketTest {
     @Test
     public void testCancelDoesNotHaveToWaitForTimeout()
             throws UnknownHostException, IOException, InterruptedException {
+        reset();
         RxJavaHooks.setOnError(Actions.printStackTrace1());
         TestSubscriber<Object> ts = TestSubscriber.create();
         final AtomicReference<byte[]> result = new AtomicReference<byte[]>();
@@ -207,9 +221,9 @@ public final class ObservableServerSocketTest {
                                         }
                                     }) //
                                     .onErrorResumeNext(Observable.<String> empty()) //
-                                    .subscribeOn(Schedulers.io());
+                                    .subscribeOn(scheduler);
                         }
-                    }).subscribeOn(Schedulers.io()) //
+                    }).subscribeOn(scheduler) //
                     .subscribe(ts);
             Thread.sleep(300);
             @SuppressWarnings("resource")
@@ -235,8 +249,7 @@ public final class ObservableServerSocketTest {
 
     @Test
     public void testLoad() throws InterruptedException {
-        // scheduler for making client connections
-        final Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(10));
+        reset();
         AtomicBoolean errored = new AtomicBoolean(false);
         for (int k = 0; k < 1; k++) {
             System.out.println("loop " + k);
@@ -252,7 +265,7 @@ public final class ObservableServerSocketTest {
                                         .doOnSubscribe(Actions.increment0(connections)) //
                                         .compose(Bytes.collect()) //
                                         .doOnError(Actions.printStackTrace1()) //
-                                        .subscribeOn(Schedulers.io()) //
+                                        .subscribeOn(scheduler) //
                                         .retryWhen(RetryWhen.delay(1, TimeUnit.SECONDS).build());
                             }
                         }, 1) //
@@ -263,9 +276,10 @@ public final class ObservableServerSocketTest {
                             }
                         }) //
                         .doOnNext(Actions.decrement1(connections)) //
+                        .doOnNext(Actions.println()) //
                         .doOnError(Actions.printStackTrace1()) //
                         .doOnError(Actions.<Throwable> setToTrue1(errored)) //
-                        .subscribeOn(Schedulers.io()) //
+                        .subscribeOn(scheduler) //
                         .subscribe(ts);
                 TestSubscriber<Object> ts2 = TestSubscriber.create();
                 final Set<String> messages = new ConcurrentSkipListSet<String>();
@@ -298,10 +312,8 @@ public final class ObservableServerSocketTest {
                                     socket.setReuseAddress(true);
                                     socket.setSoTimeout(5000);
                                     int count = openSockets.incrementAndGet();
-                                    // System.out.println("open sockets=" +
-                                    // count + ",
-                                    // connections = "
-                                    // + connections.get());
+                                    System.out.println("open sockets=" + count + ", connections = "
+                                            + connections.get());
                                     OutputStream out = socket.getOutputStream();
                                     for (int i = 0; i < messageBlocks; i++) {
                                         out.write(id.getBytes(StandardCharsets.UTF_8));
@@ -323,7 +335,9 @@ public final class ObservableServerSocketTest {
                                 }
                                 return Observable.<Object> just(1);
                             }
-                        }).timeout(5, TimeUnit.SECONDS).subscribeOn(scheduler);
+                        }) //
+                                .timeout(5, TimeUnit.SECONDS) //
+                                .subscribeOn(clientScheduler);
                     }
                 }) //
                         .doOnError(Actions.printStackTrace1()) //
@@ -336,12 +350,14 @@ public final class ObservableServerSocketTest {
                 assertFalse(errored.get());
             } finally {
                 ts.unsubscribe();
+                reset();
             }
         }
     }
 
     private void checkServerSocketReadsTcpPushWhenBufferSizeIs(String text, int bufferSize)
             throws UnknownHostException, IOException, InterruptedException {
+        reset();
         TestSubscriber<Object> ts = TestSubscriber.create();
         final AtomicReference<byte[]> result = new AtomicReference<byte[]>();
         try {
@@ -360,11 +376,11 @@ public final class ObservableServerSocketTest {
                                         }
                                     }) //
                                     .onErrorResumeNext(Observable.<byte[]> empty()) //
-                                    .subscribeOn(Schedulers.io());
+                                    .subscribeOn(scheduler);
                         }
-                    }).subscribeOn(Schedulers.io()) //
+                    }).subscribeOn(scheduler) //
                     .subscribe(ts);
-            Thread.sleep(300);
+            Thread.sleep(1000);
             Socket socket = new Socket("localhost", PORT);
             OutputStream out = socket.getOutputStream();
             out.write(text.getBytes());
@@ -379,6 +395,7 @@ public final class ObservableServerSocketTest {
     }
 
     public static void main(String[] args) throws InterruptedException {
+        reset();
         TestSubscriber<Object> ts = TestSubscriber.create();
         IO.serverSocketBasic(PORT, 10, TimeUnit.SECONDS, 8) //
                 .flatMap(new Func1<Observable<byte[]>, Observable<byte[]>>() {
@@ -387,7 +404,7 @@ public final class ObservableServerSocketTest {
                         return g //
                                 .compose(Bytes.collect()) //
                                 .doOnNext(new Action1<byte[]>() {
-                                    
+
                                     @Override
                                     public void call(byte[] bytes) {
                                         System.out.println(Thread.currentThread().getName() + ": "
@@ -395,12 +412,13 @@ public final class ObservableServerSocketTest {
                                     }
                                 }) //
                                 .onErrorResumeNext(Observable.<byte[]> empty()) //
-                                .subscribeOn(Schedulers.io());
+                                .subscribeOn(scheduler);
                     }
-                }).subscribeOn(Schedulers.io()) //
+                }).subscribeOn(scheduler) //
                 .subscribe(ts);
 
         Thread.sleep(10000000);
 
     }
 }
+

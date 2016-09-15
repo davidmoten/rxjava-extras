@@ -218,6 +218,16 @@ public final class Actions {
             }
         };
     }
+    
+    public static <T> Action1<T> countDown1(final CountDownLatch latch) {
+        return new Action1<T>() {
+
+            @Override
+            public void call(T t) {
+                latch.countDown();
+            }
+        };
+    }
 
     public static Action1<Throwable> printStackTrace1() {
         return PrintStackTrace1Holder.instance;
