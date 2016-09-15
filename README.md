@@ -32,8 +32,8 @@ Utilities for use with rxjava:
 * `Transformers.sampleFirst`
 * `Transformers.decode`
 * `Transformers.delayFinalUnsubscribe` - to keep a source active for a period after last unsubscribe (useful with `refCount`/`share`)
-* [`Transformers.doOnEmpty`](#transformersdoonempty) 
 * [`Transformers.repeatLast`](#transformersrepeatlast)
+* [`Transformers.doOnEmpty`](#transformersdoonempty) 
 * [`Serialized.read/write`](#serialized)
 * [`Bytes.from`](#bytesfrom) - read bytes from resources (`InputStream`, `File`)
 * [`Bytes.unzip`](#bytesunzip) - unzips zip archives
@@ -143,20 +143,22 @@ Accumulate statistics, emitting the accumulated results with each item.
 
 <img src="src/docs/collectStats.png?raw=true" />
 
+Tranformers.repeatLast
+------------------------
+If a stream has elements and completes then the last element is repeated.
+
+<img src="src/docs/repeatLast.png?raw=true" /> 
+
+```java
+source.compose(Transformers.repeatLast());
+```
+
 Transformers.doOnEmpty
 -------------------------
 Performs an action only if a stream completes without emitting an item.
 
 ```java
 source.compose(Transformers.doOnEmpty(action));
-```
-
-Tranformers.repeatLast
-------------------------
-If a stream has elements and completes then the last element is repeated. 
-
-```java
-source.compose(Transformers.repeatLast());
 ```
 
 Transformers.stateMachine
