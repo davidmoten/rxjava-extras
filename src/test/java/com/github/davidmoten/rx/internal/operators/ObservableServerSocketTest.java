@@ -11,7 +11,8 @@ import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -42,6 +43,8 @@ import rx.plugins.RxJavaHooks;
 import rx.schedulers.Schedulers;
 
 public final class ObservableServerSocketTest {
+    
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final int PORT = 12345;
     private static final String TEXT = "hello there";
@@ -183,7 +186,7 @@ public final class ObservableServerSocketTest {
             out.close();
             socket.close();
             Thread.sleep(1000);
-            assertEquals("1234", new String(result.get(), StandardCharsets.UTF_8));
+            assertEquals("1234", new String(result.get(), UTF_8));
         } finally {
             // will close server socket
             ts.unsubscribe();
@@ -210,7 +213,7 @@ public final class ObservableServerSocketTest {
                                     .map(new Func1<byte[], String>() {
                                         @Override
                                         public String call(byte[] bytes) {
-                                            return new String(bytes, StandardCharsets.UTF_8);
+                                            return new String(bytes, UTF_8);
                                         }
                                     }) //
                                     .doOnNext(new Action1<String>() {
@@ -229,12 +232,12 @@ public final class ObservableServerSocketTest {
             @SuppressWarnings("resource")
             Socket socket = new Socket("localhost", PORT);
             OutputStream out = socket.getOutputStream();
-            out.write("hell".getBytes(StandardCharsets.UTF_8));
+            out.write("hell".getBytes(UTF_8));
             out.flush();
             Thread.sleep(500);
             assertEquals(Arrays.asList("hell"), ts.getOnNextEvents());
             ts.assertNoTerminalEvent();
-            out.write("will-fail".getBytes(StandardCharsets.UTF_8));
+            out.write("will-fail".getBytes(UTF_8));
             out.flush();
         } finally {
             // will close server socket
@@ -272,7 +275,7 @@ public final class ObservableServerSocketTest {
                         .map(new Func1<byte[], String>() {
                             @Override
                             public String call(byte[] bytes) {
-                                return new String(bytes, StandardCharsets.UTF_8);
+                                return new String(bytes, UTF_8);
                             }
                         }) //
                         .doOnNext(Actions.decrement1(connections)) //
@@ -316,7 +319,7 @@ public final class ObservableServerSocketTest {
                                             + connections.get());
                                     OutputStream out = socket.getOutputStream();
                                     for (int i = 0; i < messageBlocks; i++) {
-                                        out.write(id.getBytes(StandardCharsets.UTF_8));
+                                        out.write(id.getBytes(UTF_8));
                                     }
                                     out.close();
                                     count = openSockets.decrementAndGet();
@@ -387,7 +390,7 @@ public final class ObservableServerSocketTest {
             out.close();
             socket.close();
             Thread.sleep(1000);
-            assertEquals(text, new String(result.get(), StandardCharsets.UTF_8));
+            assertEquals(text, new String(result.get(), UTF_8));
         } finally {
             // will close server socket
             ts.unsubscribe();
