@@ -28,14 +28,11 @@ public final class ObservableServerSocket {
 
     public static Observable<Observable<byte[]>> create(final int port, final int timeoutMs,
             final int bufferSize) {
+        Func1<ServerSocket, Observable<? extends Observable<byte[]>>> observableFactory = createObservableFactory(
+                timeoutMs, bufferSize);
         return Observable.using( //
                 createServerSocketFactory(port, timeoutMs), //
-                new Func1<ServerSocket, Observable<Observable<byte[]>>>() {
-                    @Override
-                    public Observable<Observable<byte[]>> call(ServerSocket serverSocket) {
-                        return createServerSocketObservable(serverSocket, timeoutMs, bufferSize);
-                    }
-                }, //
+                observableFactory, //
                 Actions.close(), //
                 true);
     }
@@ -56,6 +53,16 @@ public final class ObservableServerSocket {
         return s;
     }
 
+    private static Func1<ServerSocket, Observable<? extends Observable<byte[]>>> createObservableFactory(
+            final int timeoutMs, final int bufferSize) {
+        return new Func1<ServerSocket, Observable<? extends Observable<byte[]>>>() {
+            @Override
+            public Observable<Observable<byte[]>> call(ServerSocket serverSocket) {
+                return createServerSocketObservable(serverSocket, timeoutMs, bufferSize);
+            }
+        };
+    }
+
     private static Observable<Observable<byte[]>> createServerSocketObservable(
             ServerSocket serverSocket, final long timeoutMs, final int bufferSize) {
         return Observable.create( //
@@ -67,8 +74,8 @@ public final class ObservableServerSocket {
                             public void call(ServerSocket ss,
                                     Observer<? super Observable<byte[]>> observer) {
                                 acceptConnection(timeoutMs, bufferSize, ss, observer);
-                            }}
-                        ));
+                            }
+                        }));
     }
 
     private static void acceptConnection(long timeoutMs, int bufferSize, ServerSocket ss,
