@@ -40,6 +40,7 @@ import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;
 import com.github.davidmoten.util.Optional;
 
+import rx.Notification;
 import rx.Observable;
 import rx.Observable.Operator;
 import rx.Observable.Transformer;
@@ -1267,4 +1268,27 @@ public final class Transformers {
         return new TransformerOnTerminateResume<T>(onError, onCompleted);
     }
 
+    public static final <T> Transformer<T,T> repeatLast() {
+        return new Transformer<T,T>() {
+
+            @Override
+            public Observable<T> call(Observable<T> o) {
+                return o.materialize().buffer(2, 1).flatMap(new Func1<List<Notification<T>>, Observable<T>>() {
+                    @Override
+                    public Observable<T> call(List<Notification<T>> list) {
+                        Notification<T> a = list.get(0);
+                        if (list.size() ==2 && list.get(1).isOnCompleted()) {
+                            return Observable.just(a.getValue()).repeat();
+                        } else if (a.isOnError()) {
+                            return Observable.error(list.get(0).getThrowable());
+                        } else if (a.isOnCompleted()) {
+                            return Observable.empty();
+                        } else {
+                            return Observable.just(a.getValue());
+                        }
+                    }
+                });
+            }}; 
+    }
+   
 }

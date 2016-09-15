@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -270,12 +271,12 @@ public class TransformersTest {
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
         ts.assertValue(1);
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-        ts.assertValues(1,2);
+        ts.assertValues(1, 2);
         scheduler.advanceTimeBy(1, TimeUnit.SECONDS);
-        ts.assertValues(1,2,3);
+        ts.assertValues(1, 2, 3);
         ts.assertCompleted();
     }
-    
+
     @Test
     public void testSplitLongPattern() {
         Iterator<String> iter = Strings.split(Observable.just("asdfqw", "erasdf"), "qwer")
@@ -286,5 +287,43 @@ public class TransformersTest {
         assertEquals("asdf", iter.next());
         assertFalse(iter.hasNext());
     }
-     
+
+    @Test
+    public void testRepeatLast() {
+        List<Integer> list = Observable.just(1, 2).compose(Transformers.<Integer> repeatLast())
+                .take(5).toList().toBlocking().single();
+        assertEquals(Arrays.asList(1, 2, 2, 2, 2), list);
+    }
+
+    @Test
+    public void testRepeatLastOfEmptyIsEmpty() {
+        boolean empty = Observable.<Integer> empty().compose(Transformers.<Integer> repeatLast())
+                .isEmpty().toBlocking().single();
+        assertTrue(empty);
+    }
+
+    @Test
+    public void testRepeatLastOfOneElement() {
+        List<Integer> list = Observable.just(1).compose(Transformers.<Integer> repeatLast()).take(5)
+                .toList().toBlocking().single();
+        assertEquals(Arrays.asList(1, 1, 1, 1, 1), list);
+    }
+
+    @Test
+    public void testRepeatLastOfNoValuesThenError() {
+        TestSubscriber<Integer> ts = TestSubscriber.create();
+        Observable.<Integer> error(new IOException()).compose(Transformers.<Integer> repeatLast())
+                .subscribe(ts);
+        ts.assertNoValues();
+        ts.assertError(IOException.class);
+    }
+
+    @Test
+    public void testRepeatLastOfTwoValuesThenError() {
+        TestSubscriber<Integer> ts = TestSubscriber.create();
+        Observable.just(1, 2).concatWith(Observable.<Integer> error(new IOException()))
+                .compose(Transformers.<Integer> repeatLast()).subscribe(ts);
+        ts.assertValues(1,2);
+        ts.assertError(IOException.class);
+    }
 }
