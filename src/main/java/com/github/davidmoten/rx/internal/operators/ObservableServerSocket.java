@@ -31,10 +31,21 @@ public final class ObservableServerSocket {
             final int bufferSize) {
         Func1<ServerSocket, Observable<Observable<byte[]>>> observableFactory = createObservableFactory(
                 timeoutMs, bufferSize);
-        return Observable.<Observable<byte[]>, ServerSocket>using( //
+        return Observable.<Observable<byte[]>, ServerSocket> using( //
                 createServerSocketFactory(port, timeoutMs), //
                 observableFactory, //
-                Actions.close(), // 
+                new Action1<ServerSocket>() {
+
+                    @Override
+                    public void call(ServerSocket ss) {
+                        try {
+                            ss.close();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                    
+                },
                 true);
     }
 
