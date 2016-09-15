@@ -93,7 +93,7 @@ public final class ObservableServerSocketTest {
         ServerSocket socket = null;
         try {
             socket = new ServerSocket(PORT);
-            IO.serverSocketBasic(PORT, 10, TimeUnit.SECONDS, 5).subscribe(ts);
+            IO.serverSocket(PORT).readTimeoutMs(10000).bufferSize(5).create().subscribe(ts);
             ts.assertNoValues();
             ts.assertNotCompleted();
             ts.assertTerminalEvent();
@@ -158,7 +158,7 @@ public final class ObservableServerSocketTest {
         final AtomicReference<byte[]> result = new AtomicReference<byte[]>();
         try {
             int bufferSize = 4;
-            IO.serverSocketBasic(PORT, 10, TimeUnit.SECONDS, bufferSize) //
+            IO.serverSocket(PORT).readTimeoutMs(10000).bufferSize(bufferSize).create() //
                     .flatMap(new Func1<Observable<byte[]>, Observable<byte[]>>() {
                         @Override
                         public Observable<byte[]> call(Observable<byte[]> g) {
@@ -202,7 +202,7 @@ public final class ObservableServerSocketTest {
         final AtomicReference<byte[]> result = new AtomicReference<byte[]>();
         try {
             int bufferSize = 4;
-            IO.serverSocketBasic(PORT, 100, TimeUnit.HOURS, bufferSize) //
+            IO.serverSocket(PORT).readTimeoutMs(Integer.MAX_VALUE).bufferSize(bufferSize).create()
                     .flatMap(new Func1<Observable<byte[]>, Observable<String>>() {
                         @Override
                         public Observable<String> call(Observable<byte[]> g) {
@@ -260,7 +260,7 @@ public final class ObservableServerSocketTest {
             final AtomicInteger connections = new AtomicInteger();
             try {
                 int bufferSize = 4;
-                IO.serverSocketBasic(PORT, 10, TimeUnit.SECONDS, bufferSize) //
+                IO.serverSocket(PORT).readTimeoutMs(10000).bufferSize(bufferSize).create()
                         .flatMap(new Func1<Observable<byte[]>, Observable<byte[]>>() {
                             @Override
                             public Observable<byte[]> call(Observable<byte[]> g) {
@@ -279,7 +279,6 @@ public final class ObservableServerSocketTest {
                             }
                         }) //
                         .doOnNext(Actions.decrement1(connections)) //
-                        .doOnNext(Actions.println()) //
                         .doOnError(Actions.printStackTrace1()) //
                         .doOnError(Actions.<Throwable> setToTrue1(errored)) //
                         .subscribeOn(scheduler) //
@@ -315,8 +314,7 @@ public final class ObservableServerSocketTest {
                                     socket.setReuseAddress(true);
                                     socket.setSoTimeout(5000);
                                     int count = openSockets.incrementAndGet();
-                                    System.out.println("open sockets=" + count + ", connections = "
-                                            + connections.get());
+                                    
                                     OutputStream out = socket.getOutputStream();
                                     for (int i = 0; i < messageBlocks; i++) {
                                         out.write(id.getBytes(UTF_8));
@@ -364,7 +362,7 @@ public final class ObservableServerSocketTest {
         TestSubscriber<Object> ts = TestSubscriber.create();
         final AtomicReference<byte[]> result = new AtomicReference<byte[]>();
         try {
-            IO.serverSocketBasic(PORT, 10, TimeUnit.SECONDS, bufferSize) //
+            IO.serverSocket(PORT).readTimeoutMs(10000).bufferSize(bufferSize).create()
                     .flatMap(new Func1<Observable<byte[]>, Observable<byte[]>>() {
                         @Override
                         public Observable<byte[]> call(Observable<byte[]> g) {
@@ -400,7 +398,7 @@ public final class ObservableServerSocketTest {
     public static void main(String[] args) throws InterruptedException {
         reset();
         TestSubscriber<Object> ts = TestSubscriber.create();
-        IO.serverSocketBasic(PORT, 10, TimeUnit.SECONDS, 8) //
+        IO.serverSocket(PORT).readTimeoutMs(10000).bufferSize(8).create()
                 .flatMap(new Func1<Observable<byte[]>, Observable<byte[]>>() {
                     @Override
                     public Observable<byte[]> call(Observable<byte[]> g) {
