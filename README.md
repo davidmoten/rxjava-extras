@@ -143,7 +143,7 @@ Accumulate statistics, emitting the accumulated results with each item.
 
 <img src="src/docs/collectStats.png?raw=true" />
 
-Tranformers.repeatLast
+Transformers.repeatLast
 ------------------------
 If a stream has elements and completes then the last element is repeated.
 
