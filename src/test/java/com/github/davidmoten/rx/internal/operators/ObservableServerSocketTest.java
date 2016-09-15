@@ -364,7 +364,7 @@ public final class ObservableServerSocketTest {
                         }
                     }).subscribeOn(Schedulers.io()) //
                     .subscribe(ts);
-            Thread.sleep(300);
+            Thread.sleep(1000);
             Socket socket = new Socket("localhost", PORT);
             OutputStream out = socket.getOutputStream();
             out.write(text.getBytes());
