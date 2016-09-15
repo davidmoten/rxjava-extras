@@ -88,7 +88,7 @@ public final class ObservableServerSocketTest {
 
     @Test
     public void errorEmittedIfServerSocketBusy() throws IOException {
-
+        reset();
         TestSubscriber<Object> ts = TestSubscriber.create();
         ServerSocket socket = null;
         try {
