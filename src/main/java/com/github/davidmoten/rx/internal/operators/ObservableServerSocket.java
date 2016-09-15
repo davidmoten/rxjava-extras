@@ -15,6 +15,7 @@ import com.github.davidmoten.rx.Functions;
 
 import rx.Observable;
 import rx.Observer;
+import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func0;
 import rx.functions.Func1;
@@ -28,12 +29,12 @@ public final class ObservableServerSocket {
 
     public static Observable<Observable<byte[]>> create(final int port, final int timeoutMs,
             final int bufferSize) {
-        Func1<ServerSocket, Observable<? extends Observable<byte[]>>> observableFactory = createObservableFactory(
+        Func1<ServerSocket, Observable<Observable<byte[]>>> observableFactory = createObservableFactory(
                 timeoutMs, bufferSize);
-        return Observable.using( //
+        return Observable.<Observable<byte[]>, ServerSocket>using( //
                 createServerSocketFactory(port, timeoutMs), //
                 observableFactory, //
-                Actions.close(), //
+                Actions.close(), // 
                 true);
     }
 
@@ -53,9 +54,9 @@ public final class ObservableServerSocket {
         return s;
     }
 
-    private static Func1<ServerSocket, Observable<? extends Observable<byte[]>>> createObservableFactory(
+    private static Func1<ServerSocket, Observable<Observable<byte[]>>> createObservableFactory(
             final int timeoutMs, final int bufferSize) {
-        return new Func1<ServerSocket, Observable<? extends Observable<byte[]>>>() {
+        return new Func1<ServerSocket, Observable<Observable<byte[]>>>() {
             @Override
             public Observable<Observable<byte[]>> call(ServerSocket serverSocket) {
                 return createServerSocketObservable(serverSocket, timeoutMs, bufferSize);

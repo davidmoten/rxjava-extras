@@ -65,7 +65,11 @@ public final class Bytes {
                 return from(is, size);
             }
         };
-        Action1<InputStream> disposeAction = new Action1<InputStream>() {
+        return Observable.using(resourceFactory, observableFactory, InputStreamCloseHolder.INSTANCE, true);
+    }
+    
+    private static class InputStreamCloseHolder {
+        private static final Action1<InputStream> INSTANCE = new Action1<InputStream>() {
 
             @Override
             public void call(InputStream is) {
@@ -76,7 +80,6 @@ public final class Bytes {
                 }
             }
         };
-        return Observable.using(resourceFactory, observableFactory, disposeAction, true);
     }
 
     /**
