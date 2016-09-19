@@ -26,7 +26,7 @@ public class TestSubscriber2<T> extends Subscriber<T> {
         return new TestSubscriber2<T>(new TestSubscriber<T>(initialRequest));
     }
 
-    public static <T> Func1<Observable<T>, TestSubscriber2<T>> subscribe() {
+    public static <T> Func1<Observable<T>, TestSubscriber2<T>> subscriber() {
         return new Func1<Observable<T>, TestSubscriber2<T>>() {
 
             @Override
