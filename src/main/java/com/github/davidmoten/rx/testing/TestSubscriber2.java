@@ -12,6 +12,11 @@ import rx.observers.TestSubscriber;
 public class TestSubscriber2<T> extends Subscriber<T> {
 
     private final TestSubscriber<T> ts;
+    
+    public TestSubscriber2(TestSubscriber<T> ts) {
+        this.ts = ts;
+        ts.add(this);
+    }
 
     public static <T> TestSubscriber2<T> create() {
         return new TestSubscriber2<T>(new TestSubscriber<T>());
@@ -194,10 +199,6 @@ public class TestSubscriber2<T> extends Subscriber<T> {
             T... expectedRestValues) {
         ts.assertValuesAndClear(expectedFirstValue, expectedRestValues);
         return this;
-    }
-
-    public TestSubscriber2(TestSubscriber<T> ts) {
-        this.ts = ts;
     }
 
 }
