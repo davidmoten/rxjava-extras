@@ -13,30 +13,19 @@ public class TestSubscriber2<T> extends Subscriber<T> {
 
     private final TestSubscriber<T> ts;
     
-    public TestSubscriber2(TestSubscriber<T> ts) {
+    private TestSubscriber2(TestSubscriber<T> ts) {
         this.ts = ts;
-        ts.add(this);
-    }
-
-    public static <T> TestSubscriber2<T> create() {
-        return new TestSubscriber2<T>(new TestSubscriber<T>());
     }
 
     public static <T> TestSubscriber2<T> create(long initialRequest) {
-        return new TestSubscriber2<T>(new TestSubscriber<T>(initialRequest));
+        TestSubscriber<T> t1 = new TestSubscriber<T>(initialRequest);
+        TestSubscriber2<T> t2 = new TestSubscriber2<T>(t1);
+        t2.add(t1);
+        return t2;
     }
 
     public static <T> Func1<Observable<T>, TestSubscriber2<T>> subscriber() {
-        return new Func1<Observable<T>, TestSubscriber2<T>>() {
-
-            @Override
-            public TestSubscriber2<T> call(Observable<T> o) {
-                TestSubscriber2<T> ts = create();
-                o.subscribe(ts);
-                return ts;
-            }
-
-        };
+        return subscribe(Long.MAX_VALUE);
     }
     
     public static <T> Func1<Observable<T>, TestSubscriber2<T>> subscribe(
@@ -45,9 +34,9 @@ public class TestSubscriber2<T> extends Subscriber<T> {
 
             @Override
             public TestSubscriber2<T> call(Observable<T> o) {
-                TestSubscriber2<T> ts = create(initialRequest);
-                o.subscribe(ts);
-                return ts;
+                TestSubscriber2<T> ts2 = create(initialRequest);
+                o.subscribe(ts2.ts);
+                return ts2;
             }
 
         };
