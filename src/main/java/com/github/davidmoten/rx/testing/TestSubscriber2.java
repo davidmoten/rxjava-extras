@@ -17,24 +17,24 @@ public class TestSubscriber2<T> extends Subscriber<T> {
         this.ts = ts;
     }
 
-    public static <T> TestSubscriber2<T> create(long initialRequest) {
+    public static <T> TestSubscriber2<T> createWithRequest(long initialRequest) {
         TestSubscriber<T> t1 = new TestSubscriber<T>(initialRequest);
         TestSubscriber2<T> t2 = new TestSubscriber2<T>(t1);
         t2.add(t1);
         return t2;
     }
 
-    public static <T> Func1<Observable<T>, TestSubscriber2<T>> subscriber() {
-        return subscribe(Long.MAX_VALUE);
+    static <T> Func1<Observable<T>, TestSubscriber2<T>> test() {
+        return testWithRequest(Long.MAX_VALUE);
     }
     
-    public static <T> Func1<Observable<T>, TestSubscriber2<T>> subscribe(
+    static <T> Func1<Observable<T>, TestSubscriber2<T>> testWithRequest(
             final long initialRequest) {
         return new Func1<Observable<T>, TestSubscriber2<T>>() {
 
             @Override
             public TestSubscriber2<T> call(Observable<T> o) {
-                TestSubscriber2<T> ts2 = create(initialRequest);
+                TestSubscriber2<T> ts2 = createWithRequest(initialRequest);
                 o.subscribe(ts2.ts);
                 return ts2;
             }
@@ -42,14 +42,6 @@ public class TestSubscriber2<T> extends Subscriber<T> {
         };
     }
     
-    public int hashCode() {
-        return ts.hashCode();
-    }
-
-    public boolean equals(Object obj) {
-        return ts.equals(obj);
-    }
-
     public void onStart() {
         ts.onStart();
     }

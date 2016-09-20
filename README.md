@@ -13,7 +13,7 @@ Utilities for use with rxjava:
 * `Functions.identity, alwaysTrue, alwaysFalse, constant, not`
 * `Actions.setAtomic, doNothing, unsubscribe, increment, decrement, addTo, println, setToTrue, countDown, printStackTrace`
 * [`Checked`](#checked) provides lambda helpers for dealing with checked exceptions in functions and actions
-* [`TestingHelper`](#testinghelper)
+* [`TestingHelper.test`](#testinghelpertest)
 * [`RetryWhen`](#retrywhen) builder for use with `.retryWhen(Func1)` operator
 * [`Transformers.ignoreElementsThen`](#transformersignoreelementsthen)
 * [`Transformers.mapWithIndex`](#transformersmapwithindex)
@@ -43,6 +43,7 @@ Utilities for use with rxjava:
 * `Strings.split` - supports backpressure (not available in rxjava-string 1.0.1)
 * `PublishSubjectSingleSubscriber`
 * `OperatorUnsubscribeEagerly`
+* [`TestingHelper`](#testinghelper)
 
 
 Status: *released to Maven Central*
@@ -70,6 +71,27 @@ repositories {
 dependencies {
     compile 'com.github.davidmoten:rxjava-extras:0.7.9.13'
 }
+```
+
+TestingHelper.test
+----------------------
+Use method chaining in your tests (inspired by rxjava 2.x functionality):
+
+```java
+Observable.range(1, 1000)
+  .count()
+  .to(TestingHelper.test())
+  .assertValue(1000)
+  .assertCompleted();
+```
+
+Set the initial request like this:
+
+```java
+Observable.range(1, 1000)
+  .to(TestingHelper.testWithRequest(2))
+  .assertValues(1, 2)
+  .assertNoTerminalEvent();
 ```
 
 Transformers.ignoreElementsThen
