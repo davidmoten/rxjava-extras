@@ -6,13 +6,14 @@ import java.util.concurrent.TimeUnit;
 import rx.Observable;
 import rx.Producer;
 import rx.Subscriber;
+import rx.functions.Action0;
 import rx.functions.Func1;
 import rx.observers.TestSubscriber;
 
 public class TestSubscriber2<T> extends Subscriber<T> {
 
     private final TestSubscriber<T> ts;
-    
+
     private TestSubscriber2(TestSubscriber<T> ts) {
         this.ts = ts;
     }
@@ -27,9 +28,8 @@ public class TestSubscriber2<T> extends Subscriber<T> {
     static <T> Func1<Observable<T>, TestSubscriber2<T>> test() {
         return testWithRequest(Long.MAX_VALUE);
     }
-    
-    static <T> Func1<Observable<T>, TestSubscriber2<T>> testWithRequest(
-            final long initialRequest) {
+
+    static <T> Func1<Observable<T>, TestSubscriber2<T>> testWithRequest(final long initialRequest) {
         return new Func1<Observable<T>, TestSubscriber2<T>>() {
 
             @Override
@@ -41,7 +41,7 @@ public class TestSubscriber2<T> extends Subscriber<T> {
 
         };
     }
-    
+
     public void onStart() {
         ts.onStart();
     }
@@ -179,6 +179,11 @@ public class TestSubscriber2<T> extends Subscriber<T> {
     public final TestSubscriber2<T> assertValuesAndClear(T expectedFirstValue,
             T... expectedRestValues) {
         ts.assertValuesAndClear(expectedFirstValue, expectedRestValues);
+        return this;
+    }
+
+    public final TestSubscriber2<T> perform(Action0 action) {
+        action.call();
         return this;
     }
 
