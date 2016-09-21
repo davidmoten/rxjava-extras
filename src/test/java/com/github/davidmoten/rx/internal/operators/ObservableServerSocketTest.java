@@ -382,7 +382,7 @@ public final class ObservableServerSocketTest {
                     }).subscribeOn(scheduler) //
                     .subscribe(ts);
             Thread.sleep(1000);
-            Socket socket = new Socket("localhost", PORT);
+            Socket socket = new Socket("127.0.0.1", PORT);
             OutputStream out = socket.getOutputStream();
             out.write(text.getBytes());
             out.close();
