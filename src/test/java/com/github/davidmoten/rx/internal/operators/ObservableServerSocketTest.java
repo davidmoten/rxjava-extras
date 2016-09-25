@@ -2,17 +2,18 @@ package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.BindException;
+import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -43,7 +44,7 @@ import rx.plugins.RxJavaHooks;
 import rx.schedulers.Schedulers;
 
 public final class ObservableServerSocketTest {
-    
+
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final int PORT = 12345;
@@ -52,7 +53,7 @@ public final class ObservableServerSocketTest {
     private static final int POOL_SIZE = 10;
     private static final Scheduler scheduler = Schedulers
             .from(Executors.newFixedThreadPool(POOL_SIZE));
-    
+
     private static final Scheduler clientScheduler = Schedulers
             .from(Executors.newFixedThreadPool(POOL_SIZE));
 
@@ -314,7 +315,7 @@ public final class ObservableServerSocketTest {
                                     socket.setReuseAddress(true);
                                     socket.setSoTimeout(5000);
                                     int count = openSockets.incrementAndGet();
-                                    
+
                                     OutputStream out = socket.getOutputStream();
                                     for (int i = 0; i < messageBlocks; i++) {
                                         out.write(id.getBytes(UTF_8));
@@ -381,8 +382,17 @@ public final class ObservableServerSocketTest {
                         }
                     }).subscribeOn(scheduler) //
                     .subscribe(ts);
-            Thread.sleep(1000);
-            Socket socket = new Socket("127.0.0.1", PORT);
+            Socket socket = null;
+            for (int i = 0; i < 15; i++) {
+                Thread.sleep(1000);
+                try {
+                    socket = new Socket("127.0.0.1", PORT);
+                    break;
+                } catch (ConnectException e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+            assertNotNull("could not connect to port " + PORT, socket);
             OutputStream out = socket.getOutputStream();
             out.write(text.getBytes());
             out.close();
@@ -422,4 +432,3 @@ public final class ObservableServerSocketTest {
 
     }
 }
-
