@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Transformers;
+import com.github.davidmoten.rx.testing.TestingHelper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -110,13 +111,12 @@ public class OrderedMergeTest {
 		Observable<Integer> o1 = Observable.just(1, 3, 5, 7).observeOn(Schedulers.computation());
 		Observable<Integer> o2 = Observable.just(2, 4, 6, 8).observeOn(Schedulers.computation());
 
-		TestSubscriber<Integer> ts = TestSubscriber.create();
-		OrderedMerge.<Integer> create(Arrays.asList(o1, o2)).subscribe(ts);
-
-		ts.awaitTerminalEvent(1, TimeUnit.SECONDS);
-		ts.assertNoErrors();
-		ts.assertCompleted();
-		ts.assertValues(1, 2, 3, 4, 5, 6, 7, 8);
+		OrderedMerge.<Integer> create(Arrays.asList(o1, o2)) //
+		    .to(TestingHelper.<Integer>test())
+		    .awaitTerminalEvent(1, TimeUnit.SECONDS) //
+		    .assertNoErrors() //
+		    .assertCompleted() //
+		    .assertValues(1, 2, 3, 4, 5, 6, 7, 8);
 	}
 
 	@SuppressWarnings("unchecked")

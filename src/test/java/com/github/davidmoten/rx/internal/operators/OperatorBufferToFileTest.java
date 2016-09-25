@@ -38,6 +38,7 @@ import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
+import com.github.davidmoten.rx.testing.TestingHelper;
 
 import rx.Observable;
 import rx.Scheduler;
@@ -72,16 +73,15 @@ public final class OperatorBufferToFileTest {
         System.out.println("handlesEmpty");
         Scheduler scheduler = createSingleThreadScheduler();
         for (int i = 0; i < loops(); i++) {
-            TestSubscriber<String> ts = TestSubscriber.create(0);
-            Observable
-                    .<String> empty().compose(Transformers
-                            .onBackpressureBufferToFile(DataSerializers.string(), scheduler))
-                    .subscribe(ts);
-            ts.requestMore(1);
-            ts.awaitTerminalEvent();
-            ts.assertNoErrors();
-            ts.assertNoValues();
-            ts.assertCompleted();
+            Observable.<String> empty()
+                    .compose(Transformers.onBackpressureBufferToFile(DataSerializers.string(),
+                            scheduler))
+                    .to(TestingHelper.<String> test()) //
+                    .requestMore(1) //
+                    .awaitTerminalEvent() //
+                    .assertNoErrors() //
+                    .assertNoValues() //
+                    .assertCompleted();
             waitUntilWorkCompleted(scheduler);
         }
     }
@@ -268,7 +268,7 @@ public final class OperatorBufferToFileTest {
         DataSerializer<Integer> serializer = createLargeMessageSerializer();
         int max = 100;
         int last = Observable.range(1, max) //
-//                .doOnNext(Actions.println())
+                // .doOnNext(Actions.println())
                 //
                 .compose(Transformers.onBackpressureBufferToFile(serializer, scheduler))
                 // log
@@ -291,7 +291,7 @@ public final class OperatorBufferToFileTest {
                         }
                     }
                 }) //
-//                .doOnNext(Actions.println()) //
+                // .doOnNext(Actions.println()) //
                 .last().toBlocking().single();
         assertEquals(max, last);
         waitUntilWorkCompleted(scheduler);
@@ -489,7 +489,7 @@ public final class OperatorBufferToFileTest {
         t = System.currentTimeMillis() - t;
         assertEquals(max, last);
         System.out.println("rate = " + df((double) max * 4 / (t) / 1000) + "MB/s (4B messages, "
-                + rolloverStatus(options) + ") duration="+ format(t/1000.0));
+                + rolloverStatus(options) + ") duration=" + format(t / 1000.0));
         waitUntilWorkCompleted(scheduler);
     }
 
@@ -505,7 +505,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void checkRateForOneKMessagesRollover() {
-    	System.out.println("checkRateForOneKMessagesRollover");
+        System.out.println("checkRateForOneKMessagesRollover");
         checkRateForOneKMessagesWithOptions(Options.rolloverSizeBytes(Long.MAX_VALUE - 1).build());
     }
 
@@ -525,12 +525,13 @@ public final class OperatorBufferToFileTest {
         t = System.currentTimeMillis() - t;
         assertEquals(max, last);
         System.out.println("rate = " + df((double) max * MEDIUM_MESSAGE_SIZE / 1000 / (t))
-                + "MB/s (1K messages, " + rolloverStatus(options) + ") duration="+ format(t/1000.0));
+                + "MB/s (1K messages, " + rolloverStatus(options) + ") duration="
+                + format(t / 1000.0));
         waitUntilWorkCompleted(scheduler);
     }
-    
+
     public static String format(double d) {
-    	return new DecimalFormat("0.00").format(d);
+        return new DecimalFormat("0.00").format(d);
     }
 
     private static final int MEDIUM_MESSAGE_SIZE = 1 << 10;
@@ -573,7 +574,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void checkRateForOneKMessagesNoReadRollover() {
-    	System.out.println("checkRateForOneKMessagesNoReadRollover");
+        System.out.println("checkRateForOneKMessagesNoReadRollover");
         checkRateForOneKMessagesNoReadWithOptions(
                 Options.rolloverSizeBytes(Long.MAX_VALUE - 1).build());
     }
@@ -606,14 +607,14 @@ public final class OperatorBufferToFileTest {
         t = System.currentTimeMillis() - t;
         assertEquals(1, first);
         System.out.println("rate = " + df((double) max / (t)) + "MB/s (1K messages, "
-                + rolloverStatus(options) + ", write only) duration="+ format(t/1000.0));
+                + rolloverStatus(options) + ", write only) duration=" + format(t / 1000.0));
         waitUntilWorkCompleted(scheduler);
     }
 
     @Test
     @Ignore
     public void testCompletionDeletesAllFilesUsingRolloverOnSize() {
-    	System.out.println("testCompletionDeletesAllFilesUsingRolloverOnSize");
+        System.out.println("testCompletionDeletesAllFilesUsingRolloverOnSize");
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<Integer> serializer = DataSerializers.integer();
 
@@ -644,7 +645,7 @@ public final class OperatorBufferToFileTest {
 
     @Test
     public void testForReadMe() {
-    	System.out.println("testForReadMe");
+        System.out.println("testForReadMe");
         Scheduler scheduler = createSingleThreadScheduler();
         DataSerializer<String> serializer = new DataSerializer<String>() {
 
