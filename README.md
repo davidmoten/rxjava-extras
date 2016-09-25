@@ -3,7 +3,6 @@ rxjava-extras
 
 <a href="https://travis-ci.org/davidmoten/rxjava-extras"><img src="https://travis-ci.org/davidmoten/rxjava-extras.svg"/></a><br/>
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras)<br/>
-<!--[![Dependency Status](https://gemnasium.com/com.github.davidmoten/rxjava-extras.svg)](https://gemnasium.com/com.github.davidmoten/rxjava-extras)-->
 [![codecov](https://codecov.io/gh/davidmoten/rxjava-extras/branch/master/graph/badge.svg)](https://codecov.io/gh/davidmoten/rxjava-extras)
 
 
