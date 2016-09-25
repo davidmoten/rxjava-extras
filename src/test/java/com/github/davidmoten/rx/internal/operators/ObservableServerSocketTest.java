@@ -352,6 +352,7 @@ public final class ObservableServerSocketTest {
                 assertFalse(errored.get());
             } finally {
                 ts.unsubscribe();
+                Thread.sleep(1000);
                 reset();
             }
         }
