@@ -11,6 +11,7 @@ import org.junit.Test;
 import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.testing.TestingHelper;
+import com.github.davidmoten.rx.util.IORuntimeException;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -36,7 +37,7 @@ public class OnSubscribeMapLastTest {
     }
 
     @Test
-    public void testHandlesRequestOverflow() {
+    public void testMapLastHandlesRequestOverflow() {
         List<Long> list = new ArrayList<Long>();
         Observable.range(1, 5) //
                 .doOnRequest(Actions.addTo(list))//
@@ -49,6 +50,30 @@ public class OnSubscribeMapLastTest {
                 .assertCompleted() //
                 .assertValues(1, 2, 3, 4, 6);
         assertEquals(Arrays.asList(Long.MAX_VALUE), list);
+    }
+
+    @Test(expected = OutOfMemoryError.class)
+    public void testMapLastHandlesFatalError() {
+        Observable.range(1, 5) //
+                .compose(Transformers.mapLast(new Func1<Integer, Integer>() {
+                    @Override
+                    public Integer call(Integer x) {
+                        throw new OutOfMemoryError();
+                    }
+                })).subscribe();
+    }
+
+    @Test
+    public void testMapLastHandlesNonFatalError() {
+        final RuntimeException e = new RuntimeException();
+        Observable.range(1, 5) //
+                .compose(Transformers.mapLast(new Func1<Integer, Integer>() {
+                    @Override
+                    public Integer call(Integer x) {
+                        throw e;
+                    }
+                })).to(TestingHelper.<Integer>test()) //
+                .assertError(e);
     }
 
 }
