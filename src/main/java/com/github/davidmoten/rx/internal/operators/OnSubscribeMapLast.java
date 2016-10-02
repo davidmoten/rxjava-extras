@@ -40,6 +40,7 @@ public final class OnSubscribeMapLast<T> implements OnSubscribe<T> {
         private final Subscriber<? super T> child;
         private final Func1<? super T, ? extends T> function;
         private final AtomicBoolean firstRequest = new AtomicBoolean(true);
+        @SuppressWarnings("unchecked")
         private T value = (T) EMPTY;
 
         public MapLastSubscriber(Subscriber<? super T> child,

@@ -11,7 +11,6 @@ import org.junit.Test;
 import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.testing.TestingHelper;
-import com.github.davidmoten.rx.util.IORuntimeException;
 
 import rx.Observable;
 import rx.functions.Func1;
