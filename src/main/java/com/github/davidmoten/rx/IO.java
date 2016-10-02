@@ -8,6 +8,7 @@ import com.github.davidmoten.rx.util.IORuntimeException;
 
 import rx.Observable;
 import rx.functions.Action0;
+import rx.functions.Action1;
 import rx.functions.Func0;
 
 public final class IO {
@@ -29,8 +30,23 @@ public final class IO {
 			}
 		});
 	}
+	
+	public static ServerSocketBuilder serverSocketFindAvailablePort(final Action1<Integer> portAction) {
+		return serverSocket(new Func0<ServerSocket>() {
 
-	public static ServerSocketBuilder serverSocketFactory(Func0<? extends ServerSocket> serverSocketFactory) {
+			@Override
+			public ServerSocket call() {
+				try {
+					ServerSocket ss = new ServerSocket(0);
+					portAction.call(ss.getLocalPort());
+					return ss;
+				} catch (IOException e) {
+					throw new IORuntimeException(e);
+				}
+			}});
+	}
+
+	public static ServerSocketBuilder serverSocket(Func0<? extends ServerSocket> serverSocketFactory) {
 		return new ServerSocketBuilder(serverSocketFactory);
 	}
 
