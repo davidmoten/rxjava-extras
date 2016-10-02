@@ -19,6 +19,7 @@ import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeDoOnEmpty;
+import com.github.davidmoten.rx.internal.operators.OnSubscribeMapLast;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferPredicateBoundary;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
@@ -1291,4 +1292,13 @@ public final class Transformers {
             }}; 
     }
    
+    public static <T> Transformer<T,T> mapLast(final Func1<? super T, ? extends T> function){
+ 
+    		return new Transformer<T,T>() {
+
+				@Override
+				public Observable<T> call(Observable<T> source) {
+					return Observable.create(new OnSubscribeMapLast(source, function));
+				}};
+    }
 }
