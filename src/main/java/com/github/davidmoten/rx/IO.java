@@ -30,27 +30,28 @@ public final class IO {
 			}
 		});
 	}
-	
-	public static ServerSocketBuilder serverSocketFindAvailablePort(final Action1<Integer> portAction) {
+
+	public static ServerSocketBuilder serverSocketAutoAllocatePort(final Action1<Integer> onAllocated) {
 		return serverSocket(new Func0<ServerSocket>() {
 
 			@Override
 			public ServerSocket call() {
 				try {
 					ServerSocket ss = new ServerSocket(0);
-					portAction.call(ss.getLocalPort());
+					onAllocated.call(ss.getLocalPort());
 					return ss;
 				} catch (IOException e) {
 					throw new IORuntimeException(e);
 				}
-			}});
+			}
+		});
 	}
 
 	public static ServerSocketBuilder serverSocket(Func0<? extends ServerSocket> serverSocketFactory) {
 		return new ServerSocketBuilder(serverSocketFactory);
 	}
 
-	public static class ServerSocketBuilder {
+	public static final class ServerSocketBuilder {
 
 		private final Func0<? extends ServerSocket> serverSocketFactory;
 		private int readTimeoutMs = Integer.MAX_VALUE;

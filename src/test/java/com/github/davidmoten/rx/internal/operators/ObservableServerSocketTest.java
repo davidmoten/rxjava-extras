@@ -157,7 +157,7 @@ public final class ObservableServerSocketTest {
 		try {
 			int bufferSize = 4;
 			AtomicInteger port = new AtomicInteger();
-			IO.serverSocketFindAvailablePort(Actions.setAtomic(port)) //
+			IO.serverSocketAutoAllocatePort(Actions.setAtomic(port)) //
 					.readTimeoutMs(10000) //
 					.bufferSize(bufferSize) //
 					.create() //
@@ -204,7 +204,7 @@ public final class ObservableServerSocketTest {
 		AtomicInteger port = new AtomicInteger();
 		try {
 			int bufferSize = 4;
-			IO.serverSocketFindAvailablePort(Actions.setAtomic(port)) //
+			IO.serverSocketAutoAllocatePort(Actions.setAtomic(port)) //
 					.readTimeoutMs(Integer.MAX_VALUE).bufferSize(bufferSize).create()
 					.flatMap(new Func1<Observable<byte[]>, Observable<String>>() {
 						@Override
@@ -366,7 +366,7 @@ public final class ObservableServerSocketTest {
 		final AtomicReference<byte[]> result = new AtomicReference<byte[]>();
 		AtomicInteger port = new AtomicInteger();
 		try {
-			IO.serverSocketFindAvailablePort(Actions.setAtomic(port)) //
+			IO.serverSocketAutoAllocatePort(Actions.setAtomic(port)) //
 					.readTimeoutMs(10000) //
 					.bufferSize(bufferSize) //
 					.create() //
