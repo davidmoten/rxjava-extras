@@ -101,7 +101,7 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> o) {
-                return o.toSortedList().flatMapIterable(Functions.<List<T>> identity());
+                return o.toSortedList().flatMapIterable(Functions.<List<T>>identity());
             }
         };
     }
@@ -112,7 +112,7 @@ public final class Transformers {
             @Override
             public Observable<T> call(Observable<T> o) {
                 return o.toSortedList(Functions.toFunc2(comparator))
-                        .flatMapIterable(Functions.<List<T>> identity());
+                        .flatMapIterable(Functions.<List<T>>identity());
             }
         };
     }
@@ -231,7 +231,7 @@ public final class Transformers {
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
             BackpressureStrategy backpressureStrategy) {
-        return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
+        return TransformerStateMachine.<State, In, Out>create(initialStateFactory, transition,
                 completion, backpressureStrategy, DEFAULT_INITIAL_BATCH);
     }
 
@@ -240,7 +240,7 @@ public final class Transformers {
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
             BackpressureStrategy backpressureStrategy, int initialRequest) {
-        return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
+        return TransformerStateMachine.<State, In, Out>create(initialStateFactory, transition,
                 completion, backpressureStrategy, initialRequest);
     }
 
@@ -302,7 +302,7 @@ public final class Transformers {
             Func0<? extends State> initialStateFactory,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
-        return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
+        return TransformerStateMachine.<State, In, Out>create(initialStateFactory, transition,
                 completion, BackpressureStrategy.BUFFER, DEFAULT_INITIAL_BATCH);
     }
 
@@ -366,7 +366,7 @@ public final class Transformers {
                 List<Observable<T>> collection = new ArrayList<Observable<T>>();
                 collection.add(source);
                 collection.addAll(others);
-                return OrderedMerge.<T> create(collection, comparator, false);
+                return OrderedMerge.<T>create(collection, comparator, false);
             }
         };
     }
@@ -525,7 +525,7 @@ public final class Transformers {
      */
     public static <T, R extends Collection<T>> Transformer<T, R> collectWhile(
             final Func0<R> factory, final Action2<? super R, ? super T> collect) {
-        return collectWhile(factory, collect, HolderEquals.<T> instance());
+        return collectWhile(factory, collect, HolderEquals.<T>instance());
     }
 
     public static <T, R extends Iterable<?>> Transformer<T, R> collectWhile(final Func0<R> factory,
@@ -675,7 +675,7 @@ public final class Transformers {
     }
 
     public static <T> Transformer<T, T> onBackpressureBufferToFile() {
-        return onBackpressureBufferToFile(DataSerializers.<T> javaIO(), Schedulers.computation(),
+        return onBackpressureBufferToFile(DataSerializers.<T>javaIO(), Schedulers.computation(),
                 Options.defaultInstance());
     }
 
@@ -711,7 +711,7 @@ public final class Transformers {
     }
 
     public static <T extends Comparable<T>> Transformer<T, T> windowMax(final int windowSize) {
-        return windowMax(windowSize, Transformers.<T> naturalComparator());
+        return windowMax(windowSize, Transformers.<T>naturalComparator());
     }
 
     public static <T> Transformer<T, T> windowMax(final int windowSize,
@@ -725,7 +725,7 @@ public final class Transformers {
     }
 
     public static <T extends Comparable<T>> Transformer<T, T> windowMin(final int windowSize) {
-        return windowMin(windowSize, Transformers.<T> naturalComparator());
+        return windowMin(windowSize, Transformers.<T>naturalComparator());
     }
 
     private static class NaturalComparatorHolder {
@@ -892,7 +892,7 @@ public final class Transformers {
             public Observable<T> call(Observable<T> o) {
                 return o.compose(Transformers. //
                 stateMachine() //
-                        .initialState(Optional.<T> absent()) //
+                        .initialState(Optional.<T>absent()) //
                         .transition(new Transition<Optional<T>, T, T>() {
 
                             @Override
@@ -1240,65 +1240,75 @@ public final class Transformers {
     private static long delay(long startActual, long startTime, long emissionTimestamp,
             Func0<Double> playRate, long now) {
         long elapsedActual = now - startActual;
-        return Math.max(0, Math.round((emissionTimestamp - startTime) / playRate.call() - elapsedActual));
+        return Math.max(0,
+                Math.round((emissionTimestamp - startTime) / playRate.call() - elapsedActual));
     }
 
     /**
-     * <p>Modifies the source Observable so that it invokes an action when it calls {@code onCompleted} and no items were emitted.
+     * <p>
+     * Modifies the source Observable so that it invokes an action when it calls
+     * {@code onCompleted} and no items were emitted.
      * <dl>
-     *  <dt><b>Scheduler:</b></dt>
-     *  <dd>{@code doOnEmpty} does not operate by default on a particular {@link Scheduler}.</dd>
+     * <dt><b>Scheduler:</b></dt>
+     * <dd>{@code doOnEmpty} does not operate by default on a particular
+     * {@link Scheduler}.</dd>
      * </dl>
      *
      * @param onEmpty
-     *            the action to invoke when the source Observable calls {@code onCompleted}, contingent on no items were emitted
-     * @param <T> generic type of observable being transformed
+     *            the action to invoke when the source Observable calls
+     *            {@code onCompleted}, contingent on no items were emitted
+     * @param <T>
+     *            generic type of observable being transformed
      * @return the source Observable with the side-effecting behavior applied
      */
-    public static final <T> Transformer<T,T> doOnEmpty(final Action0 onEmpty) {
-        return new Transformer<T,T> () {
+    public static final <T> Transformer<T, T> doOnEmpty(final Action0 onEmpty) {
+        return new Transformer<T, T>() {
 
             @Override
             public Observable<T> call(Observable<T> o) {
                 return Observable.create(new OnSubscribeDoOnEmpty<T>(o, onEmpty));
-            }};
+            }
+        };
     }
-    
+
     public static final <T> Transformer<T, T> onTerminateResume(
             final Func1<Throwable, Observable<T>> onError, final Observable<T> onCompleted) {
         return new TransformerOnTerminateResume<T>(onError, onCompleted);
     }
 
-    public static final <T> Transformer<T,T> repeatLast() {
-        return new Transformer<T,T>() {
+    public static final <T> Transformer<T, T> repeatLast() {
+        return new Transformer<T, T>() {
 
             @Override
             public Observable<T> call(Observable<T> o) {
-                return o.materialize().buffer(2, 1).flatMap(new Func1<List<Notification<T>>, Observable<T>>() {
-                    @Override
-                    public Observable<T> call(List<Notification<T>> list) {
-                        Notification<T> a = list.get(0);
-                        if (list.size() ==2 && list.get(1).isOnCompleted()) {
-                            return Observable.just(a.getValue()).repeat();
-                        } else if (a.isOnError()) {
-                            return Observable.error(list.get(0).getThrowable());
-                        } else if (a.isOnCompleted()) {
-                            return Observable.empty();
-                        } else {
-                            return Observable.just(a.getValue());
-                        }
-                    }
-                });
-            }}; 
+                return o.materialize().buffer(2, 1)
+                        .flatMap(new Func1<List<Notification<T>>, Observable<T>>() {
+                            @Override
+                            public Observable<T> call(List<Notification<T>> list) {
+                                Notification<T> a = list.get(0);
+                                if (list.size() == 2 && list.get(1).isOnCompleted()) {
+                                    return Observable.just(a.getValue()).repeat();
+                                } else if (a.isOnError()) {
+                                    return Observable.error(list.get(0).getThrowable());
+                                } else if (a.isOnCompleted()) {
+                                    return Observable.empty();
+                                } else {
+                                    return Observable.just(a.getValue());
+                                }
+                            }
+                        });
+            }
+        };
     }
-   
-    public static <T> Transformer<T,T> mapLast(final Func1<? super T, ? extends T> function){
- 
-    		return new Transformer<T,T>() {
 
-				@Override
-				public Observable<T> call(Observable<T> source) {
-					return Observable.create(new OnSubscribeMapLast<T>(source, function));
-				}};
+    public static <T> Transformer<T, T> mapLast(final Func1<? super T, ? extends T> function) {
+
+        return new Transformer<T, T>() {
+
+            @Override
+            public Observable<T> call(Observable<T> source) {
+                return Observable.create(new OnSubscribeMapLast<T>(source, function));
+            }
+        };
     }
 }
