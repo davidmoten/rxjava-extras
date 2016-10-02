@@ -98,7 +98,7 @@ public final class ObservableServerSocketTest {
             ts.assertNoValues();
             ts.assertNotCompleted();
             ts.assertTerminalEvent();
-            assertTrue(ts.getOnErrorEvents().get(0).getCause() instanceof BindException);
+            assertTrue(ts.getOnErrorEvents().get(0).getCause().getCause() instanceof BindException);
         } finally {
             socket.close();
         }

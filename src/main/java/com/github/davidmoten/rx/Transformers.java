@@ -1298,7 +1298,7 @@ public final class Transformers {
 
 				@Override
 				public Observable<T> call(Observable<T> source) {
-					return Observable.create(new OnSubscribeMapLast(source, function));
+					return Observable.create(new OnSubscribeMapLast<T>(source, function));
 				}};
     }
 }
