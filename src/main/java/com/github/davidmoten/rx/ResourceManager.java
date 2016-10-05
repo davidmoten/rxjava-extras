@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.rx.exceptions.IORuntimeException;
 
@@ -121,6 +122,41 @@ public class ResourceManager<T> {
         return Observable.using(resourceFactory, observableFactory, disposeAction, disposeEagerly);
     }
 
+    public <R> ResourceManager<R> map(final Func1<? super T, ? extends R> resourceMapper,
+            final Action1<? super R> disposeAction) {
+        final AtomicReference<T> ref = new AtomicReference<T>();
+        Func0<R> rf = new Func0<R>() {
+            @Override
+            public R call() {
+                T a = resourceFactory.call();
+                try {
+                    R b = resourceMapper.call(a);
+                    ref.set(a);
+                    return b;
+                } catch (Throwable e) {
+                    ResourceManager.this.disposeAction.call(a);
+                    if (e instanceof RuntimeException) {
+                        throw (RuntimeException) e;
+                    } else {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        };
+        Action1<R> disposer = new Action1<R>() {
+            @Override
+            public void call(R r) {
+                disposeAction.call(r);
+                ResourceManager.this.disposeAction.call(ref.get());
+            }
+        };
+        return create(rf, disposer);
+    }
+
+    public <R extends Closeable> ResourceManager<R> map(final Func1<? super T, ? extends R> resourceMapper) {
+        return map(resourceMapper, CloserHolder.INSTANCE);
+    }
+    
     private static final class CloserHolder {
 
         static final Action1<Closeable> INSTANCE = new Action1<Closeable>() {
@@ -130,7 +166,6 @@ public class ResourceManager<T> {
                 try {
                     c.close();
                 } catch (IOException e) {
-                    // TODO ignore or send to RxJavaHooks?
                     RxJavaHooks.onError(e);
                 }
             }
