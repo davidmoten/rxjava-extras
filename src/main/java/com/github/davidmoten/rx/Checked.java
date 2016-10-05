@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx;
 
+import com.github.davidmoten.rx.Checked.A1;
+
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Action2;
@@ -154,5 +156,5 @@ public final class Checked {
             }
         };
     }
-    
+
 }

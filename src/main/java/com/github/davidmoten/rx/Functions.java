@@ -1,6 +1,7 @@
 package com.github.davidmoten.rx;
 
 import java.util.Comparator;
+import java.util.concurrent.Callable;
 
 import rx.Observable;
 import rx.functions.Func0;
@@ -172,6 +173,20 @@ public final class Functions {
             @Override
             public Boolean call(T t) {
                 return t != null;
+            }
+        };
+    }
+
+    public static <T> Func0<T> toFunc0(final Callable<T> f) {
+        return new Func0<T>() {
+
+            @Override
+            public T call() {
+                try {
+                    return f.call();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
     }
