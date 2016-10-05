@@ -3,8 +3,8 @@ package com.github.davidmoten.rx;
 import java.io.IOException;
 import java.net.ServerSocket;
 
+import com.github.davidmoten.rx.exceptions.IORuntimeException;
 import com.github.davidmoten.rx.internal.operators.ObservableServerSocket;
-import com.github.davidmoten.rx.util.IORuntimeException;
 
 import rx.Observable;
 import rx.functions.Action0;

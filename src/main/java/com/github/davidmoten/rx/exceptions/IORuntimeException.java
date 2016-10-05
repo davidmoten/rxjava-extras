@@ -1,4 +1,4 @@
-package com.github.davidmoten.rx.util;
+package com.github.davidmoten.rx.exceptions;
 
 import java.io.IOException;
 
