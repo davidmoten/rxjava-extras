@@ -23,26 +23,53 @@ public class ResourceManager<T> {
 
     private final Func0<T> resourceFactory;
     private final Action1<? super T> disposeAction;
+    private final boolean disposeEagerly;
 
-    private ResourceManager(Func0<T> resourceFactory, Action1<? super T> disposeAction) {
+    private ResourceManager(Func0<T> resourceFactory, Action1<? super T> disposeAction,
+            boolean disposeEagerly) {
         this.resourceFactory = resourceFactory;
         this.disposeAction = disposeAction;
+        this.disposeEagerly = disposeEagerly;
+    }
+
+    public static <T> ResourceManagerBuilder<T> resourceFactory(Func0<T> resourceFactory) {
+        return new ResourceManagerBuilder<T>(resourceFactory);
+    }
+
+    public final static class ResourceManagerBuilder<T> {
+
+        private final Func0<T> resourceFactory;
+        private boolean disposeEagerly = false;
+
+        private ResourceManagerBuilder(Func0<T> resourceFactory) {
+            this.resourceFactory = resourceFactory;
+        }
+
+        public ResourceManagerBuilder<T> disposeEagerly(boolean value) {
+            this.disposeEagerly = value;
+            return this;
+        }
+
+        public ResourceManager<T> disposeAction(Action1<? super T> disposeAction) {
+            return new ResourceManager<T>(resourceFactory, disposeAction, disposeEagerly);
+        }
+
     }
 
     public static <T> ResourceManager<T> create(Func0<T> resourceFactory,
             Action1<? super T> disposeAction) {
-        return new ResourceManager<T>(resourceFactory, disposeAction);
+        return new ResourceManager<T>(resourceFactory, disposeAction, false);
     }
 
     public static <T> ResourceManager<T> create(Callable<T> resourceFactory,
             Action1<? super T> disposeAction) {
-        return new ResourceManager<T>(Functions.toFunc0(resourceFactory), disposeAction);
+        return new ResourceManager<T>(Functions.toFunc0(resourceFactory), disposeAction, false);
     }
 
     public static <T> ResourceManager<T> create(Callable<T> resourceFactory,
             Checked.A1<? super T> disposeAction) {
-        return new ResourceManager<T>(Functions.toFunc0(resourceFactory),
-                Checked.a1(disposeAction));
+        return new ResourceManager<T>(Functions.toFunc0(resourceFactory), Checked.a1(disposeAction),
+                false);
     }
 
     public static <T extends Closeable> ResourceManager<T> create(Func0<T> resourceFactory) {
@@ -90,15 +117,10 @@ public class ResourceManager<T> {
         return create(rf);
     }
 
-    public Observable<T> observable(Func1<? super T, Observable<? extends T>> observableFactory,
-            boolean disposeEagerly) {
+    public Observable<T> observable(Func1<? super T, Observable<? extends T>> observableFactory) {
         return Observable.using(resourceFactory, observableFactory, disposeAction, disposeEagerly);
     }
 
-    public Observable<T> observable(Func1<? super T, Observable<? extends T>> observableFactory) {
-        return observable(observableFactory, false);
-    }
-    
     private static final class CloserHolder {
 
         static final Action1<Closeable> INSTANCE = new Action1<Closeable>() {
@@ -108,7 +130,7 @@ public class ResourceManager<T> {
                 try {
                     c.close();
                 } catch (IOException e) {
-                    //TODO ignore or send to RxJavaHooks?
+                    // TODO ignore or send to RxJavaHooks?
                     RxJavaHooks.onError(e);
                 }
             }
