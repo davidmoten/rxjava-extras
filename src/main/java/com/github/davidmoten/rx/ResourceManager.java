@@ -80,6 +80,10 @@ public class ResourceManager<T> {
     public static <T extends Closeable> ResourceManager<T> create(Func0<T> resourceFactory) {
         return create(resourceFactory, CloserHolder.INSTANCE);
     }
+    
+    public static <T extends Closeable> ResourceManager<T> create(Callable<T> resourceFactory) {
+        return create(Functions.toFunc0(resourceFactory), CloserHolder.INSTANCE);
+    }
 
     public static ResourceManager<OutputStream> forWriting(final File file) {
         Func0<OutputStream> rf = new Func0<OutputStream>() {
@@ -190,7 +194,6 @@ public class ResourceManager<T> {
                         return null;
                     }
                 }, new Checked.A1<Connection>() {
-
                     @Override
                     public void call(Connection c) throws Exception {
                         c.close();
@@ -202,7 +205,6 @@ public class ResourceManager<T> {
                 return con.prepareStatement("select * from boo");
             }
         }, new Checked.A1<PreparedStatement>() {
-
             @Override
             public void call(PreparedStatement ps) throws Exception {
                 ps.close();
@@ -214,7 +216,6 @@ public class ResourceManager<T> {
                 return ps.getResultSet();
             }
         }, new Checked.A1<ResultSet>() {
-
             @Override
             public void call(ResultSet rs) throws Exception {
                 rs.close();
