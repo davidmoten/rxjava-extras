@@ -32,7 +32,12 @@ public class ResourceManager<T> {
     public static <T> ResourceManagerBuilder<T> resourceFactory(Func0<T> resourceFactory) {
         return new ResourceManagerBuilder<T>(resourceFactory);
     }
-    
+
+    public static <T extends Closeable> CloseableResourceManagerBuilder<T> closeableResourceFactory(
+            Func0<T> resourceFactory) {
+        return new CloseableResourceManagerBuilder<T>(resourceFactory);
+    }
+
     public final static class ResourceManagerBuilder<T> {
 
         private final Func0<T> resourceFactory;
@@ -50,6 +55,26 @@ public class ResourceManager<T> {
         public ResourceManager<T> disposeAction(Action1<? super T> disposeAction) {
             return new ResourceManager<T>(resourceFactory, disposeAction, disposeEagerly);
         }
+    }
+
+    public final static class CloseableResourceManagerBuilder<T extends Closeable> {
+
+        private final Func0<T> resourceFactory;
+        private boolean disposeEagerly = false;
+
+        private CloseableResourceManagerBuilder(Func0<T> resourceFactory) {
+            this.resourceFactory = resourceFactory;
+        }
+
+        public CloseableResourceManagerBuilder<T> disposeEagerly(boolean value) {
+            this.disposeEagerly = value;
+            return this;
+        }
+
+        public ResourceManager<T> create() {
+            return new ResourceManager<T>(resourceFactory, CloserHolder.INSTANCE, disposeEagerly);
+        }
+
     }
 
     public static <T> ResourceManager<T> create(Func0<T> resourceFactory,
