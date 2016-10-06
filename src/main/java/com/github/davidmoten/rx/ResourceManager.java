@@ -8,6 +8,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -118,8 +122,13 @@ public class ResourceManager<T> {
         return create(rf);
     }
 
-    public Observable<T> observable(Func1<? super T, Observable<? extends T>> observableFactory) {
+    public <R> Observable<R> observable(Func1<? super T, ? extends Observable<? extends R>> observableFactory) {
         return Observable.using(resourceFactory, observableFactory, disposeAction, disposeEagerly);
+    }
+
+    public <R> ResourceManager<R> map(final Checked.F1<? super T, ? extends R> resourceMapper,
+            final Checked.A1<? super R> disposeAction) {
+        return map(Checked.f1(resourceMapper), Checked.a1(disposeAction));
     }
 
     public <R> ResourceManager<R> map(final Func1<? super T, ? extends R> resourceMapper,
@@ -153,10 +162,11 @@ public class ResourceManager<T> {
         return create(rf, disposer);
     }
 
-    public <R extends Closeable> ResourceManager<R> map(final Func1<? super T, ? extends R> resourceMapper) {
+    public <R extends Closeable> ResourceManager<R> map(
+            final Func1<? super T, ? extends R> resourceMapper) {
         return map(resourceMapper, CloserHolder.INSTANCE);
     }
-    
+
     private static final class CloserHolder {
 
         static final Action1<Closeable> INSTANCE = new Action1<Closeable>() {
@@ -172,4 +182,49 @@ public class ResourceManager<T> {
         };
     }
 
+    public static void main(String[] args) {
+        ResourceManager<Connection> connectionManager = ResourceManager
+                .create(new Callable<Connection>() {
+                    @Override
+                    public Connection call() {
+                        return null;
+                    }
+                }, new Checked.A1<Connection>() {
+
+                    @Override
+                    public void call(Connection c) throws Exception {
+                        c.close();
+                    }
+                });
+        ResourceManager<PreparedStatement> psManager = connectionManager.map(new Checked.F1<Connection, PreparedStatement>() {
+            @Override
+            public PreparedStatement call(Connection con) throws SQLException {
+                return con.prepareStatement("select * from boo");
+            }
+        }, new Checked.A1<PreparedStatement>() {
+
+            @Override
+            public void call(PreparedStatement ps) throws Exception {
+                ps.close();
+            }
+        });
+        ResourceManager<ResultSet> rsManager = psManager.map(new Checked.F1<PreparedStatement, ResultSet>() {
+            @Override
+            public ResultSet call(PreparedStatement ps) throws SQLException {
+                return ps.getResultSet();
+            }
+        }, new Checked.A1<ResultSet>() {
+
+            @Override
+            public void call(ResultSet rs) throws Exception {
+                rs.close();
+            }
+        });
+        Observable<Integer> o = rsManager.observable(new Func1<ResultSet, Observable<Integer>>() {
+            @Override
+            public Observable<Integer> call(ResultSet rs) {
+                return Observable.empty();
+            }
+        });
+    }
 }
