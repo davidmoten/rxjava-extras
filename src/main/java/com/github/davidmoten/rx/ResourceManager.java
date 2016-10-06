@@ -30,7 +30,7 @@ public class ResourceManager<T> {
     private final Action1<? super T> disposeAction;
     private final boolean disposeEagerly;
 
-    private ResourceManager(Func0<T> resourceFactory, Action1<? super T> disposeAction,
+    protected ResourceManager(Func0<T> resourceFactory, Action1<? super T> disposeAction,
             boolean disposeEagerly) {
         this.resourceFactory = resourceFactory;
         this.disposeAction = disposeAction;
@@ -165,7 +165,7 @@ public class ResourceManager<T> {
         };
         return create(rf, disposer);
     }
-
+    
     public <R extends Closeable> ResourceManager<R> map(
             final Func1<? super T, ? extends R> resourceMapper) {
         return map(resourceMapper, CloserHolder.INSTANCE);
