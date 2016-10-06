@@ -1,22 +1,11 @@
 package com.github.davidmoten.rx;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.Charset;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.github.davidmoten.rx.exceptions.IORuntimeException;
+import com.github.davidmoten.util.Preconditions;
 
 import rx.Observable;
 import rx.functions.Action1;
@@ -33,6 +22,8 @@ public class ResourceManager<T> {
 
     protected ResourceManager(Func0<T> resourceFactory, Action1<? super T> disposeAction,
             boolean disposeEagerly) {
+        Preconditions.checkNotNull(resourceFactory);
+        Preconditions.checkNotNull(disposeAction);
         this.resourceFactory = resourceFactory;
         this.disposeAction = disposeAction;
         this.disposeEagerly = disposeEagerly;
@@ -41,7 +32,7 @@ public class ResourceManager<T> {
     public static <T> ResourceManagerBuilder<T> resourceFactory(Func0<T> resourceFactory) {
         return new ResourceManagerBuilder<T>(resourceFactory);
     }
-
+    
     public final static class ResourceManagerBuilder<T> {
 
         private final Func0<T> resourceFactory;
@@ -59,7 +50,6 @@ public class ResourceManager<T> {
         public ResourceManager<T> disposeAction(Action1<? super T> disposeAction) {
             return new ResourceManager<T>(resourceFactory, disposeAction, disposeEagerly);
         }
-
     }
 
     public static <T> ResourceManager<T> create(Func0<T> resourceFactory,
@@ -84,52 +74,6 @@ public class ResourceManager<T> {
 
     public static <T extends Closeable> ResourceManager<T> create(Callable<T> resourceFactory) {
         return create(Functions.toFunc0(resourceFactory), CloserHolder.INSTANCE);
-    }
-
-    public static ResourceManager<OutputStream> forOutput(final File file) {
-        Func0<OutputStream> rf = new Func0<OutputStream>() {
-
-            @Override
-            public OutputStream call() {
-                try {
-                    return new FileOutputStream(file);
-                } catch (FileNotFoundException e) {
-                    throw new IORuntimeException(e);
-                }
-            }
-        };
-        return create(rf);
-    }
-
-    public static ResourceManager<PrintWriter> forWriting(final File file, final Charset charset) {
-        Func0<PrintWriter> rf = new Func0<PrintWriter>() {
-
-            @Override
-            public PrintWriter call() {
-                try {
-                    return new PrintWriter(new BufferedWriter(
-                            new OutputStreamWriter(new FileOutputStream(file), charset)));
-                } catch (FileNotFoundException e) {
-                    throw new IORuntimeException(e);
-                }
-            }
-        };
-        return create(rf);
-    }
-
-    public static ResourceManager<InputStream> forInput(final File file) {
-        Func0<InputStream> rf = new Func0<InputStream>() {
-
-            @Override
-            public InputStream call() {
-                try {
-                    return new FileInputStream(file);
-                } catch (FileNotFoundException e) {
-                    throw new IORuntimeException(e);
-                }
-            }
-        };
-        return create(rf);
     }
 
     public <R> Observable<R> observable(
@@ -201,7 +145,4 @@ public class ResourceManager<T> {
         };
     }
 
-    public static void main(String[] args) {
-        ResourceManager.forOutput(new File("target/test")); //
-    }
 }
