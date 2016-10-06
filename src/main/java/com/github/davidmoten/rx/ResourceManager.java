@@ -166,8 +166,16 @@ public class ResourceManager<T> {
         Action1<R> disposer = new Action1<R>() {
             @Override
             public void call(R r) {
-                disposeAction.call(r);
-                ResourceManager.this.disposeAction.call(ref.get());
+                try {
+                    disposeAction.call(r);
+                } catch (Throwable e) {
+                    RxJavaHooks.onError(e);
+                }
+                try {
+                    ResourceManager.this.disposeAction.call(ref.get());
+                } catch (Throwable e) {
+                    RxJavaHooks.onError(e);
+                }
             }
         };
         return create(rf, disposer);
