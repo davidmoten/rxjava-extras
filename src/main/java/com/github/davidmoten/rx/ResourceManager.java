@@ -1,5 +1,7 @@
 package com.github.davidmoten.rx;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -8,10 +10,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -80,12 +81,12 @@ public class ResourceManager<T> {
     public static <T extends Closeable> ResourceManager<T> create(Func0<T> resourceFactory) {
         return create(resourceFactory, CloserHolder.INSTANCE);
     }
-    
+
     public static <T extends Closeable> ResourceManager<T> create(Callable<T> resourceFactory) {
         return create(Functions.toFunc0(resourceFactory), CloserHolder.INSTANCE);
     }
 
-    public static ResourceManager<OutputStream> forWriting(final File file) {
+    public static ResourceManager<OutputStream> forOutput(final File file) {
         Func0<OutputStream> rf = new Func0<OutputStream>() {
 
             @Override
@@ -100,7 +101,23 @@ public class ResourceManager<T> {
         return create(rf);
     }
 
-    public static ResourceManager<InputStream> forReading(final File file) {
+    public static ResourceManager<PrintWriter> forWriting(final File file, final Charset charset) {
+        Func0<PrintWriter> rf = new Func0<PrintWriter>() {
+
+            @Override
+            public PrintWriter call() {
+                try {
+                    return new PrintWriter(new BufferedWriter(
+                            new OutputStreamWriter(new FileOutputStream(file), charset)));
+                } catch (FileNotFoundException e) {
+                    throw new IORuntimeException(e);
+                }
+            }
+        };
+        return create(rf);
+    }
+
+    public static ResourceManager<InputStream> forInput(final File file) {
         Func0<InputStream> rf = new Func0<InputStream>() {
 
             @Override
@@ -115,18 +132,8 @@ public class ResourceManager<T> {
         return create(rf);
     }
 
-    public static ResourceManager<InputStream> forReadingFromClasspath(final Class<?> cls,
-            final String resource) {
-        Func0<InputStream> rf = new Func0<InputStream>() {
-            @Override
-            public InputStream call() {
-                return cls.getResourceAsStream(resource);
-            }
-        };
-        return create(rf);
-    }
-
-    public <R> Observable<R> observable(Func1<? super T, ? extends Observable<? extends R>> observableFactory) {
+    public <R> Observable<R> observable(
+            Func1<? super T, ? extends Observable<? extends R>> observableFactory) {
         return Observable.using(resourceFactory, observableFactory, disposeAction, disposeEagerly);
     }
 
@@ -165,7 +172,7 @@ public class ResourceManager<T> {
         };
         return create(rf, disposer);
     }
-    
+
     public <R extends Closeable> ResourceManager<R> map(
             final Func1<? super T, ? extends R> resourceMapper) {
         return map(resourceMapper, CloserHolder.INSTANCE);
@@ -187,45 +194,6 @@ public class ResourceManager<T> {
     }
 
     public static void main(String[] args) {
-        ResourceManager<Connection> connectionManager = ResourceManager
-                .create(new Callable<Connection>() {
-                    @Override
-                    public Connection call() {
-                        return null;
-                    }
-                }, new Checked.A1<Connection>() {
-                    @Override
-                    public void call(Connection c) throws Exception {
-                        c.close();
-                    }
-                });
-        ResourceManager<PreparedStatement> psManager = connectionManager.map(new Checked.F1<Connection, PreparedStatement>() {
-            @Override
-            public PreparedStatement call(Connection con) throws SQLException {
-                return con.prepareStatement("select * from boo");
-            }
-        }, new Checked.A1<PreparedStatement>() {
-            @Override
-            public void call(PreparedStatement ps) throws Exception {
-                ps.close();
-            }
-        });
-        ResourceManager<ResultSet> rsManager = psManager.map(new Checked.F1<PreparedStatement, ResultSet>() {
-            @Override
-            public ResultSet call(PreparedStatement ps) throws SQLException {
-                return ps.getResultSet();
-            }
-        }, new Checked.A1<ResultSet>() {
-            @Override
-            public void call(ResultSet rs) throws Exception {
-                rs.close();
-            }
-        });
-        Observable<Integer> o = rsManager.observable(new Func1<ResultSet, Observable<Integer>>() {
-            @Override
-            public Observable<Integer> call(ResultSet rs) {
-                return Observable.empty();
-            }
-        });
+        ResourceManager.forOutput(new File("target/test")); //
     }
 }
