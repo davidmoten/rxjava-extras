@@ -21,6 +21,7 @@ public final class OnSubscribeRepeating<T> implements OnSubscribe<T> {
         subscriber.setProducer(producer);
     }
 
+    @SuppressWarnings("serial")
     private static final class RepeatingProducer<T> extends AtomicLong implements Producer {
 
         private final Subscriber<? super T> subscriber;
