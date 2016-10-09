@@ -2,11 +2,14 @@ package com.github.davidmoten.rx;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
+
+import com.github.davidmoten.rx.testing.TestingHelper;
 
 import rx.Observable;
 import rx.Scheduler.Worker;
@@ -73,8 +76,21 @@ public class ObsTest {
     }
 
     @Test
-    public void testRepeating() {
-        assertEquals(1000, (int) Obs.repeating(1000).take(2000).toBlocking().last());
+    public void testRepeatingTwo() {
+        assertEquals(Arrays.asList(1000, 1000),
+                Obs.repeating(1000).take(2).toList().toBlocking().single());
+    }
+
+    @Test
+    public void testRepeatingZero() {
+        Obs.repeating(1000) //
+                .to(TestingHelper.<Integer> testWithRequest(0)) //
+                .assertNoValues() //
+                .assertNotCompleted() //
+                .requestMore(1) //
+                .assertValue(1000) //
+                .assertNotCompleted();
+                
     }
 
     public static void main(String[] args) throws InterruptedException {
@@ -115,6 +131,7 @@ public class ObsTest {
                 (int) Obs.permutations(Observable.range(0, 4).toList().toBlocking().single())
                         .count().toBlocking().single());
     }
+
     @Test
     public void testIntervalLong() {
         TestSubscriber<Long> ts = TestSubscriber.create();
@@ -125,7 +142,7 @@ public class ObsTest {
         sched.advanceTimeBy(1, TimeUnit.SECONDS);
         ts.assertValue(0L);
         sched.advanceTimeBy(1, TimeUnit.SECONDS);
-        ts.assertValues(0L,1L);
+        ts.assertValues(0L, 1L);
         ts.assertNotCompleted();
     }
 }

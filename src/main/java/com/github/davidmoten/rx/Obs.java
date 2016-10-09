@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.rx.internal.operators.OnSubscribeFromQueue;
+import com.github.davidmoten.rx.internal.operators.OnSubscribeRepeating;
 import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.internal.operators.Permutations;
 import com.github.davidmoten.rx.internal.operators.Permutations.Swap;
@@ -16,11 +17,8 @@ import com.github.davidmoten.rx.observables.CachedObservable;
 import com.github.davidmoten.util.Optional;
 
 import rx.Observable;
-import rx.Observable.OnSubscribe;
-import rx.Producer;
 import rx.Scheduler;
 import rx.Scheduler.Worker;
-import rx.Subscriber;
 import rx.functions.Action0;
 import rx.functions.Func0;
 import rx.functions.Func1;
@@ -176,19 +174,7 @@ public final class Obs {
      * @return an observable that repeats t forever (or until unsubscribed)
      */
     public static <T> Observable<T> repeating(final T t) {
-        return Observable.create(new OnSubscribe<T>() {
-            @Override
-            public void call(final Subscriber<? super T> subscriber) {
-                subscriber.setProducer(new Producer() {
-                    @Override
-                    public void request(long n) {
-                        while (n-- > 0 && !subscriber.isUnsubscribed()) {
-                            subscriber.onNext(t);
-                        }
-                    }
-                });
-            }
-        });
+        return Observable.create(new OnSubscribeRepeating<T>(t));
     }
 
     public static <T extends Comparable<? super T>> Observable<T> create(
