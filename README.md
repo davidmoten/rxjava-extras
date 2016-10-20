@@ -57,7 +57,7 @@ Add this to your pom.xml:
 <dependency>
   <groupId>com.github.davidmoten</groupId>
   <artifactId>rxjava-extras</artifactId>
-  <version>0.7.9.23</version>
+  <version>VERSION_HERE</version>
 </dependency>
 ```
 
@@ -68,7 +68,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.github.davidmoten:rxjava-extras:0.7.9.23'
+    compile 'com.github.davidmoten:rxjava-extras:VERSION_HERE'
 }
 ```
 
