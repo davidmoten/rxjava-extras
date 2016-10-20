@@ -206,7 +206,7 @@ public final class Strings {
         });
     }
 
-    public static Observable<List<String>> delimitedLines(InputStream is, Charset charset,
+    public static Observable<List<String>> splitLines(InputStream is, Charset charset,
             final String delimiter, final String commentPrefix) {
         return from(is, charset).compose(Transformers.split("\n")) //
                 .filter(new Func1<String, Boolean>() {
@@ -215,8 +215,8 @@ public final class Strings {
                         return !line.startsWith(commentPrefix);
                     }
                 }) //
-                .map(DelimitedLinesHolder.trim) //
-                .filter(DelimitedLinesHolder.notEmpty) //
+                .map(SplitLinesHolder.trim) //
+                .filter(SplitLinesHolder.notEmpty) //
                 .map(new Func1<String, List<String>>() {
                     @Override
                     public List<String> call(String line) {
@@ -225,11 +225,11 @@ public final class Strings {
                 });
     }
     
-    public static Observable<List<String>> delimitedLines(InputStream is, String delimiter) {
-        return delimitedLines(is, DEFAULT_CHARSET, delimiter, "#");
+    public static Observable<List<String>> splitLines(InputStream is, String delimiter) {
+        return splitLines(is, DEFAULT_CHARSET, delimiter, "#");
     }
 
-    private static class DelimitedLinesHolder {
+    private static class SplitLinesHolder {
         static final Func1<String, String> trim = new Func1<String, String>() {
             @Override
             public String call(String line) {
