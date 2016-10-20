@@ -31,6 +31,7 @@ import org.junit.Test;
 import com.github.davidmoten.junit.Asserts;
 import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Bytes;
+import com.github.davidmoten.rx.Functions;
 import com.github.davidmoten.rx.IO;
 import com.github.davidmoten.rx.RetryWhen;
 
@@ -420,6 +421,37 @@ public final class ObservableServerSocketTest {
             ts.unsubscribe();
         }
     }
+    
+    @Test
+    public void testAcceptSocketRejectsAlways()
+            throws UnknownHostException, IOException, InterruptedException {
+        reset();
+        TestSubscriber<Object> ts = TestSubscriber.create();
+        try {
+            int bufferSize = 4;
+            AtomicInteger port = new AtomicInteger();
+            IO.serverSocketAutoAllocatePort(Actions.setAtomic(port)) //
+                    .readTimeoutMs(10000) //
+                    .acceptTimeoutMs(200) //
+                    .bufferSize(bufferSize) //
+                    .acceptSocketIf(Functions.alwaysFalse()) //
+                    .create() //
+                    .subscribeOn(scheduler) //
+                    .subscribe(ts);
+            Thread.sleep(300);
+            Socket socket = new Socket("localhost", port.get());
+            OutputStream out = socket.getOutputStream();
+            out.write("12345678901234567890".getBytes());
+            out.close();
+            socket.close();
+            Thread.sleep(1000);
+            ts.assertNoValues();
+        } finally {
+            // will close server socket
+            ts.unsubscribe();
+        }
+    }
+
 
     public static void main(String[] args) throws InterruptedException {
         reset();

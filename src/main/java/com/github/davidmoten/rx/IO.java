@@ -2,6 +2,7 @@ package com.github.davidmoten.rx;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
 
 import com.github.davidmoten.rx.exceptions.IORuntimeException;
 import com.github.davidmoten.rx.internal.operators.ObservableServerSocket;
@@ -10,6 +11,7 @@ import rx.Observable;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func0;
+import rx.functions.Func1;
 
 public final class IO {
 
@@ -58,6 +60,7 @@ public final class IO {
 		private int bufferSize = 8192;
 		private Action0 preAcceptAction = Actions.doNothing0();
 		private int acceptTimeoutMs = Integer.MAX_VALUE;
+		private Func1<? super Socket, Boolean> acceptSocket = Functions.alwaysTrue();
 
 		public ServerSocketBuilder(final Func0<? extends ServerSocket> serverSocketFactory) {
 			this.serverSocketFactory = serverSocketFactory;
@@ -82,10 +85,15 @@ public final class IO {
 			this.acceptTimeoutMs = acceptTimeoutMs;
 			return this;
 		}
+		
+		public ServerSocketBuilder acceptSocketIf(Func1<? super Socket, Boolean> acceptSocket) {
+		    this.acceptSocket = acceptSocket;
+		    return this;
+		}
 
 		public Observable<Observable<byte[]>> create() {
 			return ObservableServerSocket.create(serverSocketFactory, readTimeoutMs, bufferSize, preAcceptAction,
-					acceptTimeoutMs);
+					acceptTimeoutMs, acceptSocket);
 		}
 
 	}
