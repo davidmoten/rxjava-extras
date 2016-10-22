@@ -18,13 +18,13 @@ import com.github.davidmoten.rx.StateMachine.Transition;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
+import com.github.davidmoten.rx.internal.operators.Match;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeDoOnEmpty;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeMapLast;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferPredicateBoundary;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferToFile;
 import com.github.davidmoten.rx.internal.operators.OperatorDoOnNth;
 import com.github.davidmoten.rx.internal.operators.OperatorFromTransformer;
-import com.github.davidmoten.rx.internal.operators.TransformerOnTerminateResume;
 import com.github.davidmoten.rx.internal.operators.OperatorSampleFirst;
 import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax;
 import com.github.davidmoten.rx.internal.operators.OperatorWindowMinMax.Metric;
@@ -33,6 +33,7 @@ import com.github.davidmoten.rx.internal.operators.TransformerDecode;
 import com.github.davidmoten.rx.internal.operators.TransformerDelayFinalUnsubscribe;
 import com.github.davidmoten.rx.internal.operators.TransformerLimitSubscribers;
 import com.github.davidmoten.rx.internal.operators.TransformerOnBackpressureBufferRequestLimiting;
+import com.github.davidmoten.rx.internal.operators.TransformerOnTerminateResume;
 import com.github.davidmoten.rx.internal.operators.TransformerStateMachine;
 import com.github.davidmoten.rx.internal.operators.TransformerStringSplit;
 import com.github.davidmoten.rx.util.BackpressureStrategy;
@@ -101,7 +102,7 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> o) {
-                return o.toSortedList().flatMapIterable(Functions.<List<T>>identity());
+                return o.toSortedList().flatMapIterable(Functions.<List<T>> identity());
             }
         };
     }
@@ -112,7 +113,7 @@ public final class Transformers {
             @Override
             public Observable<T> call(Observable<T> o) {
                 return o.toSortedList(Functions.toFunc2(comparator))
-                        .flatMapIterable(Functions.<List<T>>identity());
+                        .flatMapIterable(Functions.<List<T>> identity());
             }
         };
     }
@@ -231,7 +232,7 @@ public final class Transformers {
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
             BackpressureStrategy backpressureStrategy) {
-        return TransformerStateMachine.<State, In, Out>create(initialStateFactory, transition,
+        return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completion, backpressureStrategy, DEFAULT_INITIAL_BATCH);
     }
 
@@ -240,7 +241,7 @@ public final class Transformers {
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion,
             BackpressureStrategy backpressureStrategy, int initialRequest) {
-        return TransformerStateMachine.<State, In, Out>create(initialStateFactory, transition,
+        return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completion, backpressureStrategy, initialRequest);
     }
 
@@ -302,7 +303,7 @@ public final class Transformers {
             Func0<? extends State> initialStateFactory,
             Func3<? super State, ? super In, ? super Subscriber<Out>, ? extends State> transition,
             Func2<? super State, ? super Subscriber<Out>, Boolean> completion) {
-        return TransformerStateMachine.<State, In, Out>create(initialStateFactory, transition,
+        return TransformerStateMachine.<State, In, Out> create(initialStateFactory, transition,
                 completion, BackpressureStrategy.BUFFER, DEFAULT_INITIAL_BATCH);
     }
 
@@ -366,7 +367,7 @@ public final class Transformers {
                 List<Observable<T>> collection = new ArrayList<Observable<T>>();
                 collection.add(source);
                 collection.addAll(others);
-                return OrderedMerge.<T>create(collection, comparator, false);
+                return OrderedMerge.<T> create(collection, comparator, false);
             }
         };
     }
@@ -525,7 +526,7 @@ public final class Transformers {
      */
     public static <T, R extends Collection<T>> Transformer<T, R> collectWhile(
             final Func0<R> factory, final Action2<? super R, ? super T> collect) {
-        return collectWhile(factory, collect, HolderEquals.<T>instance());
+        return collectWhile(factory, collect, HolderEquals.<T> instance());
     }
 
     public static <T, R extends Iterable<?>> Transformer<T, R> collectWhile(final Func0<R> factory,
@@ -675,7 +676,7 @@ public final class Transformers {
     }
 
     public static <T> Transformer<T, T> onBackpressureBufferToFile() {
-        return onBackpressureBufferToFile(DataSerializers.<T>javaIO(), Schedulers.computation(),
+        return onBackpressureBufferToFile(DataSerializers.<T> javaIO(), Schedulers.computation(),
                 Options.defaultInstance());
     }
 
@@ -711,7 +712,7 @@ public final class Transformers {
     }
 
     public static <T extends Comparable<T>> Transformer<T, T> windowMax(final int windowSize) {
-        return windowMax(windowSize, Transformers.<T>naturalComparator());
+        return windowMax(windowSize, Transformers.<T> naturalComparator());
     }
 
     public static <T> Transformer<T, T> windowMax(final int windowSize,
@@ -725,7 +726,7 @@ public final class Transformers {
     }
 
     public static <T extends Comparable<T>> Transformer<T, T> windowMin(final int windowSize) {
-        return windowMin(windowSize, Transformers.<T>naturalComparator());
+        return windowMin(windowSize, Transformers.<T> naturalComparator());
     }
 
     private static class NaturalComparatorHolder {
@@ -892,7 +893,7 @@ public final class Transformers {
             public Observable<T> call(Observable<T> o) {
                 return o.compose(Transformers. //
                 stateMachine() //
-                        .initialState(Optional.<T>absent()) //
+                        .initialState(Optional.<T> absent()) //
                         .transition(new Transition<Optional<T>, T, T>() {
 
                             @Override
@@ -1310,5 +1311,17 @@ public final class Transformers {
                 return Observable.create(new OnSubscribeMapLast<T>(source, function));
             }
         };
+    }
+
+    public static <A, B, K, C> Transformer<A, C> matchWith(final Observable<B> obs, final Func1<? super A, ? extends K> key1,
+            final Func1<? super B,? extends K> key2, final Func2<? super A, ? super B, C> combiner) {
+        return new Transformer<A, C>() {
+
+            @Override
+            public Observable<C> call(Observable<A> source) {
+                return Match.match(source, obs, key1, key2, combiner);
+            }
+        };
+
     }
 }
