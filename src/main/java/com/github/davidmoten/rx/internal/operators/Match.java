@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.function.Function;
 
 import rx.Observable;
 import rx.functions.Action0;
@@ -53,18 +54,20 @@ public final class Match {
                             }
                         }) //
                         .flatMap(new Func1<Pair<A, B>, Observable<C>>() {
+                            
                             @Override
                             public Observable<C> call(Pair<A, B> pair) {
                                 K ak = aKey.call(pair.left);
-                                Queue<A> q = map.get(ak);
-                                if (q == null) {
-                                    q = new LinkedList<A>();
-                                    map.put(ak, q);
-                                }
-                                q.add(pair.left);
+                                Queue<A> q = map.computeIfAbsent(ak, new Function<K, Queue<A>>() {
+                                    @Override
+                                    public Queue<A> apply(K k) {
+                                        return new LinkedList<A>();
+                                    }
+                                });
+                                q.offer(pair.left);
                                 K bk = bKey.call(pair.right);
                                 Queue<A> q2 = map.get(bk);
-                                A v;
+                                final A v;
                                 if (q2 == null)
                                     v = null;
                                 else {
