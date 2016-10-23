@@ -72,11 +72,8 @@ public class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         @Override
         public void request(long n) {
-            if (n == 0) {
-                return;
-            } else if (n < 0) {
-                throw new IllegalArgumentException("request must be >=0");
-            } else if (BackpressureUtils.getAndAddRequest(this, n) == 0) {
+            if (BackpressureUtils.validate(n)) {
+                BackpressureUtils.getAndAddRequest(this, n);
                 drain();
             }
         }
@@ -99,11 +96,12 @@ public class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     Object v = queue.poll();
                     if (v != null) {
                         if (v instanceof Item) {
-                           
+                            Item item = (Item) v;
+                            handle(item);
                         } else if (v instanceof Error) {
-                            
+
                         } else if (v instanceof Completed) {
-                            
+
                         }
                     } else {
                         break;
@@ -116,6 +114,32 @@ public class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                         return;
                     }
                     wip = 1;
+                }
+            }
+        }
+
+        private static final Object NULL_SENTINEL = new Object();
+
+        private void handle(Item item) {
+            if (item.source == Source.A) {
+                @SuppressWarnings("unchecked")
+                A a = (A) item.value;
+                K key = aKey.call(a);
+                Queue<B> q = bs.get(key);
+                if (q == null) {
+                    Queue<A> q2 = as.get(key);
+                    if (q2 == null) {
+                        q2 = new LinkedList<A>();
+                        as.put(key, q2);
+                    }
+                    q2.offer(a);
+                } else {
+                    B b = q.poll();
+                    if (q.isEmpty()) {
+                        bs.remove(key);
+                    }
+                    C c = combiner.call(a, b);
+                    child.onNext(c);
                 }
             }
         }
@@ -151,7 +175,7 @@ public class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         @Override
         public void onNext(T t) {
-            receiver.offer(new Item<Object>(t, source));
+            receiver.offer(new Item(t, source));
         }
 
         @Override
@@ -166,12 +190,11 @@ public class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
     }
 
-    static final class Item<T> {
-        final T value;
+    static final class Item {
+        final Object value;
         final Source source;
 
-        Item(T value, Source source) {
-            super();
+        Item(Object value, Source source) {
             this.value = value;
             this.source = source;
         }

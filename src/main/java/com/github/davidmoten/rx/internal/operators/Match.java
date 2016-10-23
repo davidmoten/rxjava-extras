@@ -58,12 +58,12 @@ public final class Match {
                             @Override
                             public Observable<C> call(Pair<A, B> pair) {
                                 K ak = aKey.call(pair.left);
-                                Queue<A> q = map.computeIfAbsent(ak, new Function<K, Queue<A>>() {
-                                    @Override
-                                    public Queue<A> apply(K k) {
-                                        return new LinkedList<A>();
-                                    }
-                                });
+                                
+                                Queue<A> q = map.get(ak);
+                                if (q == null) {
+                                    q = new LinkedList<A>();
+                                    map.put(ak,  q);
+                                }
                                 q.offer(pair.left);
                                 K bk = bKey.call(pair.right);
                                 Queue<A> q2 = map.get(bk);
