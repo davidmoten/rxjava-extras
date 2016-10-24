@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Functions;
@@ -69,7 +70,7 @@ public class OnSubscribeMatchTest {
 
     @Test
     public void testLongReversed() {
-        final int n = 10000;
+        final int n = 1000000;
         Observable<Integer> a = Observable.range(1, n).map(new Func1<Integer, Integer>() {
             @Override
             public Integer call(Integer x) {
@@ -77,8 +78,21 @@ public class OnSubscribeMatchTest {
             }
         });
         Observable<Integer> b = Observable.range(1, n);
-        assertEquals(Observable.range(1, n).toList().toBlocking().single(),
-                match(a, b).assertCompleted().getOnNextEvents());
+        boolean equals = a.compose(Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER))
+                .zipWith(Observable.range(1, n), new Func2<Integer, Integer, Boolean>() {
+
+                    @Override
+                    public Boolean call(Integer t1, Integer t2) {
+                        return t1.equals(t2);
+                    }
+                }).all(new Func1<Boolean, Boolean>() {
+
+                    @Override
+                    public Boolean call(Boolean t) {
+                        return t;
+                    }
+                }).toBlocking().single();
+        Assert.assertTrue(equals);
     }
 
     @Test
@@ -96,13 +110,15 @@ public class OnSubscribeMatchTest {
         assertEquals(list, ts.getOnNextEvents());
     }
 
+    private static final Func2<Integer, Integer, Integer> COMBINER = new Func2<Integer, Integer, Integer>() {
+        @Override
+        public Integer call(Integer x, Integer y) {
+            return x;
+        }
+    };
+
     private static TestSubscriber2<Integer> match(Observable<Integer> a, Observable<Integer> b) {
-        return a.compose(Transformers.matchWith(b, Functions.identity(), Functions.identity(),
-                new Func2<Integer, Integer, Integer>() {
-                    @Override
-                    public Integer call(Integer x, Integer y) {
-                        return x;
-                    }
-                })).to(TestingHelper.<Integer>test());
+        return a.compose(Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER))
+                .to(TestingHelper.<Integer>test());
     }
 }
