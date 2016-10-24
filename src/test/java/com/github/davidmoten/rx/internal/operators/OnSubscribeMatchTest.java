@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Functions;
