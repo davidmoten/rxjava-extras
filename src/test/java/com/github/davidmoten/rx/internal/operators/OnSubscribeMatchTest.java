@@ -2,18 +2,15 @@ package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
 
-import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Functions;
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.testing.TestSubscriber2;
 import com.github.davidmoten.rx.testing.TestingHelper;
-import com.github.davidmoten.rx.util.Pair;
 
 import rx.Observable;
 import rx.functions.Func1;
