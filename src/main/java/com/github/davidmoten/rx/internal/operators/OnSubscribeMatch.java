@@ -42,13 +42,13 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
     @Override
     public void call(Subscriber<? super C> child) {
-        AtomicReference<Receiver> producerHolder = new AtomicReference<Receiver>();
-        MySubscriber<A, K> aSub = new MySubscriber<A, K>(Source.A, producerHolder);
-        MySubscriber<B, K> bSub = new MySubscriber<B, K>(Source.B, producerHolder);
+        AtomicReference<Receiver> receiverHolder = new AtomicReference<Receiver>();
+        MySubscriber<A, K> aSub = new MySubscriber<A, K>(Source.A, receiverHolder);
+        MySubscriber<B, K> bSub = new MySubscriber<B, K>(Source.B, receiverHolder);
         child.add(aSub);
         child.add(bSub);
         MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner, aSub, bSub, child);
-        producerHolder.set(producer);
+        receiverHolder.set(producer);
         child.setProducer(producer);
         a.unsafeSubscribe(aSub);
         b.unsafeSubscribe(bSub);
@@ -163,17 +163,9 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 K key = aKey.call(a);
                 Queue<B> q = bs.get(key);
                 if (q == null) {
-                    Queue<A> q2 = as.get(key);
-                    if (q2 == null) {
-                        q2 = new LinkedList<A>();
-                        as.put(key, q2);
-                    }
-                    q2.offer(a);
+                    add(as, key, a);
                 } else {
-                    B b = q.poll();
-                    if (q.isEmpty()) {
-                        bs.remove(key);
-                    }
+                    B b = poll(bs, q, key);
                     C c = combiner.call(a, b);
                     child.onNext(c);
                     result = 1;
@@ -185,17 +177,9 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 K key = bKey.call(b);
                 Queue<A> q = as.get(key);
                 if (q == null) {
-                    Queue<B> q2 = bs.get(key);
-                    if (q2 == null) {
-                        q2 = new LinkedList<B>();
-                        bs.put(key, q2);
-                    }
-                    q2.offer(b);
+                    add(bs, key, b);
                 } else {
-                    A a = q.poll();
-                    if (q.isEmpty()) {
-                        as.remove(key);
-                    }
+                    A a = poll(as, q, key);
                     C c = combiner.call(a, b);
                     child.onNext(c);
                     result = 1;
@@ -203,6 +187,23 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 bSub.requestMore(1);
             }
             return result;
+        }
+
+        private static <K, T> void add(Map<K, Queue<T>> map, K key, T value) {
+            Queue<T> q = map.get(key);
+            if (q == null) {
+                q = new LinkedList<T>();
+                map.put(key, q);
+            }
+            q.offer(value);
+        }
+
+        private static <K, T> T poll(Map<K, Queue<T>> map, Queue<T> q, K key) {
+            T t = q.poll();
+            if (q.isEmpty()) {
+                map.remove(key);
+            }
+            return t;
         }
 
         @Override
