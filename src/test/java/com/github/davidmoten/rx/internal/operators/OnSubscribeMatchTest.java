@@ -95,41 +95,53 @@ public class OnSubscribeMatchTest {
         Observable<Integer> b = Observable.just(3, 4);
         match(a, b, new Integer[] {});
     }
-    
+
     @Test
     public void testUnsubscribe() {
         Observable<Integer> a = Observable.just(1, 2, 3, 4);
         Observable<Integer> b = Observable.just(3, 2, 1, 4);
+        // TODO
     }
-    
-    
-    private static Observable<Integer> matchThem(Observable<Integer> a, Observable<Integer> b) {
-        return a.compose(Transformers.matchWith(b, Functions.identity(),
-                Functions.identity(), COMBINER));
+
+    @Test
+    public void testError() {
+        RuntimeException e = new RuntimeException();
+        Observable<Integer> a = Observable.just(1, 2).concatWith(Observable.<Integer> error(e));
+        Observable<Integer> b = Observable.just(1, 2, 3);
+        match(a, b).assertNoValues().assertError(e);
     }
-    
-    
 
     @Test
     public void testLongReversed() {
-        final int n = 500;
-        Observable<Integer> a = Observable.range(1, n).map(new Func1<Integer, Integer>() {
-            @Override
-            public Integer call(Integer x) {
-                return n + 1 - x;
-            }
-        });
-        Observable<Integer> b = Observable.range(1, n);
-        boolean equals = Observable
-                .sequenceEqual(a.compose(Transformers.matchWith(b, Functions.identity(),
-                        Functions.identity(), COMBINER)).sorted(), Observable.range(1, n))
-                .toBlocking().single();
-        assertTrue(equals);
+        for (int n = 1; n < 1000; n++) {
+            final int N = n;
+            Observable<Integer> a = Observable.range(1, n).map(new Func1<Integer, Integer>() {
+                @Override
+                public Integer call(Integer x) {
+                    return N + 1 - x;
+                }
+            });
+            Observable<Integer> b = Observable.range(1, n);
+            boolean equals = Observable
+                    .sequenceEqual(matchThem(a, b).sorted(), Observable.range(1, n)).toBlocking()
+                    .single();
+            assertTrue(equals);
+        }
     }
 
     @Test
     public void testLongShifted() {
-        final int n = 100000;
+        for (int n = 1; n < 1000; n++) {
+            testShifted(n);
+        }
+    }
+    
+    @Test
+    public void testVeryLongShifted() {
+        testShifted(10000000);
+    }
+
+    private void testShifted(int n) {
         Observable<Integer> a = Observable.just(0).concatWith(Observable.range(1, n));
         Observable<Integer> b = Observable.range(1, n);
         assertTrue(Observable
@@ -138,10 +150,19 @@ public class OnSubscribeMatchTest {
                 .toBlocking().single());
     }
 
+    private static Observable<Integer> matchThem(Observable<Integer> a, Observable<Integer> b) {
+        return a.compose(
+                Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER));
+    }
+
     private static void match(Observable<Integer> a, Observable<Integer> b, Integer... expected) {
         List<Integer> list = Arrays.asList(expected);
         TestSubscriber2<Integer> ts = match(a, b).assertCompleted();
         assertEquals(list, ts.getOnNextEvents());
+    }
+
+    private static TestSubscriber2<Integer> match(Observable<Integer> a, Observable<Integer> b) {
+        return matchThem(a, b).to(TestingHelper.<Integer> test());
     }
 
     private static final Func2<Integer, Integer, Integer> COMBINER = new Func2<Integer, Integer, Integer>() {
@@ -151,9 +172,4 @@ public class OnSubscribeMatchTest {
         }
     };
 
-    private static TestSubscriber2<Integer> match(Observable<Integer> a, Observable<Integer> b) {
-        return a.compose(
-                Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER))
-                .to(TestingHelper.<Integer> test());
-    }
 }
