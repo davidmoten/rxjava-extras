@@ -24,7 +24,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     private final Func1<? super A, ? extends K> aKey;
     private final Func1<? super B, ? extends K> bKey;
     private final Func2<? super A, ? super B, C> combiner;
-    private static final int INITIAL_REQUEST = 128;
+    private static final int REQUEST_SIZE = 128;
 
     public OnSubscribeMatch(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
             Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner) {
@@ -69,6 +69,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private int wip = 0;
         private int completed = 0;
         private boolean requestAll = false;
+        private int requestFromA = 0;
+        private int requestFromB = 0;
 
         MyProducer(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
                 Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, MySubscriber<A, K> aSub,
@@ -173,7 +175,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     child.onNext(c);
                     result = 1;
                 }
-                aSub.requestMore(1);
+                requestFromA+=1;
             } else {
                 B b = (B) item.value;
                 K key = bKey.call(b);
@@ -186,7 +188,13 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     child.onNext(c);
                     result = 1;
                 }
-                bSub.requestMore(1);
+                requestFromB +=1;
+            }
+            if (requestFromA == REQUEST_SIZE && requestFromB == REQUEST_SIZE) {
+                requestFromA = 0;
+                requestFromB = 0;
+                aSub.requestMore(REQUEST_SIZE);
+                bSub.requestMore(REQUEST_SIZE);
             }
             return result;
         }
@@ -228,7 +236,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         MySubscriber(Source source, AtomicReference<Receiver> receiver) {
             this.source = source;
             this.receiver = receiver;
-            request(INITIAL_REQUEST);
+            request(REQUEST_SIZE);
         }
 
         @Override
