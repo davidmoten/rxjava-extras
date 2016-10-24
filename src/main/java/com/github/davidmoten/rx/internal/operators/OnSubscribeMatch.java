@@ -125,26 +125,23 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                         Item item = (Item) v;
                         emitted += emit(item);
                     } else if (v instanceof ErrorFrom) {
-                        queue.clear();
-                        as.clear();
-                        bs.clear();
-                        aSub.unsubscribe();
-                        bSub.unsubscribe();
+                        clear();
                         child.onError(((ErrorFrom) v).error);
                         return;
                     } else {
                         // completed
                         CompletedFrom comp = (CompletedFrom) v;
                         completed += 1;
+                        final boolean done;
                         if (comp.source == Source.A) {
                             aSub.unsubscribe();
+                            done = (completed == 2) || (completed == 1 && as.isEmpty());
                         } else {
                             bSub.unsubscribe();
+                            done = (completed == 2) || (completed == 1 && bs.isEmpty());
                         }
-                        if (completed == 2) {
-                            as.clear();
-                            bs.clear();
-                            queue.clear();
+                        if (done) {
+                            clear();
                             child.onCompleted();
                         }
                     }
@@ -167,6 +164,14 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     wip = 1;
                 }
             }
+        }
+        
+        private void clear() {
+            as.clear();
+            bs.clear();
+            queue.clear();
+            aSub.unsubscribe();
+            bSub.unsubscribe();
         }
 
         @SuppressWarnings("unchecked")

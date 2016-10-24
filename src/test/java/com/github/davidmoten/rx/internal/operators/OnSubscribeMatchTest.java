@@ -110,6 +110,20 @@ public class OnSubscribeMatchTest {
         Observable<Integer> b = Observable.just(1, 2, 3);
         match(a, b).assertNoValues().assertError(e);
     }
+    
+    @Test(timeout = 5000)
+    public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinish() {
+        Observable<Integer> a = Observable.just(1, 2).concatWith(Observable.<Integer>never());
+        Observable<Integer> b = Observable.just(1, 2);
+        match(a,b).assertValues(1,2).assertCompleted();
+    }
+    
+    @Test(timeout = 5000)
+    public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinishSwitched() {
+        Observable<Integer> a = Observable.just(1, 2);
+        Observable<Integer> b = Observable.just(1, 2).concatWith(Observable.<Integer>never());
+        match(a,b).assertValues(1,2).assertCompleted();
+    }
 
     @Test
     public void testLongReversed() {
@@ -138,7 +152,7 @@ public class OnSubscribeMatchTest {
     
     @Test
     public void testVeryLongShifted() {
-        testShifted(10000000);
+        testShifted(1000000);
     }
 
     private void testShifted(int n) {
