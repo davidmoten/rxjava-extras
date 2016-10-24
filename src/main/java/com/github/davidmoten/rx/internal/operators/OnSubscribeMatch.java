@@ -107,7 +107,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 }
                 int emitted = 0;
                 while (r > emitted & !queue.isEmpty()) {
-                    System.out.println("asSize="+ as.size()+ ", bsSize="+ bs.size());
+                    // System.out.println("asSize="+ as.size()+ ", bsSize="+
+                    // bs.size());
                     if (child.isUnsubscribed()) {
                         return;
                     }
@@ -175,7 +176,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     child.onNext(c);
                     result = 1;
                 }
-                requestFromA+=1;
+                requestFromA += 1;
             } else {
                 B b = (B) item.value;
                 K key = bKey.call(b);
@@ -188,7 +189,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     child.onNext(c);
                     result = 1;
                 }
-                requestFromB +=1;
+                requestFromB += 1;
             }
             if (requestFromA == REQUEST_SIZE && requestFromB == REQUEST_SIZE) {
                 requestFromA = 0;
