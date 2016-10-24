@@ -3,6 +3,7 @@ package com.github.davidmoten.rx.internal.operators;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Test;
@@ -48,29 +49,40 @@ public class OnSubscribeMatchTest {
     }
 
     @Test
+    public void testEmpties() {
+        Observable<Integer> a = Observable.empty();
+        Observable<Integer> b = Observable.empty();
+        match(a, b);
+    }
+
+    @Test
     public void testRepeats() {
         Observable<Integer> a = Observable.just(1, 1);
         Observable<Integer> b = Observable.just(1, 1);
         match(a, b, 1, 1);
     }
 
+    @Test
+    public void testRepeats2() {
+        Observable<Integer> a = Observable.just(1, 1, 2, 3, 1);
+        Observable<Integer> b = Observable.just(1, 2, 1, 3, 1);
+        match(a, b, 1, 2, 1, 3, 1);
+    }
+
     private static void match(Observable<Integer> a, Observable<Integer> b, Integer... expected) {
-        List<Pair<Integer, Integer>> list = new ArrayList<Pair<Integer, Integer>>();
-        for (Integer i : expected) {
-            list.add(Pair.create(i, i));
-        }
-        TestSubscriber2<Pair<Integer, Integer>> ts = match(a, b).assertCompleted();
+        List<Integer> list = Arrays.asList(expected);
+        TestSubscriber2<Integer> ts = match(a, b).assertCompleted();
         assertEquals(list, ts.getOnNextEvents());
     }
 
-    private static TestSubscriber2<Pair<Integer, Integer>> match(Observable<Integer> a, Observable<Integer> b) {
+    private static TestSubscriber2<Integer> match(Observable<Integer> a, Observable<Integer> b) {
         return a.compose(Transformers.matchWith(b, Functions.identity(), Functions.identity(),
-                new Func2<Integer, Integer, Pair<Integer, Integer>>() {
+                new Func2<Integer, Integer, Integer>() {
                     @Override
-                    public Pair<Integer, Integer> call(Integer x, Integer y) {
-                        return Pair.create(x, y);
+                    public Integer call(Integer x, Integer y) {
+                        return x;
                     }
                 })).doOnNext(Actions.println()) //
-                .to(TestingHelper.<Pair<Integer, Integer>>test());
+                .to(TestingHelper.<Integer>test());
     }
 }
