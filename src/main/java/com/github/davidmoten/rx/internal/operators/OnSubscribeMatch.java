@@ -155,10 +155,10 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             }
         }
 
+        @SuppressWarnings("unchecked")
         private int emit(Item item) {
             int result = 0;
             if (item.source == Source.A) {
-                @SuppressWarnings("unchecked")
                 A a = (A) item.value;
                 K key = aKey.call(a);
                 Queue<B> q = bs.get(key);
@@ -172,7 +172,6 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 }
                 aSub.requestMore(1);
             } else {
-                @SuppressWarnings("unchecked")
                 B b = (B) item.value;
                 K key = bKey.call(b);
                 Queue<A> q = as.get(key);
