@@ -95,6 +95,20 @@ public class OnSubscribeMatchTest {
         Observable<Integer> b = Observable.just(3, 4);
         match(a, b, new Integer[] {});
     }
+    
+    @Test
+    public void testUnsubscribe() {
+        Observable<Integer> a = Observable.just(1, 2, 3, 4);
+        Observable<Integer> b = Observable.just(3, 2, 1, 4);
+    }
+    
+    
+    private static Observable<Integer> matchThem(Observable<Integer> a, Observable<Integer> b) {
+        return a.compose(Transformers.matchWith(b, Functions.identity(),
+                Functions.identity(), COMBINER));
+    }
+    
+    
 
     @Test
     public void testLongReversed() {
