@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.github.davidmoten.util.Preconditions;
 
@@ -23,6 +24,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     private final Func1<? super A, ? extends K> aKey;
     private final Func1<? super B, ? extends K> bKey;
     private final Func2<? super A, ? super B, C> combiner;
+    private static final int INITIAL_REQUEST = 128;
 
     public OnSubscribeMatch(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
             Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner) {
@@ -36,17 +38,17 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         this.aKey = aKey;
         this.bKey = bKey;
         this.combiner = combiner;
-
     }
 
     @Override
     public void call(Subscriber<? super C> child) {
-        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner, child);
-        int bufferSize = 128;
-        MySubscriber<A, K> aSub = new MySubscriber<A, K>(bufferSize, Source.A, producer);
-        MySubscriber<B, K> bSub = new MySubscriber<B, K>(bufferSize, Source.B, producer);
+        AtomicReference<Receiver> producerHolder = new AtomicReference<Receiver>();
+        MySubscriber<A, K> aSub = new MySubscriber<A, K>(Source.A, producerHolder);
+        MySubscriber<B, K> bSub = new MySubscriber<B, K>(Source.B, producerHolder);
         child.add(aSub);
         child.add(bSub);
+        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner, aSub, bSub, child);
+        producerHolder.set(producer);
         child.setProducer(producer);
         a.unsafeSubscribe(aSub);
         b.unsafeSubscribe(bSub);
@@ -62,21 +64,20 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private final Func1<? super B, ? extends K> bKey;
         private final Func2<? super A, ? super B, C> combiner;
         private final Subscriber<? super C> child;
-        private final int bufferSize = 128;
         private final MySubscriber<A, K> aSub;
         private final MySubscriber<B, K> bSub;
         private int wip = 0;
         private int completed = 0;
 
         MyProducer(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
-                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
-                Subscriber<? super C> child) {
+                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, MySubscriber<A, K> aSub,
+                MySubscriber<B, K> bSub, Subscriber<? super C> child) {
             this.aKey = aKey;
             this.bKey = bKey;
             this.combiner = combiner;
             this.child = child;
-            this.aSub = new MySubscriber<A, K>(bufferSize, Source.A, this);
-            this.bSub = new MySubscriber<B, K>(bufferSize, Source.B, this);
+            this.aSub = aSub;
+            this.bSub = bSub;
         }
 
         @Override
@@ -98,16 +99,16 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             }
             while (true) {
                 long r = get();
-                while (r > 0 && !queue.isEmpty()) {
+                int emitted = 0;
+                while (r > emitted & !queue.isEmpty()) {
                     if (child.isUnsubscribed()) {
                         return;
                     }
                     Object v = queue.poll();
-                    final int emitted;
                     if (v != null) {
                         if (v instanceof Item) {
                             Item item = (Item) v;
-                            emitted = emit(item);
+                            emitted += emit(item);
                         } else if (v instanceof Error) {
                             queue.clear();
                             as.clear();
@@ -120,7 +121,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                             // completed
                             Completed comp = (Completed) v;
                             completed += 1;
-                            if (comp.source == Source.A){
+                            if (comp.source == Source.A) {
                                 aSub.unsubscribe();
                             } else {
                                 bSub.unsubscribe();
@@ -131,17 +132,19 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                                 queue.clear();
                                 child.onCompleted();
                             }
-                            emitted = 0;
                         }
                     } else {
                         break;
                     }
-                    r -= emitted;
-                    if (r == 0) {
-                        r = get();
+                    if (r == emitted) {
+                        r = addAndGet(-emitted);
+                        emitted = 0;
                     }
                 }
-
+                if (emitted > 0) {
+                    // queue was exhausted but requests were not
+                    addAndGet(-emitted);
+                }
                 synchronized (this) {
                     wip--;
                     if (wip == 0) {
@@ -214,33 +217,30 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         void offer(Object item);
     }
 
-    @SuppressWarnings("unused")
     private static class MySubscriber<T, K> extends Subscriber<T> {
 
-        private final int bufferSize;
-        private final Receiver receiver;
+        private final AtomicReference<Receiver> receiver;
         private final Source source;
 
-        MySubscriber(int bufferSize, Source source, Receiver receiver) {
-            this.bufferSize = bufferSize;
+        MySubscriber(Source source, AtomicReference<Receiver> receiver) {
             this.source = source;
             this.receiver = receiver;
-            request(bufferSize);
+            request(INITIAL_REQUEST);
         }
 
         @Override
         public void onNext(T t) {
-            receiver.offer(new Item(t, source));
+            receiver.get().offer(new Item(t, source));
         }
 
         @Override
         public void onCompleted() {
-            receiver.offer(new Completed(source));
+            receiver.get().offer(new Completed(source));
         }
 
         @Override
         public void onError(Throwable e) {
-            receiver.offer(new Error(e, source));
+            receiver.get().offer(new Error(e, source));
         }
 
         public void requestMore(long n) {

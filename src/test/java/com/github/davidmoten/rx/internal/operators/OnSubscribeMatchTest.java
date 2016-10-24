@@ -16,6 +16,7 @@ import com.github.davidmoten.rx.testing.TestingHelper;
 import com.github.davidmoten.rx.util.Pair;
 
 import rx.Observable;
+import rx.functions.Func1;
 import rx.functions.Func2;
 
 public class OnSubscribeMatchTest {
@@ -69,6 +70,29 @@ public class OnSubscribeMatchTest {
         match(a, b, 1, 2, 1, 3, 1);
     }
 
+    @Test
+    public void testLongReversed() {
+        final int n = 10000;
+        Observable<Integer> a = Observable.range(1, n).map(new Func1<Integer, Integer>() {
+            @Override
+            public Integer call(Integer x) {
+                return n + 1 - x;
+            }
+        });
+        Observable<Integer> b = Observable.range(1, n);
+        assertEquals(Observable.range(1, n).toList().toBlocking().single(),
+                match(a, b).assertCompleted().getOnNextEvents());
+    }
+
+    @Test
+    public void testLongShifted() {
+        final int n = 100000;
+        Observable<Integer> a = Observable.just(0).concatWith(Observable.range(1, n));
+        Observable<Integer> b = Observable.range(1, n);
+        assertEquals(Observable.range(1, n).toList().toBlocking().single(),
+                match(a, b).assertCompleted().getOnNextEvents());
+    }
+
     private static void match(Observable<Integer> a, Observable<Integer> b, Integer... expected) {
         List<Integer> list = Arrays.asList(expected);
         TestSubscriber2<Integer> ts = match(a, b).assertCompleted();
@@ -82,7 +106,6 @@ public class OnSubscribeMatchTest {
                     public Integer call(Integer x, Integer y) {
                         return x;
                     }
-                })).doOnNext(Actions.println()) //
-                .to(TestingHelper.<Integer>test());
+                })).to(TestingHelper.<Integer>test());
     }
 }
