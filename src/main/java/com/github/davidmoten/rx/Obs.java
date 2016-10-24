@@ -62,8 +62,8 @@ public final class Obs {
      *            the generic type of the source
      * @return cached observable that resets regularly on a time interval
      */
-    public static <T> Observable<T> cache(final Observable<T> source, final long duration, final TimeUnit unit,
-            final Worker worker) {
+    public static <T> Observable<T> cache(final Observable<T> source, final long duration,
+            final TimeUnit unit, final Worker worker) {
         final AtomicReference<CachedObservable<T>> cacheRef = new AtomicReference<CachedObservable<T>>();
         CachedObservable<T> cache = new CachedObservable<T>(source);
         cacheRef.set(cache);
@@ -99,11 +99,11 @@ public final class Obs {
      * @return {@link CloseableObservableWithReset} that should be closed once
      *         finished to prevent worker memory leak.
      */
-    public static <T> CloseableObservableWithReset<T> cache(final Observable<T> source, final long duration,
-            final TimeUnit unit, final Scheduler scheduler) {
+    public static <T> CloseableObservableWithReset<T> cache(final Observable<T> source,
+            final long duration, final TimeUnit unit, final Scheduler scheduler) {
         final AtomicReference<CachedObservable<T>> cacheRef = new AtomicReference<CachedObservable<T>>();
         final AtomicReference<Optional<Worker>> workerRef = new AtomicReference<Optional<Worker>>(
-                Optional.<Worker>absent());
+                Optional.<Worker> absent());
         CachedObservable<T> cache = new CachedObservable<T>(source);
         cacheRef.set(cache);
         Action0 closeAction = new Action0() {
@@ -180,21 +180,23 @@ public final class Obs {
         return Observable.create(new OnSubscribeRepeating<T>(t));
     }
 
-    public static <T extends Comparable<? super T>> Observable<T> create(Collection<Observable<T>> sources) {
+    public static <T extends Comparable<? super T>> Observable<T> create(
+            Collection<Observable<T>> sources) {
         return create(sources, false);
     }
 
-    public static <T> Observable<T> create(Collection<Observable<T>> sources, Comparator<? super T> comparator) {
+    public static <T> Observable<T> create(Collection<Observable<T>> sources,
+            Comparator<? super T> comparator) {
         return create(sources, comparator, false);
     }
 
-    public static <T extends Comparable<? super T>> Observable<T> create(Collection<Observable<T>> sources,
-            boolean delayErrors) {
+    public static <T extends Comparable<? super T>> Observable<T> create(
+            Collection<Observable<T>> sources, boolean delayErrors) {
         return OrderedMerge.create(sources, delayErrors);
     }
 
-    public static <T> Observable<T> create(Collection<Observable<T>> sources, Comparator<? super T> comparator,
-            boolean delayErrors) {
+    public static <T> Observable<T> create(Collection<Observable<T>> sources,
+            Comparator<? super T> comparator, boolean delayErrors) {
         return OrderedMerge.create(sources, comparator, delayErrors);
     }
 
@@ -234,7 +236,8 @@ public final class Obs {
         });
     }
 
-    public static Observable<Long> intervalLong(final long duration, final TimeUnit unit, final Scheduler scheduler) {
+    public static Observable<Long> intervalLong(final long duration, final TimeUnit unit,
+            final Scheduler scheduler) {
         return Observable.defer(new Func0<Observable<Long>>() {
             final long[] count = new long[1];
 
@@ -258,7 +261,14 @@ public final class Obs {
     public static <A, B, K, C> Observable<C> match(final Observable<A> a, final Observable<B> b,
             final Func1<? super A, ? extends K> aKey, final Func1<? super B, ? extends K> bKey,
             final Func2<? super A, ? super B, C> combiner) {
-        return Observable.create(new OnSubscribeMatch<A, B, K, C>(a, b, aKey, bKey, combiner));
+        return match(a, b, aKey, bKey, combiner, 128);
+    }
+
+    public static <A, B, K, C> Observable<C> match(final Observable<A> a, final Observable<B> b,
+            final Func1<? super A, ? extends K> aKey, final Func1<? super B, ? extends K> bKey,
+            final Func2<? super A, ? super B, C> combiner, long requestSize) {
+        return Observable
+                .create(new OnSubscribeMatch<A, B, K, C>(a, b, aKey, bKey, combiner, requestSize));
     }
 
 }

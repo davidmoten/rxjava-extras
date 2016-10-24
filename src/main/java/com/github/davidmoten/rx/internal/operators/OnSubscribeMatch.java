@@ -24,30 +24,34 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     private final Func1<? super A, ? extends K> aKey;
     private final Func1<? super B, ? extends K> bKey;
     private final Func2<? super A, ? super B, C> combiner;
-    private static final int REQUEST_SIZE = 128;
+    private final long requestSize;
 
     public OnSubscribeMatch(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
-            Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner) {
+            Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
+            long requestSize) {
         Preconditions.checkNotNull(a, "a should not be null");
         Preconditions.checkNotNull(b, "b should not be null");
         Preconditions.checkNotNull(aKey, "aKey cannot be null");
         Preconditions.checkNotNull(bKey, "bKey cannot be null");
         Preconditions.checkNotNull(combiner, "combiner cannot be null");
+        Preconditions.checkArgument(requestSize >= 1, "requestSize must be >=1");
         this.a = a;
         this.b = b;
         this.aKey = aKey;
         this.bKey = bKey;
         this.combiner = combiner;
+        this.requestSize = requestSize;
     }
 
     @Override
     public void call(Subscriber<? super C> child) {
         AtomicReference<Receiver> receiverHolder = new AtomicReference<Receiver>();
-        MySubscriber<A, K> aSub = new MySubscriber<A, K>(Source.A, receiverHolder);
-        MySubscriber<B, K> bSub = new MySubscriber<B, K>(Source.B, receiverHolder);
+        MySubscriber<A, K> aSub = new MySubscriber<A, K>(Source.A, receiverHolder, requestSize);
+        MySubscriber<B, K> bSub = new MySubscriber<B, K>(Source.B, receiverHolder, requestSize);
         child.add(aSub);
         child.add(bSub);
-        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner, aSub, bSub, child);
+        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner,
+                aSub, bSub, child, requestSize);
         receiverHolder.set(producer);
         child.setProducer(producer);
         a.unsafeSubscribe(aSub);
@@ -55,7 +59,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     }
 
     @SuppressWarnings("serial")
-    private static final class MyProducer<A, B, K, C> extends AtomicLong implements Producer, Receiver {
+    private static final class MyProducer<A, B, K, C> extends AtomicLong
+            implements Producer, Receiver {
 
         private final Queue<Object> queue = new LinkedList<Object>();
         private final Map<K, Queue<A>> as = new ConcurrentHashMap<K, Queue<A>>();
@@ -66,6 +71,9 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private final Subscriber<? super C> child;
         private final MySubscriber<A, K> aSub;
         private final MySubscriber<B, K> bSub;
+        private final long requestSize;
+
+        // mutable fields, guarded by `this` and `wip` value
         private int wip = 0;
         private int completed = 0;
         private boolean requestAll = false;
@@ -73,14 +81,16 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private int requestFromB = 0;
 
         MyProducer(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
-                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, MySubscriber<A, K> aSub,
-                MySubscriber<B, K> bSub, Subscriber<? super C> child) {
+                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
+                MySubscriber<A, K> aSub, MySubscriber<B, K> bSub, Subscriber<? super C> child,
+                long requestSize) {
             this.aKey = aKey;
             this.bKey = bKey;
             this.combiner = combiner;
             this.child = child;
             this.aSub = aSub;
             this.bSub = bSub;
+            this.requestSize = requestSize;
         }
 
         @Override
@@ -107,8 +117,6 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 }
                 int emitted = 0;
                 while (r > emitted & !queue.isEmpty()) {
-                    // System.out.println("asSize="+ as.size()+ ", bsSize="+
-                    // bs.size());
                     if (child.isUnsubscribed()) {
                         return;
                     }
@@ -191,11 +199,11 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 }
                 requestFromB += 1;
             }
-            if (requestFromA == REQUEST_SIZE && requestFromB == REQUEST_SIZE) {
+            if (requestFromA == requestSize && requestFromB == requestSize) {
                 requestFromA = 0;
                 requestFromB = 0;
-                aSub.requestMore(REQUEST_SIZE);
-                bSub.requestMore(REQUEST_SIZE);
+                aSub.requestMore(requestSize);
+                bSub.requestMore(requestSize);
             }
             return result;
         }
@@ -234,10 +242,10 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private final AtomicReference<Receiver> receiver;
         private final Source source;
 
-        MySubscriber(Source source, AtomicReference<Receiver> receiver) {
+        MySubscriber(Source source, AtomicReference<Receiver> receiver, long requestSize) {
             this.source = source;
             this.receiver = receiver;
-            request(REQUEST_SIZE);
+            request(requestSize);
         }
 
         @Override

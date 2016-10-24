@@ -70,6 +70,34 @@ public class OnSubscribeMatchTest {
     }
 
     @Test
+    public void testNoMatchExistsForAtLeastOneFirstLonger() {
+        Observable<Integer> a = Observable.just(1, 2);
+        Observable<Integer> b = Observable.just(1);
+        match(a, b, 1);
+    }
+
+    @Test
+    public void testNoMatchExistsForAtLeastOneSameLength() {
+        Observable<Integer> a = Observable.just(1, 2);
+        Observable<Integer> b = Observable.just(1, 3);
+        match(a, b, 1);
+    }
+
+    @Test
+    public void testNoMatchExistsForAtLeastOneSecondLonger() {
+        Observable<Integer> a = Observable.just(1);
+        Observable<Integer> b = Observable.just(1, 2);
+        match(a, b, 1);
+    }
+
+    @Test
+    public void testNoMatchExistsAtAll() {
+        Observable<Integer> a = Observable.just(1, 2);
+        Observable<Integer> b = Observable.just(3, 4);
+        match(a, b, new Integer[] {});
+    }
+
+    @Test
     public void testLongReversed() {
         final int n = 500;
         Observable<Integer> a = Observable.range(1, n).map(new Func1<Integer, Integer>() {
@@ -79,9 +107,10 @@ public class OnSubscribeMatchTest {
             }
         });
         Observable<Integer> b = Observable.range(1, n);
-        boolean equals = Observable.sequenceEqual(
-                a.compose(Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER)),
-                Observable.range(1, n)).toBlocking().single();
+        boolean equals = Observable
+                .sequenceEqual(a.compose(Transformers.matchWith(b, Functions.identity(),
+                        Functions.identity(), COMBINER)).sorted(), Observable.range(1, n))
+                .toBlocking().single();
         assertTrue(equals);
     }
 
@@ -90,9 +119,10 @@ public class OnSubscribeMatchTest {
         final int n = 100000;
         Observable<Integer> a = Observable.just(0).concatWith(Observable.range(1, n));
         Observable<Integer> b = Observable.range(1, n);
-        assertTrue(Observable.sequenceEqual(
-                a.compose(Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER)),
-                Observable.range(1, n)).toBlocking().single());
+        assertTrue(Observable
+                .sequenceEqual(a.compose(Transformers.matchWith(b, Functions.identity(),
+                        Functions.identity(), COMBINER)), Observable.range(1, n))
+                .toBlocking().single());
     }
 
     private static void match(Observable<Integer> a, Observable<Integer> b, Integer... expected) {
@@ -109,7 +139,8 @@ public class OnSubscribeMatchTest {
     };
 
     private static TestSubscriber2<Integer> match(Observable<Integer> a, Observable<Integer> b) {
-        return a.compose(Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER))
-                .to(TestingHelper.<Integer>test());
+        return a.compose(
+                Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER))
+                .to(TestingHelper.<Integer> test());
     }
 }
