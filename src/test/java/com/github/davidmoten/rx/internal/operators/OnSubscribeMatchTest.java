@@ -21,7 +21,6 @@ import rx.functions.Func2;
 @Ignore
 public class OnSubscribeMatchTest {
 
-    @SuppressWarnings("unchecked")
     @Test
     public void test() {
         Observable<Integer> a = Observable.just(1, 2);
@@ -29,7 +28,6 @@ public class OnSubscribeMatchTest {
         match(a, b, 2, 1);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void test2() {
         Observable<Integer> a = Observable.just(1, 2);
@@ -37,7 +35,6 @@ public class OnSubscribeMatchTest {
         match(a, b, 1, 2);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void test3() {
         Observable<Integer> a = Observable.just(1, 2, 3);
@@ -45,7 +42,6 @@ public class OnSubscribeMatchTest {
         match(a, b, 3, 2, 1);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testOneMatch() {
         Observable<Integer> a = Observable.just(1);
@@ -53,7 +49,6 @@ public class OnSubscribeMatchTest {
         match(a, b, 1);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     @Ignore
     public void testRepeats() {
@@ -71,8 +66,7 @@ public class OnSubscribeMatchTest {
         assertEquals(list, ts.getOnNextEvents());
     }
 
-    private static TestSubscriber2<Pair<Integer, Integer>> match(Observable<Integer> a,
-            Observable<Integer> b) {
+    private static TestSubscriber2<Pair<Integer, Integer>> match(Observable<Integer> a, Observable<Integer> b) {
         return a.compose(Transformers.matchWith(b, Functions.identity(), Functions.identity(),
                 new Func2<Integer, Integer, Pair<Integer, Integer>>() {
                     @Override
@@ -80,6 +74,6 @@ public class OnSubscribeMatchTest {
                         return Pair.create(x, y);
                     }
                 })).doOnNext(Actions.println()) //
-                .to(TestingHelper.<Pair<Integer, Integer>> test());
+                .to(TestingHelper.<Pair<Integer, Integer>>test());
     }
 }

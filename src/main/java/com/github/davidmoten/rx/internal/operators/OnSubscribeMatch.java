@@ -41,7 +41,15 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
     @Override
     public void call(Subscriber<? super C> child) {
-        child.setProducer(new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner, child));
+        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner, child);
+        int bufferSize = 128;
+        MySubscriber<A, K> aSub = new MySubscriber<A, K>(bufferSize, Source.A, producer);
+        MySubscriber<B, K> bSub = new MySubscriber<B, K>(bufferSize, Source.B, producer);
+        child.add(aSub);
+        child.add(bSub);
+        child.setProducer(producer);
+        a.unsafeSubscribe(aSub);
+        b.unsafeSubscribe(bSub);
     }
 
     @SuppressWarnings("serial")
@@ -68,10 +76,6 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             this.child = child;
             this.aSub = new MySubscriber<A, K>(bufferSize, Source.A, this);
             this.bSub = new MySubscriber<B, K>(bufferSize, Source.B, this);
-            child.add(aSub);
-            child.add(bSub);
-            a.unsafeSubscribe(aSub);
-            b.unsafeSubscribe(bSub);
         }
 
         @Override
@@ -93,7 +97,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             }
             while (true) {
                 long r = get();
-                while (r > 0) {
+                while (r > 0 && !queue.isEmpty()) {
                     if (child.isUnsubscribed()) {
                         return;
                     }
@@ -106,11 +110,15 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                             queue.clear();
                             as.clear();
                             bs.clear();
+                            aSub.unsubscribe();
+                            bSub.unsubscribe();
                             child.onError(((Error) v).error);
                             return;
                         } else if (v instanceof Completed) {
                             as.clear();
                             bs.clear();
+                            aSub.unsubscribe();
+                            bSub.unsubscribe();
                             queue.clear();
                             child.onCompleted();
                         }
