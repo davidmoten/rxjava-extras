@@ -101,6 +101,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             }
         }
 
+        @SuppressWarnings("unchecked")
         void drain() {
             synchronized (this) {
                 if (wip > 0) {
@@ -123,7 +124,41 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     Object v = queue.poll();
                     if (v instanceof Item) {
                         Item item = (Item) v;
-                        emitted += emit(item);
+                        int result = 0;
+                        if (item.source == Source.A) {
+                            A a = (A) item.value;
+                            K key = aKey.call(a);
+                            Queue<B> q = bs.get(key);
+                            if (q == null) {
+                                add(as, key, a);
+                            } else {
+                                B b = poll(bs, q, key);
+                                C c = combiner.call(a, b);
+                                child.onNext(c);
+                                result = 1;
+                            }
+                            requestFromA += 1;
+                        } else {
+                            B b = (B) item.value;
+                            K key = bKey.call(b);
+                            Queue<A> q = as.get(key);
+                            if (q == null) {
+                                add(bs, key, b);
+                            } else {
+                                A a = poll(as, q, key);
+                                C c = combiner.call(a, b);
+                                child.onNext(c);
+                                result = 1;
+                            }
+                            requestFromB += 1;
+                        }
+                        if (requestFromA == requestSize && requestFromB == requestSize) {
+                            requestFromA = 0;
+                            requestFromB = 0;
+                            aSub.requestMore(requestSize);
+                            bSub.requestMore(requestSize);
+                        }
+                        emitted += result;
                     } else if (v instanceof ErrorFrom) {
                         clear();
                         child.onError(((ErrorFrom) v).error);
@@ -165,52 +200,13 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 }
             }
         }
-        
+
         private void clear() {
             as.clear();
             bs.clear();
             queue.clear();
             aSub.unsubscribe();
             bSub.unsubscribe();
-        }
-
-        @SuppressWarnings("unchecked")
-        private int emit(Item item) {
-            int result = 0;
-            if (item.source == Source.A) {
-                A a = (A) item.value;
-                K key = aKey.call(a);
-                Queue<B> q = bs.get(key);
-                if (q == null) {
-                    add(as, key, a);
-                } else {
-                    B b = poll(bs, q, key);
-                    C c = combiner.call(a, b);
-                    child.onNext(c);
-                    result = 1;
-                }
-                requestFromA += 1;
-            } else {
-                B b = (B) item.value;
-                K key = bKey.call(b);
-                Queue<A> q = as.get(key);
-                if (q == null) {
-                    add(bs, key, b);
-                } else {
-                    A a = poll(as, q, key);
-                    C c = combiner.call(a, b);
-                    child.onNext(c);
-                    result = 1;
-                }
-                requestFromB += 1;
-            }
-            if (requestFromA == requestSize && requestFromB == requestSize) {
-                requestFromA = 0;
-                requestFromB = 0;
-                aSub.requestMore(requestSize);
-                bSub.requestMore(requestSize);
-            }
-            return result;
         }
 
         private static <K, T> void add(Map<K, Queue<T>> map, K key, T value) {
