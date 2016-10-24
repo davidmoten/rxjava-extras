@@ -18,7 +18,6 @@ import com.github.davidmoten.rx.StateMachine.Transition;
 import com.github.davidmoten.rx.buffertofile.DataSerializer;
 import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.buffertofile.Options;
-import com.github.davidmoten.rx.internal.operators.Match;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeDoOnEmpty;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeMapLast;
 import com.github.davidmoten.rx.internal.operators.OperatorBufferPredicateBoundary;
@@ -1319,7 +1318,7 @@ public final class Transformers {
 
             @Override
             public Observable<C> call(Observable<A> source) {
-                return Match.match(source, obs, key1, key2, combiner);
+                return Obs.match(source, obs, key1, key2, combiner);
             }
         };
 

@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -19,7 +18,8 @@ import com.github.davidmoten.rx.util.Pair;
 import rx.Observable;
 import rx.functions.Func2;
 
-public class MatchTest {
+@Ignore
+public class OnSubscribeMatchTest {
 
     @SuppressWarnings("unchecked")
     @Test
