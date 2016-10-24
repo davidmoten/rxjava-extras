@@ -68,6 +68,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private final MySubscriber<B, K> bSub;
         private int wip = 0;
         private int completed = 0;
+        private boolean requestAll = false;
 
         MyProducer(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
                 Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, MySubscriber<A, K> aSub,
@@ -98,45 +99,47 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 }
             }
             while (true) {
-                long r = get();
+                long r = requestAll ? Long.MAX_VALUE : get();
+                if (r == Long.MAX_VALUE) {
+                    requestAll = true;
+                }
                 int emitted = 0;
                 while (r > emitted & !queue.isEmpty()) {
+                    System.out.println("asSize="+ as.size()+ ", bsSize="+ bs.size());
                     if (child.isUnsubscribed()) {
                         return;
                     }
                     Object v = queue.poll();
-                    if (v != null) {
-                        if (v instanceof Item) {
-                            Item item = (Item) v;
-                            emitted += emit(item);
-                        } else if (v instanceof Error) {
-                            queue.clear();
+                    if (v instanceof Item) {
+                        Item item = (Item) v;
+                        emitted += emit(item);
+                    } else if (v instanceof ErrorFrom) {
+                        queue.clear();
+                        as.clear();
+                        bs.clear();
+                        aSub.unsubscribe();
+                        bSub.unsubscribe();
+                        child.onError(((ErrorFrom) v).error);
+                        return;
+                    } else {
+                        // completed
+                        CompletedFrom comp = (CompletedFrom) v;
+                        completed += 1;
+                        if (comp.source == Source.A) {
+                            aSub.unsubscribe();
+                        } else {
+                            bSub.unsubscribe();
+                        }
+                        if (completed == 2) {
                             as.clear();
                             bs.clear();
-                            aSub.unsubscribe();
-                            bSub.unsubscribe();
-                            child.onError(((Error) v).error);
-                            return;
-                        } else {
-                            // completed
-                            Completed comp = (Completed) v;
-                            completed += 1;
-                            if (comp.source == Source.A) {
-                                aSub.unsubscribe();
-                            } else {
-                                bSub.unsubscribe();
-                            }
-                            if (completed == 2) {
-                                as.clear();
-                                bs.clear();
-                                queue.clear();
-                                child.onCompleted();
-                            }
+                            queue.clear();
+                            child.onCompleted();
                         }
-                    } else {
-                        break;
                     }
-                    if (r == emitted) {
+                    if (r == Long.MAX_VALUE) {
+                        emitted = 0;
+                    } else if (r == emitted) {
                         r = addAndGet(-emitted);
                         emitted = 0;
                     }
@@ -235,12 +238,12 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         @Override
         public void onCompleted() {
-            receiver.get().offer(new Completed(source));
+            receiver.get().offer(new CompletedFrom(source));
         }
 
         @Override
         public void onError(Throwable e) {
-            receiver.get().offer(new Error(e, source));
+            receiver.get().offer(new ErrorFrom(e, source));
         }
 
         public void requestMore(long n) {
@@ -260,20 +263,20 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
     }
 
-    static final class Completed {
+    static final class CompletedFrom {
         final Source source;
 
-        Completed(Source source) {
+        CompletedFrom(Source source) {
             this.source = source;
         }
 
     }
 
-    static final class Error {
+    static final class ErrorFrom {
         final Throwable error;
         final Source source;
 
-        Error(Throwable error, Source source) {
+        ErrorFrom(Throwable error, Source source) {
             this.error = error;
             this.source = source;
         }
