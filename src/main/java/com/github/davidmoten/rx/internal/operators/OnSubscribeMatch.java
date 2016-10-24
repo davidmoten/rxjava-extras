@@ -66,6 +66,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private final MySubscriber<A, K> aSub;
         private final MySubscriber<B, K> bSub;
         private int wip = 0;
+        private int completed = 0;
 
         MyProducer(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
                 Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
@@ -102,10 +103,11 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                         return;
                     }
                     Object v = queue.poll();
+                    final int emitted;
                     if (v != null) {
                         if (v instanceof Item) {
                             Item item = (Item) v;
-                            handle(item);
+                            emitted = emit(item);
                         } else if (v instanceof Error) {
                             queue.clear();
                             as.clear();
@@ -114,18 +116,27 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                             bSub.unsubscribe();
                             child.onError(((Error) v).error);
                             return;
-                        } else if (v instanceof Completed) {
-                            as.clear();
-                            bs.clear();
-                            aSub.unsubscribe();
-                            bSub.unsubscribe();
-                            queue.clear();
-                            child.onCompleted();
+                        } else {
+                            // completed
+                            Completed comp = (Completed) v;
+                            completed += 1;
+                            if (comp.source == Source.A){
+                                aSub.unsubscribe();
+                            } else {
+                                bSub.unsubscribe();
+                            }
+                            if (completed == 2) {
+                                as.clear();
+                                bs.clear();
+                                queue.clear();
+                                child.onCompleted();
+                            }
+                            emitted = 0;
                         }
                     } else {
                         break;
                     }
-                    r--;
+                    r -= emitted;
                     if (r == 0) {
                         r = get();
                     }
@@ -141,7 +152,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             }
         }
 
-        private void handle(Item item) {
+        private int emit(Item item) {
+            int result = 0;
             if (item.source == Source.A) {
                 @SuppressWarnings("unchecked")
                 A a = (A) item.value;
@@ -161,6 +173,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     }
                     C c = combiner.call(a, b);
                     child.onNext(c);
+                    result = 1;
                 }
                 aSub.requestMore(1);
             } else {
@@ -182,9 +195,11 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     }
                     C c = combiner.call(a, b);
                     child.onNext(c);
+                    result = 1;
                 }
                 bSub.requestMore(1);
             }
+            return result;
         }
 
         @Override

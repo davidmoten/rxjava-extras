@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.github.davidmoten.rx.Actions;
@@ -18,7 +17,6 @@ import com.github.davidmoten.rx.util.Pair;
 import rx.Observable;
 import rx.functions.Func2;
 
-@Ignore
 public class OnSubscribeMatchTest {
 
     @Test
@@ -50,7 +48,6 @@ public class OnSubscribeMatchTest {
     }
 
     @Test
-    @Ignore
     public void testRepeats() {
         Observable<Integer> a = Observable.just(1, 1);
         Observable<Integer> b = Observable.just(1, 1);
