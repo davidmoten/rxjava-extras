@@ -39,8 +39,8 @@ public class OnSubscribeMatchTest {
         Observable<Integer> b = Observable.just(2, 1);
         match(a, b) //
                 .awaitTerminalEvent(5, TimeUnit.SECONDS) //
-                .assertValues(1, 2) //
-                .assertCompleted();
+                .assertCompleted()
+                .assertValuesSet(1,2);
     }
 
     @Test

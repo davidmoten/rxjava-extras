@@ -1,7 +1,11 @@
 package com.github.davidmoten.rx.testing;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import org.junit.Assert;
 
 import rx.Observable;
 import rx.Producer;
@@ -121,8 +125,7 @@ public class TestSubscriber2<T> extends Subscriber<T> {
         return this;
     }
 
-    public TestSubscriber2<T> awaitTerminalEventAndUnsubscribeOnTimeout(long timeout,
-            TimeUnit unit) {
+    public TestSubscriber2<T> awaitTerminalEventAndUnsubscribeOnTimeout(long timeout, TimeUnit unit) {
         ts.awaitTerminalEventAndUnsubscribeOnTimeout(timeout, unit);
         return this;
     }
@@ -176,14 +179,18 @@ public class TestSubscriber2<T> extends Subscriber<T> {
         return this;
     }
 
-    public final TestSubscriber2<T> assertValuesAndClear(T expectedFirstValue,
-            T... expectedRestValues) {
+    public final TestSubscriber2<T> assertValuesAndClear(T expectedFirstValue, T... expectedRestValues) {
         ts.assertValuesAndClear(expectedFirstValue, expectedRestValues);
         return this;
     }
 
     public final TestSubscriber2<T> perform(Action0 action) {
         action.call();
+        return this;
+    }
+
+    public TestSubscriber2<T> assertValuesSet(T... values) {
+        Assert.assertEquals(new HashSet<T>(Arrays.asList(values)), new HashSet<T>(ts.getOnNextEvents()));
         return this;
     }
 
