@@ -124,6 +124,13 @@ public class OnSubscribeMatchTest {
         Observable<Integer> b = Observable.just(1, 2).concatWith(Observable.<Integer>never());
         match(a,b).assertValues(1,2).assertCompleted();
     }
+    
+    @Test
+    public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinishSwitched2() {
+        Observable<Integer> a = Observable.just(1, 2);
+        Observable<Integer> b = Observable.just(1, 3).concatWith(Observable.<Integer>never());
+        match(a,b).assertValues(1).assertNoTerminalEvent();
+    }
 
     @Test
     public void testLongReversed() {
