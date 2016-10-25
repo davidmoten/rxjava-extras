@@ -135,6 +135,8 @@ gives
 ```
 Don't rely on the output order!
 
+Under the covers elements are requested from `a` and `b` in alternating batches of 128 by default. The batch size is configurable in another overload.
+
 Transformers.orderedMergeWith
 ------------------------------
 To merge two (or more) streams in order (according to a `Comparator`):
