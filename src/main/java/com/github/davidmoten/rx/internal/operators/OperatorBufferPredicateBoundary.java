@@ -79,8 +79,6 @@ public final class OperatorBufferPredicateBoundary<T> implements Transformer<T, 
 
         final AtomicInteger wip;
         
-        final NotificationLite<T> nl;
-        
         final int limit;
 
         List<T> buffer;
@@ -105,7 +103,6 @@ public final class OperatorBufferPredicateBoundary<T> implements Transformer<T, 
             buffer = new ArrayList<T>(capacityHint);
             requested = new AtomicLong();
             wip = new AtomicInteger();
-            nl = NotificationLite.instance();
             limit = prefetch - (prefetch >> 2);
             if (prefetch == Integer.MAX_VALUE) {
                 request(Long.MAX_VALUE);
@@ -116,7 +113,7 @@ public final class OperatorBufferPredicateBoundary<T> implements Transformer<T, 
 
         @Override
         public void onNext(T t) {
-            if (!queue.offer(nl.next(t))) {
+            if (!queue.offer(NotificationLite.next(t))) {
                 unsubscribe();
                 onError(new MissingBackpressureException());
             } else {
@@ -205,7 +202,7 @@ public final class OperatorBufferPredicateBoundary<T> implements Transformer<T, 
                         break;
                     }
                     
-                    T value = nl.getValue(notification);
+                    T value = NotificationLite.getValue(notification);
                     
                     localBuffer.add(value);
                     localConsumption++;
@@ -327,7 +324,7 @@ public final class OperatorBufferPredicateBoundary<T> implements Transformer<T, 
                         break;
                     }
                     
-                    T value = nl.getValue(o);
+                    T value = NotificationLite.getValue(o);
                     
                     boolean emit;
                     

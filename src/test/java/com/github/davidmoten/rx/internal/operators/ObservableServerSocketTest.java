@@ -48,7 +48,7 @@ public final class ObservableServerSocketTest {
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-//    private static final int PORT = 12345;
+    // private static final int PORT = 12345;
     private static final String TEXT = "hello there";
 
     private static final int POOL_SIZE = 10;
@@ -174,13 +174,13 @@ public final class ObservableServerSocketTest {
                                     .compose(Bytes.collect()) //
                                     .doOnNext(Actions.setAtomic(result)) //
                                     .doOnNext(new Action1<byte[]>() {
-                                        @Override
-                                        public void call(byte[] bytes) {
-                                            System.out.println(Thread.currentThread().getName()
-                                                    + ": " + new String(bytes));
-                                        }
-                                    }) //
-                                    .onErrorResumeNext(Observable.<byte[]>empty()) //
+                                @Override
+                                public void call(byte[] bytes) {
+                                    System.out.println(Thread.currentThread().getName() + ": "
+                                            + new String(bytes));
+                                }
+                            }) //
+                                    .onErrorResumeNext(Observable.<byte[]> empty()) //
                                     .subscribeOn(scheduler);
                         }
                     }) //
@@ -220,19 +220,18 @@ public final class ObservableServerSocketTest {
                                     .compose(Bytes.collect()) //
                                     .doOnNext(Actions.setAtomic(result)) //
                                     .map(new Func1<byte[], String>() {
-                                        @Override
-                                        public String call(byte[] bytes) {
-                                            return new String(bytes, UTF_8);
-                                        }
-                                    }) //
+                                @Override
+                                public String call(byte[] bytes) {
+                                    return new String(bytes, UTF_8);
+                                }
+                            }) //
                                     .doOnNext(new Action1<String>() {
-                                        @Override
-                                        public void call(String s) {
-                                            System.out.println(
-                                                    Thread.currentThread().getName() + ": " + s);
-                                        }
-                                    }) //
-                                    .onErrorResumeNext(Observable.<String>empty()) //
+                                @Override
+                                public void call(String s) {
+                                    System.out.println(Thread.currentThread().getName() + ": " + s);
+                                }
+                            }) //
+                                    .onErrorResumeNext(Observable.<String> empty()) //
                                     .subscribeOn(scheduler);
                         }
                     }).subscribeOn(scheduler) //
@@ -271,10 +270,9 @@ public final class ObservableServerSocketTest {
             try {
                 int bufferSize = 4;
                 IO.serverSocketAutoAllocatePort(Actions.setAtomic(port)) //
-                        .readTimeoutMs(10000) //
+                        .readTimeoutMs(30000) //
                         .bufferSize(bufferSize) //
-                        .create()
-                        .flatMap(new Func1<Observable<byte[]>, Observable<byte[]>>() {
+                        .create().flatMap(new Func1<Observable<byte[]>, Observable<byte[]>>() {
                             @Override
                             public Observable<byte[]> call(Observable<byte[]> g) {
                                 return g //
@@ -293,7 +291,7 @@ public final class ObservableServerSocketTest {
                         }) //
                         .doOnNext(Actions.decrement1(connections)) //
                         .doOnError(Actions.printStackTrace1()) //
-                        .doOnError(Actions.<Throwable>setToTrue1(errored)) //
+                        .doOnError(Actions.<Throwable> setToTrue1(errored)) //
                         .subscribeOn(scheduler) //
                         .subscribe(ts);
                 TestSubscriber<Object> ts2 = TestSubscriber.create();
@@ -342,12 +340,13 @@ public final class ObservableServerSocketTest {
                                     throw new RuntimeException(e);
                                 } finally {
                                     try {
-                                        socket.close();
+                                        if (socket != null)
+                                            socket.close();
                                     } catch (IOException e) {
                                         e.printStackTrace();
                                     }
                                 }
-                                return Observable.<Object>just(1);
+                                return Observable.<Object> just(1);
                             }
                         }) //
                                 .timeout(5, TimeUnit.SECONDS) //
@@ -388,13 +387,13 @@ public final class ObservableServerSocketTest {
                                     .compose(Bytes.collect()) //
                                     .doOnNext(Actions.setAtomic(result)) //
                                     .doOnNext(new Action1<byte[]>() {
-                                        @Override
-                                        public void call(byte[] bytes) {
-                                            System.out.println(Thread.currentThread().getName()
-                                                    + ": " + new String(bytes));
-                                        }
-                                    }) //
-                                    .onErrorResumeNext(Observable.<byte[]>empty()) //
+                                @Override
+                                public void call(byte[] bytes) {
+                                    System.out.println(Thread.currentThread().getName() + ": "
+                                            + new String(bytes));
+                                }
+                            }) //
+                                    .onErrorResumeNext(Observable.<byte[]> empty()) //
                                     .subscribeOn(scheduler);
                         }
                     }).subscribeOn(scheduler) //
@@ -421,7 +420,7 @@ public final class ObservableServerSocketTest {
             ts.unsubscribe();
         }
     }
-    
+
     @Test
     public void testAcceptSocketRejectsAlways()
             throws UnknownHostException, IOException, InterruptedException {
@@ -452,7 +451,6 @@ public final class ObservableServerSocketTest {
         }
     }
 
-
     public static void main(String[] args) throws InterruptedException {
         reset();
         TestSubscriber<Object> ts = TestSubscriber.create();
@@ -464,13 +462,13 @@ public final class ObservableServerSocketTest {
                                 .compose(Bytes.collect()) //
                                 .doOnNext(new Action1<byte[]>() {
 
-                                    @Override
-                                    public void call(byte[] bytes) {
-                                        System.out.println(Thread.currentThread().getName() + ": "
-                                                + new String(bytes).trim());
-                                    }
-                                }) //
-                                .onErrorResumeNext(Observable.<byte[]>empty()) //
+                            @Override
+                            public void call(byte[] bytes) {
+                                System.out.println(Thread.currentThread().getName() + ": "
+                                        + new String(bytes).trim());
+                            }
+                        }) //
+                                .onErrorResumeNext(Observable.<byte[]> empty()) //
                                 .subscribeOn(scheduler);
                     }
                 }).subscribeOn(scheduler) //

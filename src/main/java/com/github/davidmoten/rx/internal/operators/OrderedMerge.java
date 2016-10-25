@@ -91,8 +91,6 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
         /** */
         private static final long serialVersionUID = -812969080497027108L;
 
-        final NotificationLite<T> nl = NotificationLite.instance();
-
         final boolean delayErrors;
         final Comparator<? super T> comparator;
         @SuppressWarnings("rawtypes")
@@ -222,7 +220,7 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
                         // if we already found a value, compare it against the
                         // current
                         if (hasAtLeastOne) {
-                            T v = nl.getValue(o);
+                            T v = NotificationLite.getValue(o);
                             int c = comparator.compare(minimum, v);
                             if (c > 0) {
                                 minimum = v;
@@ -230,7 +228,7 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
                             }
                         } else {
                             // this is the first value found
-                            minimum = nl.getValue(o);
+                            minimum = NotificationLite.getValue(o);
                             hasAtLeastOne = true;
                             toPoll = i;
                         }
@@ -315,7 +313,7 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
         @Override
         public void onNext(T t) {
             try {
-                queue.onNext(parent.nl.next(t));
+                queue.onNext(NotificationLite.next(t));
             } catch (MissingBackpressureException mbe) {
                 try {
                     onError(mbe);
