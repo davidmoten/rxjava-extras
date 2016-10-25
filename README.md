@@ -5,8 +5,6 @@ rxjava-extras
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras)<br/>
 [![codecov](https://codecov.io/gh/davidmoten/rxjava-extras/branch/master/graph/badge.svg)](https://codecov.io/gh/davidmoten/rxjava-extras)
 
-
-
 Utilities for use with rxjava:
 
 * `Functions.identity, alwaysTrue, alwaysFalse, constant, not`
