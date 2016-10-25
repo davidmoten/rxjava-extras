@@ -121,7 +121,11 @@ You can use `Tranformers.matchWith` or `Obs.match`:
 ```java
 Observable<Integer> a = Observable.just(1, 2, 4, 3);
 Observable<Integer> b = Observable.just(1, 2, 3, 5, 6, 4);
-Obs.match(a, b, x -> x, x -> x, (x, y) -> x)
+Obs.match(a, b,
+     x -> x, // key to match on for a
+     x -> x, // key to match on for b
+     (x, y) -> x // combiner
+    )
    .forEach(System.out::println);
 ```
 gives
