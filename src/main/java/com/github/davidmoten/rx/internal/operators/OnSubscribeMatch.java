@@ -128,22 +128,32 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     if (child.isUnsubscribed()) {
                         return;
                     }
+                    // note will not return null
                     Object v = queue.poll();
                     if (v instanceof Item) {
                         Item item = (Item) v;
-                        int result = 0;
+                        int numEmitted = 0;
+
+                        // logic duplication occurs below
+                        // would be nice to simplify without making code
+                        // unreadable
                         if (item.source == Source.A) {
+                            // look for match
                             A a = (A) item.value;
                             K key = aKey.call(a);
                             Queue<B> q = bs.get(key);
                             if (q == null) {
+                                // cache value
                                 add(as, key, a);
                             } else {
+                                // emit match
                                 B b = poll(bs, q, key);
                                 C c = combiner.call(a, b);
                                 child.onNext(c);
-                                result = 1;
+                                numEmitted = 1;
                             }
+                            // if the other source has completed and there
+                            // is nothing to match with then we should stop
                             if (completed == COMPLETED_B && bs.isEmpty()) {
                                 // can finish
                                 clear();
@@ -152,17 +162,22 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                                 requestFromA += 1;
                             }
                         } else {
+                            // look for match
                             B b = (B) item.value;
                             K key = bKey.call(b);
                             Queue<A> q = as.get(key);
                             if (q == null) {
+                                // cache value
                                 add(bs, key, b);
                             } else {
+                                // emit match
                                 A a = poll(as, q, key);
                                 C c = combiner.call(a, b);
                                 child.onNext(c);
-                                result = 1;
+                                numEmitted = 1;
                             }
+                            // if the other source has completed and there
+                            // is nothing to match with then we should stop
                             if (completed == COMPLETED_A && as.isEmpty()) {
                                 // can finish
                                 clear();
@@ -171,13 +186,14 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                                 requestFromB += 1;
                             }
                         }
+                        // requests are batched so that each source gets a turn
                         if (requestFromA == requestSize && requestFromB == requestSize) {
                             requestFromA = 0;
                             requestFromB = 0;
                             aSub.requestMore(requestSize);
                             bSub.requestMore(requestSize);
                         }
-                        emitted += result;
+                        emitted += numEmitted;
                     } else if (v instanceof ErrorFrom) {
                         clear();
                         child.onError(((ErrorFrom) v).error);
