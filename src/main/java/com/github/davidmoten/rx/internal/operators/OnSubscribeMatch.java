@@ -131,15 +131,16 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     // note will not return null
                     Object v = queue.poll();
                     if (v instanceof Item) {
-                        Item item = (Item) v;
+                        Object value = ((Item) v).value;
+                        Source source = ((Item) v).source;
                         int numEmitted = 0;
 
                         // logic duplication occurs below
                         // would be nice to simplify without making code
                         // unreadable
-                        if (item.source == Source.A) {
+                        if (source == Source.A) {
                             // look for match
-                            A a = (A) item.value;
+                            A a = (A) value;
                             K key = aKey.call(a);
                             Queue<B> q = bs.get(key);
                             if (q == null) {
@@ -163,7 +164,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                             }
                         } else {
                             // look for match
-                            B b = (B) item.value;
+                            B b = (B) value;
                             K key = bKey.call(b);
                             Queue<A> q = as.get(key);
                             if (q == null) {
@@ -304,6 +305,9 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         @Override
         public void onNext(T t) {
+            // TODO can reduce allocations by emitting one source
+            // without wrapping as an item. Would have to use NULL_SENTINEL
+            // though because cannot rely on queue accepting nulls.
             receiver.get().offer(new Item(t, source));
         }
 

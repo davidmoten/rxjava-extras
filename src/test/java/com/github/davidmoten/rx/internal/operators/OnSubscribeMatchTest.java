@@ -98,10 +98,8 @@ public class OnSubscribeMatchTest {
 
     @Test
     public void testUnsubscribe() {
-        Observable<Integer> a = Observable.just(1, 2, 3, 4);
-        Observable<Integer> b = Observable.just(3, 2, 1, 4);
-        // TODO
-    }
+    // TODO
+        }
 
     @Test
     public void testError() {
@@ -110,26 +108,26 @@ public class OnSubscribeMatchTest {
         Observable<Integer> b = Observable.just(1, 2, 3);
         match(a, b).assertNoValues().assertError(e);
     }
-    
+
     @Test(timeout = 5000)
     public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinish() {
-        Observable<Integer> a = Observable.just(1, 2).concatWith(Observable.<Integer>never());
+        Observable<Integer> a = Observable.just(1, 2).concatWith(Observable.<Integer> never());
         Observable<Integer> b = Observable.just(1, 2);
-        match(a,b).assertValues(1,2).assertCompleted();
+        match(a, b).assertValues(1, 2).assertCompleted();
     }
-    
+
     @Test(timeout = 5000)
     public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinishSwitched() {
         Observable<Integer> a = Observable.just(1, 2);
-        Observable<Integer> b = Observable.just(1, 2).concatWith(Observable.<Integer>never());
-        match(a,b).assertValues(1,2).assertCompleted();
+        Observable<Integer> b = Observable.just(1, 2).concatWith(Observable.<Integer> never());
+        match(a, b).assertValues(1, 2).assertCompleted();
     }
-    
+
     @Test
     public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinishSwitched2() {
         Observable<Integer> a = Observable.just(1, 2);
-        Observable<Integer> b = Observable.just(1, 3).concatWith(Observable.<Integer>never());
-        match(a,b).assertValues(1).assertNoTerminalEvent();
+        Observable<Integer> b = Observable.just(1, 3).concatWith(Observable.<Integer> never());
+        match(a, b).assertValues(1).assertNoTerminalEvent();
     }
 
     @Test
@@ -156,7 +154,7 @@ public class OnSubscribeMatchTest {
             testShifted(n);
         }
     }
-    
+
     @Test
     public void testVeryLongShifted() {
         testShifted(1000000);
@@ -186,11 +184,6 @@ public class OnSubscribeMatchTest {
         return matchThem(a, b).to(TestingHelper.<Integer> test());
     }
 
-    private static final Func2<Integer, Integer, Integer> COMBINER = new Func2<Integer, Integer, Integer>() {
-        @Override
-        public Integer call(Integer x, Integer y) {
-            return x;
-        }
-    };
+    private static final Func2<Integer, Integer, Integer> COMBINER=new Func2<Integer,Integer,Integer>(){@Override public Integer call(Integer x,Integer y){return x;}};
 
 }
