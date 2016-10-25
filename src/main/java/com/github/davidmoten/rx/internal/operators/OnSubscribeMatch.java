@@ -203,15 +203,11 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                             bSub.requestMore(requestSize);
                         }
                         emitted += numEmitted;
-                    } else if (v instanceof ErrorFrom) {
-                        clear();
-                        child.onError(((ErrorFrom) v).error);
-                        return;
-                    } else {
+                    } else if (v instanceof CompletedFrom){
                         // completed
                         CompletedFrom comp = (CompletedFrom) v;
                         completed(comp.source);
-                        boolean done;
+                        final boolean done;
                         if (comp.source == Source.A) {
                             aSub.unsubscribe();
                             done = (completed == COMPLETED_BOTH)
@@ -225,7 +221,12 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                             clear();
                             child.onCompleted();
                         }
-                    }
+                    } else {
+                        // v must be an error
+                        clear();
+                        child.onError((Throwable) v);
+                        return;
+                    } 
                     if (r == Long.MAX_VALUE) {
                         emitted = 0;
                     } else if (r == emitted) {
@@ -326,7 +327,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         @Override
         public void onError(Throwable e) {
-            receiver.get().offer(new ErrorFrom(e, source));
+            receiver.get().offer(e);
         }
 
         public void requestMore(long n) {
@@ -350,17 +351,6 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         final Source source;
 
         CompletedFrom(Source source) {
-            this.source = source;
-        }
-
-    }
-
-    static final class ErrorFrom {
-        final Throwable error;
-        final Source source;
-
-        ErrorFrom(Throwable error, Source source) {
-            this.error = error;
             this.source = source;
         }
 
