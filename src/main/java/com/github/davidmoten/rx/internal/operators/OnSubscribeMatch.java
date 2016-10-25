@@ -17,7 +17,6 @@ import rx.Subscriber;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.internal.operators.BackpressureUtils;
-import rx.internal.util.SynchronizedQueue;
 import rx.internal.util.unsafe.MpscLinkedQueue;
 import rx.internal.util.unsafe.UnsafeAccess;
 

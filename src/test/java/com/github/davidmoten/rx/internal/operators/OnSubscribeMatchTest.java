@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
@@ -20,6 +21,7 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Func1;
 import rx.functions.Func2;
+import rx.schedulers.Schedulers;
 
 public class OnSubscribeMatchTest {
 
@@ -28,6 +30,16 @@ public class OnSubscribeMatchTest {
         Observable<Integer> a = Observable.just(1, 2);
         Observable<Integer> b = Observable.just(2, 1);
         match(a, b, 2, 1);
+    }
+
+    @Test
+    public void testAsynchronous() {
+        Observable<Integer> a = Observable.just(1, 2).subscribeOn(Schedulers.computation());
+        Observable<Integer> b = Observable.just(2, 1);
+        match(a, b) //
+                .awaitTerminalEvent(5, TimeUnit.SECONDS) //
+                .assertValues(1, 2) //
+                .assertCompleted();
     }
 
     @Test
@@ -142,7 +154,8 @@ public class OnSubscribeMatchTest {
             public void onNext(Integer t) {
                 list.add(t);
                 unsubscribe();
-            }}); 
+            }
+        });
         assertFalse(terminal.get());
         assertEquals(Arrays.asList(5), list);
     }
