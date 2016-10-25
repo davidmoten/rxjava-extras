@@ -210,17 +210,25 @@ public class OnSubscribeMatchTest {
     @Test
     public void testLongShifted() {
         for (int n = 1; n < 1000; n++) {
-            testShifted(n);
+            testShifted(n, false);
         }
     }
 
     @Test
     public void testVeryLongShifted() {
-        testShifted(1000000);
+        testShifted(1000000, false);
     }
 
-    private void testShifted(int n) {
+    @Test
+    public void testVeryLongShiftedAsync() {
+        testShifted(1000000, true);
+    }
+
+    private void testShifted(int n, boolean async) {
         Observable<Integer> a = Observable.just(0).concatWith(Observable.range(1, n));
+        if (async) {
+            a = a.subscribeOn(Schedulers.computation());
+        }
         Observable<Integer> b = Observable.range(1, n);
         assertTrue(Observable
                 .sequenceEqual(a.compose(Transformers.matchWith(b, Functions.identity(),
