@@ -75,10 +75,17 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         // mutable fields, guarded by `this` and `wip` value
         private int wip = 0;
-        private int completed = 0;
         private boolean requestAll = false;
         private int requestFromA = 0;
         private int requestFromB = 0;
+
+        // completion state machine
+        private int completed = COMPLETED_NONE;
+        // completion values
+        private static final int COMPLETED_NONE = 0;
+        private static final int COMPLETED_A = 1;
+        private static final int COMPLETED_B = 2;
+        private static final int COMPLETED_BOTH = 3;
 
         MyProducer(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
                 Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
@@ -137,7 +144,13 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                                 child.onNext(c);
                                 result = 1;
                             }
-                            requestFromA += 1;
+                            if (completed == COMPLETED_B && bs.isEmpty()) {
+                                // can finish
+                                clear();
+                                child.onCompleted();
+                            } else {
+                                requestFromA += 1;
+                            }
                         } else {
                             B b = (B) item.value;
                             K key = bKey.call(b);
@@ -150,7 +163,13 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                                 child.onNext(c);
                                 result = 1;
                             }
-                            requestFromB += 1;
+                            if (completed == COMPLETED_A && as.isEmpty()) {
+                                // can finish
+                                clear();
+                                child.onCompleted();
+                            } else {
+                                requestFromB += 1;
+                            }
                         }
                         if (requestFromA == requestSize && requestFromB == requestSize) {
                             requestFromA = 0;
@@ -166,14 +185,16 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     } else {
                         // completed
                         CompletedFrom comp = (CompletedFrom) v;
-                        completed += 1;
-                        final boolean done;
+                        completed(comp.source);
+                        boolean done;
                         if (comp.source == Source.A) {
                             aSub.unsubscribe();
-                            done = (completed == 2) || (completed == 1 && as.isEmpty());
+                            done = (completed == COMPLETED_BOTH)
+                                    || (completed == COMPLETED_A && as.isEmpty());
                         } else {
                             bSub.unsubscribe();
-                            done = (completed == 2) || (completed == 1 && bs.isEmpty());
+                            done = (completed == COMPLETED_BOTH)
+                                    || (completed == COMPLETED_B && bs.isEmpty());
                         }
                         if (done) {
                             clear();
@@ -197,6 +218,22 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                         return;
                     }
                     wip = 1;
+                }
+            }
+        }
+
+        private void completed(Source source) {
+            if (source == Source.A) {
+                if (completed == COMPLETED_NONE) {
+                    completed = COMPLETED_A;
+                } else if (completed == COMPLETED_B) {
+                    completed = COMPLETED_BOTH;
+                }
+            } else {
+                if (completed == COMPLETED_NONE) {
+                    completed = COMPLETED_B;
+                } else if (completed == COMPLETED_A) {
+                    completed = COMPLETED_BOTH;
                 }
             }
         }
