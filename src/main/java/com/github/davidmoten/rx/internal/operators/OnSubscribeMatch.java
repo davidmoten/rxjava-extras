@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -16,6 +17,9 @@ import rx.Subscriber;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.internal.operators.BackpressureUtils;
+import rx.internal.util.SynchronizedQueue;
+import rx.internal.util.unsafe.MpscLinkedQueue;
+import rx.internal.util.unsafe.UnsafeAccess;
 
 public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
@@ -62,7 +66,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     private static final class MyProducer<A, B, K, C> extends AtomicLong
             implements Producer, Receiver {
 
-        private final Queue<Object> queue = new LinkedList<Object>();
+        private final Queue<Object> queue;
         private final Map<K, Queue<A>> as = new ConcurrentHashMap<K, Queue<A>>();
         private final Map<K, Queue<B>> bs = new ConcurrentHashMap<K, Queue<B>>();
         private final Func1<? super A, ? extends K> aKey;
@@ -98,6 +102,11 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             this.aSub = aSub;
             this.bSub = bSub;
             this.requestSize = requestSize;
+            if (UnsafeAccess.isUnsafeAvailable()) {
+                queue= new MpscLinkedQueue<Object>();
+            } else {
+                queue = new ConcurrentLinkedQueue<Object>();
+            }
         }
 
         @Override
