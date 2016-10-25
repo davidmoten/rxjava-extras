@@ -116,6 +116,23 @@ Finds out-of-order matches in two streams.
 
 [javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#matchWith--)
 
+You can use `Tranformers.matchWith` or `Obs.match`:
+
+```java
+Observable<Integer> a = Observable.just(1, 2, 4, 3);
+Observable<Integer> b = Observable.just(1, 2, 3, 5, 6, 4);
+Obs.match(a, b, x -> x, x -> x, (x, y) -> x)
+   .forEach(System.out::println);
+```
+gives
+```
+1
+2
+3
+4
+```
+Don't rely on the output order!
+
 Transformers.orderedMergeWith
 ------------------------------
 To merge two (or more) streams in order (according to a `Comparator`):
