@@ -16,6 +16,7 @@ Utilities for use with rxjava:
 * [`RetryWhen`](#retrywhen) builder for use with `.retryWhen(Func1)` operator
 * [`Transformers.ignoreElementsThen`](#transformersignoreelementsthen)
 * [`Transformers.mapWithIndex`](#transformersmapwithindex)
+* [`Transformers.matchWith`](#transformersmatchwith)
 * [`Transformers.orderedMergeWith`](#transformersorderedmergewith)
 * [`Transformers.stateMachine`](#transformersstatemachine)
 * [`Transformers.collectWhile`](#transformerscollectwhile)
@@ -106,6 +107,14 @@ Maps each item to an item wrapped with a zero-based index:
 <img src="src/docs/mapWithIndex.png?raw=true" />
 
 [javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#mapWithIndex--)
+
+Transformers.matchWith
+-------------------------
+Finds out-of-order matches in two streams.
+
+<img src="src/docs/match.png?raw=true" />
+
+[javadoc](http://davidmoten.github.io/rxjava-extras/apidocs/com/github/davidmoten/rx/Transformers.html#matchWith--)
 
 Transformers.orderedMergeWith
 ------------------------------

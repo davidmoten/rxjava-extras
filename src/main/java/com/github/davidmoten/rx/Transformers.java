@@ -1323,4 +1323,16 @@ public final class Transformers {
         };
 
     }
+    
+    public static <A, B, K, C> Transformer<A, C> matchWith(final Observable<B> obs, final Func1<? super A, ? extends K> key1,
+            final Func1<? super B,? extends K> key2, final Func2<? super A, ? super B, C> combiner, final long requestSize) {
+        return new Transformer<A, C>() {
+
+            @Override
+            public Observable<C> call(Observable<A> source) {
+                return Obs.match(source, obs, key1, key2, combiner, requestSize);
+            }
+        };
+
+    }
 }
