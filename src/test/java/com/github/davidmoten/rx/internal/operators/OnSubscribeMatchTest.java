@@ -98,8 +98,8 @@ public class OnSubscribeMatchTest {
 
     @Test
     public void testUnsubscribe() {
-    // TODO
-        }
+        // TODO
+    }
 
     @Test
     public void testError() {
@@ -184,6 +184,11 @@ public class OnSubscribeMatchTest {
         return matchThem(a, b).to(TestingHelper.<Integer> test());
     }
 
-    private static final Func2<Integer, Integer, Integer> COMBINER=new Func2<Integer,Integer,Integer>(){@Override public Integer call(Integer x,Integer y){return x;}};
+    private static final Func2<Integer, Integer, Integer> COMBINER = new Func2<Integer, Integer, Integer>() {
+        @Override
+        public Integer call(Integer x, Integer y) {
+            return x;
+        }
+    };
 
 }
