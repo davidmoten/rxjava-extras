@@ -1,10 +1,13 @@
 package com.github.davidmoten.rx.internal.operators;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 
@@ -14,6 +17,7 @@ import com.github.davidmoten.rx.testing.TestSubscriber2;
 import com.github.davidmoten.rx.testing.TestingHelper;
 
 import rx.Observable;
+import rx.Subscriber;
 import rx.functions.Func1;
 import rx.functions.Func2;
 
@@ -97,8 +101,50 @@ public class OnSubscribeMatchTest {
     }
 
     @Test
+    public void testBackpressure1() {
+        Observable<Integer> a = Observable.just(1, 2, 5, 7, 6, 8);
+        Observable<Integer> b = Observable.just(3, 4, 5, 6, 7);
+        matchThem(a, b) //
+                .to(TestingHelper.<Integer> testWithRequest(0)) //
+                .assertNoValues()//
+                .assertNoTerminalEvent()//
+                .requestMore(1)//
+                .assertValuesAndClear(5)//
+                .assertNoTerminalEvent()//
+                .requestMore(1)//
+                .assertValuesAndClear(6)//
+                .assertNoTerminalEvent()//
+                .requestMore(1)//
+                .assertValuesAndClear(7)//
+                .requestMore(1) //
+                .assertNoValues().assertCompleted();
+    }
+
+    @Test
     public void testUnsubscribe() {
-        // TODO
+        Observable<Integer> a = Observable.just(1, 2, 5, 7, 6, 8);
+        Observable<Integer> b = Observable.just(3, 4, 5, 6, 7);
+        final List<Integer> list = new ArrayList<Integer>();
+        final AtomicBoolean terminal = new AtomicBoolean();
+        matchThem(a, b).subscribe(new Subscriber<Integer>() {
+
+            @Override
+            public void onCompleted() {
+                terminal.set(true);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                terminal.set(true);
+            }
+
+            @Override
+            public void onNext(Integer t) {
+                list.add(t);
+                unsubscribe();
+            }}); 
+        assertFalse(terminal.get());
+        assertEquals(Arrays.asList(5), list);
     }
 
     @Test
