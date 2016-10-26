@@ -139,14 +139,21 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
                         if (v instanceof Item) {
                             Item item = (Item) v;
-                            emitted += handleItem(item.value, item.source);
+                            Emitted em = handleItem(item.value, item.source);
+                            if (em == Emitted.FINISHED) {
+                                return;
+                            } else if (em == Emitted.ONE) {
+                                emitted += 1;
+                            }
                         } else if (v instanceof CompletedFrom) {
-                            handleCompleted((CompletedFrom) v);
+                            Status status = handleCompleted((CompletedFrom) v);
+                            if (status == Status.FINISHED) {
+                                return;
+                            }
                         } else {
                             // v must be an error
                             clear();
                             child.onError((Throwable) v);
-                            emitted = 0;
                             return;
                         }
                         if (r == Long.MAX_VALUE) {
@@ -164,8 +171,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             }
         }
 
-        private int handleItem(Object value, Source source) {
-            int numEmitted = 0;
+        private Emitted handleItem(Object value, Source source) {
+            Emitted result = Emitted.NONE;
 
             // logic duplication occurs below
             // would be nice to simplify without making code
@@ -180,7 +187,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 } catch (Throwable e) {
                     clear();
                     child.onError(e);
-                    return 0;
+                    return Emitted.FINISHED;
                 }
                 Queue<B> q = bs.get(key);
                 if (q == null) {
@@ -189,9 +196,16 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 } else {
                     // emit match
                     B b = poll(bs, q, key);
-                    C c = combiner.call(a, b);
+                    C c;
+                    try {
+                        c = combiner.call(a, b);
+                    } catch (Throwable e) {
+                        clear();
+                        child.onError(e);
+                        return Emitted.FINISHED;
+                    }
                     child.onNext(c);
-                    numEmitted = 1;
+                    result = Emitted.ONE;
                 }
                 // if the other source has completed and there
                 // is nothing to match with then we should stop
@@ -199,6 +213,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     // can finish
                     clear();
                     child.onCompleted();
+                    return Emitted.FINISHED;
                 } else {
                     requestFromA += 1;
                 }
@@ -212,7 +227,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 } catch (Throwable e) {
                     clear();
                     child.onError(e);
-                    return 0;
+                    return Emitted.FINISHED;
                 }
                 Queue<A> q = as.get(key);
                 if (q == null) {
@@ -221,9 +236,16 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 } else {
                     // emit match
                     A a = poll(as, q, key);
-                    C c = combiner.call(a, b);
+                    C c;
+                    try {
+                        c = combiner.call(a, b);
+                    } catch (Throwable e) {
+                        clear();
+                        child.onError(e);
+                        return Emitted.FINISHED;
+                    }
                     child.onNext(c);
-                    numEmitted = 1;
+                    result = Emitted.ONE;
                 }
                 // if the other source has completed and there
                 // is nothing to match with then we should stop
@@ -231,16 +253,21 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     // can finish
                     clear();
                     child.onCompleted();
+                    return Emitted.FINISHED;
                 } else {
                     requestFromB += 1;
                 }
             }
             // requests are batched so that each source gets a turn
             checkToRequestMore();
-            return numEmitted;
+            return result;
         }
 
-        private void handleCompleted(CompletedFrom comp) {
+        private enum Emitted {
+            ONE, NONE, FINISHED;
+        }
+
+        private Status handleCompleted(CompletedFrom comp) {
             completed(comp.source);
             final boolean done;
             if (comp.source == Source.A) {
@@ -253,11 +280,17 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             if (done) {
                 clear();
                 child.onCompleted();
+                return Status.FINISHED;
             } else {
                 checkToRequestMore();
+                return Status.KEEP_GOING;
             }
         }
-
+        
+        private enum Status {
+            FINISHED, KEEP_GOING;
+        }
+        
         private void checkToRequestMore() {
             if (requestFromA == requestSize && completed == COMPLETED_B) {
                 requestFromA = 0;

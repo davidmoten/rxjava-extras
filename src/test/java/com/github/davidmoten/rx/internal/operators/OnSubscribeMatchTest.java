@@ -213,6 +213,24 @@ public class OnSubscribeMatchTest {
                 .to(TestingHelper.<Integer> test()).assertNoValues()
                 .assertError(Functions.ThrowingException.class);
     }
+    
+    @Test
+    public void testCombinerFunctionBThrowsResultsInErrorEmission() {
+        Observable<Integer> a = Observable.just(1, 2);
+        Observable<Integer> b = Observable.just(2, 1);
+        Obs.match(a, b, Functions.identity(), Functions.identity(), Functions.<Integer,Integer,Integer>throwing2())
+                .to(TestingHelper.<Integer> test()).assertNoValues()
+                .assertError(Functions.ThrowingException.class);
+    }
+    
+    @Test
+    public void testCombinerFunctionBThrowsResultsInErrorEmissionSwitched() {
+        Observable<Integer> a = Observable.just(2, 1);
+        Observable<Integer> b = Observable.just(1, 2);
+        Obs.match(a, b, Functions.identity(), Functions.identity(), Functions.<Integer,Integer,Integer>throwing2())
+                .to(TestingHelper.<Integer> test()).assertNoValues()
+                .assertError(Functions.ThrowingException.class);
+    }
 
     @Test(timeout = 5000)
     public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinish() {
