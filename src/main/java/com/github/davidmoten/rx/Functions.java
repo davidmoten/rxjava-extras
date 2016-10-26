@@ -13,6 +13,19 @@ public final class Functions {
     private Functions() {
         // prevent instantiation
     }
+    
+    public static <T> Func1<T,T> throwing() {
+        return new Func1<T,T> () {
+
+            @Override
+            public T call(T t) {
+                throw new ThrowingException();
+            }};
+    }
+    
+    public static final class ThrowingException extends RuntimeException {
+        private static final long serialVersionUID = 930909878278758496L;
+    }
 
     public static <T> Func1<T, T> identity() {
         return new Func1<T, T>() {
@@ -22,7 +35,7 @@ public final class Functions {
             }
         };
     }
-
+    
     public static <T> Func1<T, Boolean> alwaysTrue() {
         return new Func1<T, Boolean>() {
             @Override

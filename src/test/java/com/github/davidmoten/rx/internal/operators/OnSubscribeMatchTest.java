@@ -42,14 +42,14 @@ public class OnSubscribeMatchTest {
                 .awaitTerminalEvent(5, TimeUnit.SECONDS) //
                 .assertCompleted().assertValuesSet(1, 2);
     }
-    
+
     @Test
     public void testKeepsRequesting() {
         Observable<Integer> a = Observable.just(1);
         Observable<Integer> b = Observable.just(2).repeat(1000).concatWith(Observable.just(1));
         match(a, b, 1);
     }
-    
+
     @Test
     public void testKeepsRequestingSwitched() {
         Observable<Integer> a = Observable.just(2).repeat(1000).concatWith(Observable.just(1));
@@ -105,7 +105,7 @@ public class OnSubscribeMatchTest {
         Observable<Integer> b = Observable.just(1);
         match(a, b, 1);
     }
-    
+
     @Test
     public void testNoMatchExistsForAtLeastOneFirstLongerSwitched() {
         Observable<Integer> a = Observable.just(1);
@@ -194,6 +194,24 @@ public class OnSubscribeMatchTest {
         Observable<Integer> a = Observable.just(1, 2).concatWith(Observable.<Integer> error(e));
         Observable<Integer> b = Observable.just(1, 2, 3);
         match(a, b).assertNoValues().assertError(e);
+    }
+
+    @Test
+    public void testKeyFunctionAThrowsResultsInErrorEmission() {
+        Observable<Integer> a = Observable.just(1);
+        Observable<Integer> b = Observable.just(1);
+        Obs.match(a, b, Functions.throwing(), Functions.identity(), COMBINER)
+                .to(TestingHelper.<Integer> test()).assertNoValues()
+                .assertError(Functions.ThrowingException.class);
+    }
+    
+    @Test
+    public void testKeyFunctionBThrowsResultsInErrorEmission() {
+        Observable<Integer> a = Observable.just(1);
+        Observable<Integer> b = Observable.just(1);
+        Obs.match(a, b, Functions.identity(), Functions.throwing(), COMBINER)
+                .to(TestingHelper.<Integer> test()).assertNoValues()
+                .assertError(Functions.ThrowingException.class);
     }
 
     @Test(timeout = 5000)

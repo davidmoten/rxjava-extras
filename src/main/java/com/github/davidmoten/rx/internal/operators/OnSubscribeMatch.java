@@ -31,7 +31,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     private final long requestSize;
 
     public OnSubscribeMatch(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
-            Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, long requestSize) {
+            Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
+            long requestSize) {
         Preconditions.checkNotNull(a, "a should not be null");
         Preconditions.checkNotNull(b, "b should not be null");
         Preconditions.checkNotNull(aKey, "aKey cannot be null");
@@ -53,8 +54,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         MySubscriber<B, K> bSub = new MySubscriber<B, K>(Source.B, receiverHolder, requestSize);
         child.add(aSub);
         child.add(bSub);
-        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner, aSub, bSub, child,
-                requestSize);
+        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner,
+                aSub, bSub, child, requestSize);
         receiverHolder.set(producer);
         child.setProducer(producer);
         a.unsafeSubscribe(aSub);
@@ -62,7 +63,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     }
 
     @SuppressWarnings("serial")
-    private static final class MyProducer<A, B, K, C> extends AtomicLong implements Producer, Receiver {
+    private static final class MyProducer<A, B, K, C> extends AtomicLong
+            implements Producer, Receiver {
 
         private final Queue<Object> queue;
         private final Map<K, Queue<A>> as = new ConcurrentHashMap<K, Queue<A>>();
@@ -90,8 +92,9 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private static final int COMPLETED_BOTH = 3;
 
         MyProducer(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
-                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, MySubscriber<A, K> aSub,
-                MySubscriber<B, K> bSub, Subscriber<? super C> child, long requestSize) {
+                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
+                MySubscriber<A, K> aSub, MySubscriber<B, K> bSub, Subscriber<? super C> child,
+                long requestSize) {
             this.aKey = aKey;
             this.bKey = bKey;
             this.combiner = combiner;
@@ -171,7 +174,14 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 // look for match
                 @SuppressWarnings("unchecked")
                 A a = (A) value;
-                K key = aKey.call(a);
+                K key;
+                try {
+                    key = aKey.call(a);
+                } catch (Throwable e) {
+                    clear();
+                    child.onError(e);
+                    return 0;
+                }
                 Queue<B> q = bs.get(key);
                 if (q == null) {
                     // cache value
@@ -196,7 +206,14 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 // look for match
                 @SuppressWarnings("unchecked")
                 B b = (B) value;
-                K key = bKey.call(b);
+                K key;
+                try {
+                    key = bKey.call(b);
+                } catch (Throwable e) {
+                    clear();
+                    child.onError(e);
+                    return 0;
+                }
                 Queue<A> q = as.get(key);
                 if (q == null) {
                     // cache value
