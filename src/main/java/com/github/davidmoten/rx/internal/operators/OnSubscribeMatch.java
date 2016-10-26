@@ -145,8 +145,9 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                             } else if (em == Emitted.ONE) {
                                 emitted += 1;
                             }
-                        } else if (v instanceof CompletedFrom) {
-                            Status status = handleCompleted((CompletedFrom) v);
+                        } else if (v instanceof Source) {
+                            //source completed
+                            Status status = handleCompleted((Source) v);
                             if (status == Status.FINISHED) {
                                 return;
                             }
@@ -267,10 +268,10 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             ONE, NONE, FINISHED;
         }
 
-        private Status handleCompleted(CompletedFrom comp) {
-            completed(comp.source);
+        private Status handleCompleted(Source source) {
+            completed(source);
             final boolean done;
-            if (comp.source == Source.A) {
+            if (source == Source.A) {
                 aSub.unsubscribe();
                 done = (completed == COMPLETED_BOTH) || (completed == COMPLETED_A && as.isEmpty());
             } else {
@@ -380,7 +381,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         @Override
         public void onCompleted() {
-            receiver.get().offer(new CompletedFrom(source));
+            receiver.get().offer(source);
         }
 
         @Override
@@ -400,14 +401,6 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         Item(Object value, Source source) {
             this.value = value;
-            this.source = source;
-        }
-    }
-
-    static final class CompletedFrom {
-        final Source source;
-
-        CompletedFrom(Source source) {
             this.source = source;
         }
     }
