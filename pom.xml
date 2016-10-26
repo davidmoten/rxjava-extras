@@ -2,14 +2,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>com.github.davidmoten</groupId>
         <artifactId>sonatype-parent</artifactId>
         <version>0.1</version>
     </parent>
     <artifactId>rxjava-extras</artifactId>
-    <version>0.9-SNAPSHOT</version>
+    <version>0.8.0.2-SNAPSHOT</version>
     <name>${project.artifactId}</name>
     <description>RxJava utilities</description>
     <packaging>jar</packaging>
@@ -20,7 +19,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.target>1.6</maven.compiler.target>
-        <rxjava.version>1.1.10</rxjava.version>
+        <rxjava.version>1.2.1</rxjava.version>
         <jmh.version>1.11.1</jmh.version>
         <exec.version>1.4.0</exec.version>
         <slf4j.version>1.7.12</slf4j.version>

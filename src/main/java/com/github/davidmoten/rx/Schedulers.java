@@ -2,7 +2,6 @@ package com.github.davidmoten.rx;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import rx.Scheduler;
 import rx.Scheduler.Worker;

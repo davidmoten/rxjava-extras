@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Test;
 
+import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Functions;
 import com.github.davidmoten.rx.Obs;
 import com.github.davidmoten.rx.Transformers;
@@ -39,8 +40,7 @@ public class OnSubscribeMatchTest {
         Observable<Integer> b = Observable.just(2, 1);
         match(a, b) //
                 .awaitTerminalEvent(5, TimeUnit.SECONDS) //
-                .assertCompleted()
-                .assertValuesSet(1,2);
+                .assertCompleted().assertValuesSet(1, 2);
     }
 
     @Test
@@ -118,7 +118,7 @@ public class OnSubscribeMatchTest {
         Observable<Integer> a = Observable.just(1, 2, 5, 7, 6, 8);
         Observable<Integer> b = Observable.just(3, 4, 5, 6, 7);
         matchThem(a, b) //
-                .to(TestingHelper.<Integer>testWithRequest(0)) //
+                .to(TestingHelper.<Integer> testWithRequest(0)) //
                 .assertNoValues()//
                 .assertNoTerminalEvent()//
                 .requestMore(1)//
@@ -135,8 +135,12 @@ public class OnSubscribeMatchTest {
 
     @Test
     public void testUnsubscribe() {
-        Observable<Integer> a = Observable.just(1, 2, 5, 7, 6, 8);
-        Observable<Integer> b = Observable.just(3, 4, 5, 6, 7);
+        AtomicBoolean unsubA = new AtomicBoolean(false);
+        AtomicBoolean unsubB = new AtomicBoolean(false);
+        Observable<Integer> a = Observable.just(1, 2, 5, 7, 6, 8)
+                .doOnUnsubscribe(Actions.setToTrue0(unsubA));
+        Observable<Integer> b = Observable.just(3, 4, 5, 6, 7)
+                .doOnUnsubscribe(Actions.setToTrue0(unsubB));
         final List<Integer> list = new ArrayList<Integer>();
         final AtomicBoolean terminal = new AtomicBoolean();
         matchThem(a, b).subscribe(new Subscriber<Integer>() {
@@ -159,19 +163,21 @@ public class OnSubscribeMatchTest {
         });
         assertFalse(terminal.get());
         assertEquals(Arrays.asList(5), list);
+        assertTrue(unsubA.get());
+        assertTrue(unsubB.get());
     }
 
     @Test
     public void testError() {
         RuntimeException e = new RuntimeException();
-        Observable<Integer> a = Observable.just(1, 2).concatWith(Observable.<Integer>error(e));
+        Observable<Integer> a = Observable.just(1, 2).concatWith(Observable.<Integer> error(e));
         Observable<Integer> b = Observable.just(1, 2, 3);
         match(a, b).assertNoValues().assertError(e);
     }
 
     @Test(timeout = 5000)
     public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinish() {
-        Observable<Integer> a = Observable.just(1, 2).concatWith(Observable.<Integer>never());
+        Observable<Integer> a = Observable.just(1, 2).concatWith(Observable.<Integer> never());
         Observable<Integer> b = Observable.just(1, 2);
         match(a, b).assertValues(1, 2).assertCompleted();
     }
@@ -179,14 +185,14 @@ public class OnSubscribeMatchTest {
     @Test(timeout = 5000)
     public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinishSwitched() {
         Observable<Integer> a = Observable.just(1, 2);
-        Observable<Integer> b = Observable.just(1, 2).concatWith(Observable.<Integer>never());
+        Observable<Integer> b = Observable.just(1, 2).concatWith(Observable.<Integer> never());
         match(a, b).assertValues(1, 2).assertCompleted();
     }
 
     @Test
     public void testOneDoesNotCompleteAndOtherMatchedAllShouldFinishSwitched2() {
         Observable<Integer> a = Observable.just(1, 2);
-        Observable<Integer> b = Observable.just(1, 3).concatWith(Observable.<Integer>never());
+        Observable<Integer> b = Observable.just(1, 3).concatWith(Observable.<Integer> never());
         match(a, b).assertValues(1).assertNoTerminalEvent();
     }
 
@@ -201,7 +207,8 @@ public class OnSubscribeMatchTest {
                 }
             });
             Observable<Integer> b = Observable.range(1, n);
-            boolean equals = Observable.sequenceEqual(matchThem(a, b).sorted(), Observable.range(1, n)).toBlocking()
+            boolean equals = Observable
+                    .sequenceEqual(matchThem(a, b).sorted(), Observable.range(1, n)).toBlocking()
                     .single();
             assertTrue(equals);
         }
@@ -237,11 +244,13 @@ public class OnSubscribeMatchTest {
             a = a.subscribeOn(Schedulers.computation());
         }
         Observable<Integer> b = Observable.range(1, n);
-        assertTrue(Observable.sequenceEqual(matchThem(a, b), Observable.range(1, n)).toBlocking().single());
+        assertTrue(Observable.sequenceEqual(matchThem(a, b), Observable.range(1, n)).toBlocking()
+                .single());
     }
 
     private static Observable<Integer> matchThem(Observable<Integer> a, Observable<Integer> b) {
-        return a.compose(Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER));
+        return a.compose(
+                Transformers.matchWith(b, Functions.identity(), Functions.identity(), COMBINER));
     }
 
     private static void match(Observable<Integer> a, Observable<Integer> b, Integer... expected) {
@@ -251,7 +260,7 @@ public class OnSubscribeMatchTest {
     }
 
     private static TestSubscriber2<Integer> match(Observable<Integer> a, Observable<Integer> b) {
-        return matchThem(a, b).to(TestingHelper.<Integer>test());
+        return matchThem(a, b).to(TestingHelper.<Integer> test());
     }
 
     private static final Func2<Integer, Integer, Integer> COMBINER = new Func2<Integer, Integer, Integer>() {

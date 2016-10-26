@@ -9,7 +9,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,7 +47,7 @@ import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func0;
 import rx.observers.TestSubscriber;
-import rx.plugins.RxJavaPlugins;
+import rx.plugins.RxJavaHooks;
 import rx.schedulers.Schedulers;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -57,15 +56,7 @@ public final class OperatorBufferToFileTest {
     @Before
     @After
     public void resetBefore() {
-        RxJavaPlugins ps = RxJavaPlugins.getInstance();
-
-        try {
-            Method m = ps.getClass().getDeclaredMethod("reset");
-            m.setAccessible(true);
-            m.invoke(ps);
-        } catch (Throwable ex) {
-            ex.printStackTrace();
-        }
+        RxJavaHooks.reset();
     }
 
     @Test
