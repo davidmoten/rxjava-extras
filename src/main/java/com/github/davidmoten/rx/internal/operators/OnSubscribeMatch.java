@@ -123,9 +123,14 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 }
             }
             while (true) {
-                long r = requestAll ? Long.MAX_VALUE : get();
-                if (r == Long.MAX_VALUE) {
-                    requestAll = true;
+                long r;
+                if (requestAll) {
+                    r = Long.MAX_VALUE;
+                } else {
+                    r = get();
+                    if (r == Long.MAX_VALUE) {
+                        requestAll = true;
+                    }
                 }
                 int emitted = 0;
                 while (r > emitted & !queue.isEmpty()) {
