@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -75,7 +76,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private final long requestSize;
 
         // mutable fields, guarded by `this` and `wip` value
-        private int wip = 0;
+        private final AtomicInteger wip = new AtomicInteger(0);
         private boolean requestAll = false;
         private int requestFromA = 0;
         private int requestFromB = 0;
@@ -114,62 +115,49 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         }
 
         void drain() {
-            synchronized (this) {
-                if (wip > 0) {
-                    wip++;
-                    return;
-                } else {
-                    wip = 1;
-                }
-            }
-            while (true) {
-                long r;
-                if (requestAll) {
-                    r = Long.MAX_VALUE;
-                } else {
-                    r = get();
-                    if (r == Long.MAX_VALUE) {
-                        requestAll = true;
-                    }
-                }
-                int emitted = 0;
-                while (r > emitted & !queue.isEmpty()) {
-                    if (child.isUnsubscribed()) {
-                        return;
-                    }
-                    // note will not return null
-                    Object v = queue.poll();
-
-                    if (v instanceof Item) {
-                        Item item = (Item) v;
-                        emitted += handleItem(item.value, item.source);
-                    } else if (v instanceof CompletedFrom) {
-                        handleCompleted((CompletedFrom) v);
+            if (wip.getAndIncrement() == 0) {
+                do {
+                    long r;
+                    if (requestAll) {
+                        r = Long.MAX_VALUE;
                     } else {
-                        // v must be an error
-                        clear();
-                        child.onError((Throwable) v);
-                        emitted = 0;
-                        return;
+                        r = get();
+                        if (r == Long.MAX_VALUE) {
+                            requestAll = true;
+                        }
                     }
-                    if (r == Long.MAX_VALUE) {
-                        emitted = 0;
-                    } else if (r == emitted) {
-                        r = addAndGet(-emitted);
-                        emitted = 0;
+                    int emitted = 0;
+                    while (r > emitted & !queue.isEmpty()) {
+                        if (child.isUnsubscribed()) {
+                            return;
+                        }
+                        // note will not return null
+                        Object v = queue.poll();
+
+                        if (v instanceof Item) {
+                            Item item = (Item) v;
+                            emitted += handleItem(item.value, item.source);
+                        } else if (v instanceof CompletedFrom) {
+                            handleCompleted((CompletedFrom) v);
+                        } else {
+                            // v must be an error
+                            clear();
+                            child.onError((Throwable) v);
+                            emitted = 0;
+                            return;
+                        }
+                        if (r == Long.MAX_VALUE) {
+                            emitted = 0;
+                        } else if (r == emitted) {
+                            r = addAndGet(-emitted);
+                            emitted = 0;
+                        }
                     }
-                }
-                if (emitted > 0) {
-                    // queue was exhausted but requests were not
-                    addAndGet(-emitted);
-                }
-                synchronized (this) {
-                    wip--;
-                    if (wip == 0) {
-                        return;
+                    if (emitted > 0) {
+                        // queue was exhausted but requests were not
+                        addAndGet(-emitted);
                     }
-                    wip = 1;
-                }
+                } while (wip.decrementAndGet() != 0);
             }
         }
 
