@@ -176,7 +176,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
             // logic duplication occurs below
             // would be nice to simplify without making code
-            // unreadable
+            // unreadable. A bit of a toss-up.
             if (source == Source.A) {
                 // look for match
                 @SuppressWarnings("unchecked")
@@ -286,11 +286,11 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 return Status.KEEP_GOING;
             }
         }
-        
+
         private enum Status {
             FINISHED, KEEP_GOING;
         }
-        
+
         private void checkToRequestMore() {
             if (requestFromA == requestSize && completed == COMPLETED_B) {
                 requestFromA = 0;
@@ -402,7 +402,6 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             this.value = value;
             this.source = source;
         }
-
     }
 
     static final class CompletedFrom {
@@ -411,7 +410,6 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         CompletedFrom(Source source) {
             this.source = source;
         }
-
     }
 
     enum Source {
