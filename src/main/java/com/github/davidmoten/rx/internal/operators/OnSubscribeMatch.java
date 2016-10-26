@@ -30,6 +30,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     private final Func2<? super A, ? super B, C> combiner;
     private final long requestSize;
 
+    private static final Object NULL_SENTINEL = new Object();
+
     public OnSubscribeMatch(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
             Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
             long requestSize) {
@@ -137,25 +139,32 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                         // note will not return null
                         Object v = queue.poll();
 
-                        if (v instanceof Item) {
-                            Item item = (Item) v;
-                            Emitted em = handleItem(item.value, item.source);
+                        if (v instanceof ItemA) {
+                            Emitted em = handleItem(((ItemA) v).value, Source.A);
                             if (em == Emitted.FINISHED) {
                                 return;
                             } else if (em == Emitted.ONE) {
                                 emitted += 1;
                             }
                         } else if (v instanceof Source) {
-                            //source completed
+                            // source completed
                             Status status = handleCompleted((Source) v);
                             if (status == Status.FINISHED) {
                                 return;
                             }
-                        } else {
+                        } else if (v instanceof MyError) {
                             // v must be an error
                             clear();
-                            child.onError((Throwable) v);
+                            child.onError(((MyError) v).error);
                             return;
+                        } else {
+                            // is onNext from B
+                            Emitted em = handleItem(v, Source.B);
+                            if (em == Emitted.FINISHED) {
+                                return;
+                            } else if (em == Emitted.ONE) {
+                                emitted += 1;
+                            }
                         }
                         if (r == Long.MAX_VALUE) {
                             emitted = 0;
@@ -199,7 +208,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     B b = poll(bs, q, key);
                     C c;
                     try {
-                        c = combiner.call(a, b);
+                        c = combiner.call(replaceSentinel(a), replaceSentinel(b));
                     } catch (Throwable e) {
                         clear();
                         child.onError(e);
@@ -239,7 +248,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     A a = poll(as, q, key);
                     C c;
                     try {
-                        c = combiner.call(a, b);
+                        c = combiner.call(replaceSentinel(a), replaceSentinel(b));
                     } catch (Throwable e) {
                         clear();
                         child.onError(e);
@@ -354,6 +363,14 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             drain();
         }
 
+        private static <T> T replaceSentinel(T t) {
+            if (t == NULL_SENTINEL) {
+                return null;
+            } else {
+                return t;
+            }
+        }
+
     }
 
     interface Receiver {
@@ -373,10 +390,19 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         @Override
         public void onNext(T t) {
-            // TODO can reduce allocations by emitting one source
-            // without wrapping as an item. Would have to use NULL_SENTINEL
-            // though because cannot rely on queue accepting nulls.
-            receiver.get().offer(new Item(t, source));
+            if (source == Source.A) {
+                receiver.get().offer(new ItemA(replaceNull(t)));
+            } else {
+                receiver.get().offer(replaceNull(t));
+            }
+        }
+
+        private static Object replaceNull(Object t) {
+            if (t == null) {
+                return NULL_SENTINEL;
+            } else {
+                return t;
+            }
         }
 
         @Override
@@ -386,7 +412,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         @Override
         public void onError(Throwable e) {
-            receiver.get().offer(e);
+            receiver.get().offer(new MyError(e));
         }
 
         public void requestMore(long n) {
@@ -395,13 +421,19 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
     }
 
-    static final class Item {
-        final Object value;
-        final Source source;
+    static final class MyError {
+        final Throwable error;
 
-        Item(Object value, Source source) {
+        MyError(Throwable error) {
+            this.error = error;
+        }
+    }
+
+    static final class ItemA {
+        final Object value;
+
+        ItemA(Object value) {
             this.value = value;
-            this.source = source;
         }
     }
 
