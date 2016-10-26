@@ -30,8 +30,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     private final long requestSize;
 
     public OnSubscribeMatch(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
-            Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
-            long requestSize) {
+            Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, long requestSize) {
         Preconditions.checkNotNull(a, "a should not be null");
         Preconditions.checkNotNull(b, "b should not be null");
         Preconditions.checkNotNull(aKey, "aKey cannot be null");
@@ -53,8 +52,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         MySubscriber<B, K> bSub = new MySubscriber<B, K>(Source.B, receiverHolder, requestSize);
         child.add(aSub);
         child.add(bSub);
-        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner,
-                aSub, bSub, child, requestSize);
+        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner, aSub, bSub, child,
+                requestSize);
         receiverHolder.set(producer);
         child.setProducer(producer);
         a.unsafeSubscribe(aSub);
@@ -62,8 +61,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     }
 
     @SuppressWarnings("serial")
-    private static final class MyProducer<A, B, K, C> extends AtomicLong
-            implements Producer, Receiver {
+    private static final class MyProducer<A, B, K, C> extends AtomicLong implements Producer, Receiver {
 
         private final Queue<Object> queue;
         private final Map<K, Queue<A>> as = new ConcurrentHashMap<K, Queue<A>>();
@@ -91,9 +89,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private static final int COMPLETED_BOTH = 3;
 
         MyProducer(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
-                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
-                MySubscriber<A, K> aSub, MySubscriber<B, K> bSub, Subscriber<? super C> child,
-                long requestSize) {
+                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, MySubscriber<A, K> aSub,
+                MySubscriber<B, K> bSub, Subscriber<? super C> child, long requestSize) {
             this.aKey = aKey;
             this.bKey = bKey;
             this.combiner = combiner;
@@ -102,7 +99,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             this.bSub = bSub;
             this.requestSize = requestSize;
             if (UnsafeAccess.isUnsafeAvailable()) {
-                queue= new MpscLinkedQueue<Object>();
+                queue = new MpscLinkedQueue<Object>();
             } else {
                 queue = new ConcurrentLinkedQueue<Object>();
             }
@@ -116,7 +113,6 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             }
         }
 
-        @SuppressWarnings("unchecked")
         void drain() {
             synchronized (this) {
                 if (wip > 0) {
@@ -138,95 +134,19 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     }
                     // note will not return null
                     Object v = queue.poll();
-                    if (v instanceof Item) {
-                        Object value = ((Item) v).value;
-                        Source source = ((Item) v).source;
-                        int numEmitted = 0;
 
-                        // logic duplication occurs below
-                        // would be nice to simplify without making code
-                        // unreadable
-                        if (source == Source.A) {
-                            // look for match
-                            A a = (A) value;
-                            K key = aKey.call(a);
-                            Queue<B> q = bs.get(key);
-                            if (q == null) {
-                                // cache value
-                                add(as, key, a);
-                            } else {
-                                // emit match
-                                B b = poll(bs, q, key);
-                                C c = combiner.call(a, b);
-                                child.onNext(c);
-                                numEmitted = 1;
-                            }
-                            // if the other source has completed and there
-                            // is nothing to match with then we should stop
-                            if (completed == COMPLETED_B && bs.isEmpty()) {
-                                // can finish
-                                clear();
-                                child.onCompleted();
-                            } else {
-                                requestFromA += 1;
-                            }
-                        } else {
-                            // look for match
-                            B b = (B) value;
-                            K key = bKey.call(b);
-                            Queue<A> q = as.get(key);
-                            if (q == null) {
-                                // cache value
-                                add(bs, key, b);
-                            } else {
-                                // emit match
-                                A a = poll(as, q, key);
-                                C c = combiner.call(a, b);
-                                child.onNext(c);
-                                numEmitted = 1;
-                            }
-                            // if the other source has completed and there
-                            // is nothing to match with then we should stop
-                            if (completed == COMPLETED_A && as.isEmpty()) {
-                                // can finish
-                                clear();
-                                child.onCompleted();
-                            } else {
-                                requestFromB += 1;
-                            }
-                        }
-                        // requests are batched so that each source gets a turn
-                        if (requestFromA == requestSize && requestFromB == requestSize) {
-                            requestFromA = 0;
-                            requestFromB = 0;
-                            aSub.requestMore(requestSize);
-                            bSub.requestMore(requestSize);
-                        }
-                        emitted += numEmitted;
-                    } else if (v instanceof CompletedFrom){
-                        // completed
-                        CompletedFrom comp = (CompletedFrom) v;
-                        completed(comp.source);
-                        final boolean done;
-                        if (comp.source == Source.A) {
-                            aSub.unsubscribe();
-                            done = (completed == COMPLETED_BOTH)
-                                    || (completed == COMPLETED_A && as.isEmpty());
-                        } else {
-                            bSub.unsubscribe();
-                            done = (completed == COMPLETED_BOTH)
-                                    || (completed == COMPLETED_B && bs.isEmpty());
-                        }
-                        if (done) {
-                            clear();
-                            child.onCompleted();
-                        }
+                    if (v instanceof Item) {
+                        Item item = (Item) v;
+                        emitted += handleItem(item.value, item.source);
+                    } else if (v instanceof CompletedFrom) {
+                        handleCompleted((CompletedFrom) v);
                     } else {
                         // v must be an error
                         clear();
                         child.onError((Throwable) v);
+                        emitted = 0;
                         return;
-                    } 
+                    }
                     if (r == Long.MAX_VALUE) {
                         emitted = 0;
                     } else if (r == emitted) {
@@ -245,6 +165,89 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     }
                     wip = 1;
                 }
+            }
+        }
+
+        private int handleItem(Object value, Source source) {
+            int numEmitted = 0;
+
+            // logic duplication occurs below
+            // would be nice to simplify without making code
+            // unreadable
+            if (source == Source.A) {
+                // look for match
+                @SuppressWarnings("unchecked")
+                A a = (A) value;
+                K key = aKey.call(a);
+                Queue<B> q = bs.get(key);
+                if (q == null) {
+                    // cache value
+                    add(as, key, a);
+                } else {
+                    // emit match
+                    B b = poll(bs, q, key);
+                    C c = combiner.call(a, b);
+                    child.onNext(c);
+                    numEmitted = 1;
+                }
+                // if the other source has completed and there
+                // is nothing to match with then we should stop
+                if (completed == COMPLETED_B && bs.isEmpty()) {
+                    // can finish
+                    clear();
+                    child.onCompleted();
+                } else {
+                    requestFromA += 1;
+                }
+            } else {
+                // look for match
+                @SuppressWarnings("unchecked")
+                B b = (B) value;
+                K key = bKey.call(b);
+                Queue<A> q = as.get(key);
+                if (q == null) {
+                    // cache value
+                    add(bs, key, b);
+                } else {
+                    // emit match
+                    A a = poll(as, q, key);
+                    C c = combiner.call(a, b);
+                    child.onNext(c);
+                    numEmitted = 1;
+                }
+                // if the other source has completed and there
+                // is nothing to match with then we should stop
+                if (completed == COMPLETED_A && as.isEmpty()) {
+                    // can finish
+                    clear();
+                    child.onCompleted();
+                } else {
+                    requestFromB += 1;
+                }
+            }
+            // requests are batched so that each source gets a turn
+            if (requestFromA == requestSize && requestFromB == requestSize) {
+                requestFromA = 0;
+                requestFromB = 0;
+                aSub.requestMore(requestSize);
+                bSub.requestMore(requestSize);
+            }
+            return numEmitted;
+        }
+
+        private void handleCompleted(CompletedFrom comp) {
+            completed(comp.source);
+            final boolean done;
+            if (comp.source == Source.A) {
+                aSub.unsubscribe();
+                done = (completed == COMPLETED_BOTH) || (completed == COMPLETED_A && as.isEmpty());
+            } else {
+                bSub.unsubscribe();
+                done = (completed == COMPLETED_BOTH) || (completed == COMPLETED_B && bs.isEmpty());
+            }
+            if (done) {
+                clear();
+                child.onCompleted();
             }
         }
 
