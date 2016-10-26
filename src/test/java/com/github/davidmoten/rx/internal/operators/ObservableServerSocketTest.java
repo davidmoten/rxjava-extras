@@ -324,18 +324,13 @@ public final class ObservableServerSocketTest {
                                     // sockets
                                     socket.setReuseAddress(true);
                                     socket.setSoTimeout(5000);
-                                    int count = openSockets.incrementAndGet();
-
+                                    openSockets.incrementAndGet();
                                     OutputStream out = socket.getOutputStream();
                                     for (int i = 0; i < messageBlocks; i++) {
                                         out.write(id.getBytes(UTF_8));
                                     }
                                     out.close();
-                                    count = openSockets.decrementAndGet();
-                                    // System.out.println("open sockets=" +
-                                    // count + ",
-                                    // connections = "
-                                    // + connections.get());
+                                    openSockets.decrementAndGet();
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
                                 } finally {

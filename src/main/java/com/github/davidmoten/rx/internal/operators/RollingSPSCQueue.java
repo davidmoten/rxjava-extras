@@ -9,7 +9,6 @@ import com.github.davidmoten.util.Preconditions;
 
 import rx.functions.Func0;
 import rx.plugins.RxJavaHooks;
-import rx.plugins.RxJavaPlugins;
 
 /**
  * <p>

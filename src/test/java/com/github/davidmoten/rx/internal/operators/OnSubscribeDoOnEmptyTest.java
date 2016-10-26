@@ -90,15 +90,15 @@ public final class OnSubscribeDoOnEmptyTest {
         Observable<Integer> source = Observable.range(0, 1000)
                 .compose(Transformers.<Integer> doOnEmpty(Actions.setToTrue0(wasCalled)));
 
-        TestSubscriber<Integer> subscriber = new TestSubscriber<Integer>(0);
+        TestSubscriber<Integer> ts = new TestSubscriber<Integer>(0);
 
-        source.subscribe(subscriber);
+        source.subscribe(ts);
 
-        subscriber.requestMore(1);
+        ts.requestMore(1);
 
-        assertTrue(subscriber.getOnNextEvents().size() == 1);
-        assertTrue(subscriber.getOnCompletedEvents().isEmpty());
-        assertTrue(subscriber.getOnErrorEvents().size() == 0);
+        assertTrue(ts.getOnNextEvents().size() == 1);
+        ts.assertNotCompleted();
+        assertTrue(ts.getOnErrorEvents().size() == 0);
         assertFalse(wasCalled.get());
     }
 
