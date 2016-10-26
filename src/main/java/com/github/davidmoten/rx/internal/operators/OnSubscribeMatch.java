@@ -82,7 +82,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         // completion state machine
         private int completed = COMPLETED_NONE;
-        // completion values
+        // completion states
         private static final int COMPLETED_NONE = 0;
         private static final int COMPLETED_A = 1;
         private static final int COMPLETED_B = 2;
@@ -231,7 +231,13 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 }
             }
             // requests are batched so that each source gets a turn
-            if (requestFromA == requestSize && requestFromB == requestSize) {
+            if (requestFromA == requestSize && completed == COMPLETED_B) {
+                requestFromA = 0;
+                aSub.requestMore(requestSize);
+            } else if (requestFromB == requestSize && completed == COMPLETED_A) {
+                requestFromB = 0;
+                bSub.requestMore(requestSize);
+            } else if (requestFromA == requestSize && requestFromB == requestSize) {
                 requestFromA = 0;
                 requestFromB = 0;
                 aSub.requestMore(requestSize);

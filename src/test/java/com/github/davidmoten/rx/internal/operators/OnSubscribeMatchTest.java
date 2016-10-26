@@ -42,6 +42,13 @@ public class OnSubscribeMatchTest {
                 .awaitTerminalEvent(5, TimeUnit.SECONDS) //
                 .assertCompleted().assertValuesSet(1, 2);
     }
+    
+    @Test
+    public void testKeepsRequesting() {
+        Observable<Integer> a = Observable.just(1);
+        Observable<Integer> b = Observable.just(2).repeat(1000).concatWith(Observable.just(1));
+        match(a, b, 1);
+    }
 
     @Test
     public void test2() {
