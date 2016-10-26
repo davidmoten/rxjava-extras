@@ -231,18 +231,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 }
             }
             // requests are batched so that each source gets a turn
-            if (requestFromA == requestSize && completed == COMPLETED_B) {
-                requestFromA = 0;
-                aSub.requestMore(requestSize);
-            } else if (requestFromB == requestSize && completed == COMPLETED_A) {
-                requestFromB = 0;
-                bSub.requestMore(requestSize);
-            } else if (requestFromA == requestSize && requestFromB == requestSize) {
-                requestFromA = 0;
-                requestFromB = 0;
-                aSub.requestMore(requestSize);
-                bSub.requestMore(requestSize);
-            }
+            checkToRequestMore();
             return numEmitted;
         }
 
@@ -259,6 +248,23 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
             if (done) {
                 clear();
                 child.onCompleted();
+            } else {
+                checkToRequestMore();
+            }
+        }
+
+        private void checkToRequestMore() {
+            if (requestFromA == requestSize && completed == COMPLETED_B) {
+                requestFromA = 0;
+                aSub.requestMore(requestSize);
+            } else if (requestFromB == requestSize && completed == COMPLETED_A) {
+                requestFromB = 0;
+                bSub.requestMore(requestSize);
+            } else if (requestFromA == requestSize && requestFromB == requestSize) {
+                requestFromA = 0;
+                requestFromB = 0;
+                aSub.requestMore(requestSize);
+                bSub.requestMore(requestSize);
             }
         }
 

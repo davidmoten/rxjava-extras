@@ -49,6 +49,13 @@ public class OnSubscribeMatchTest {
         Observable<Integer> b = Observable.just(2).repeat(1000).concatWith(Observable.just(1));
         match(a, b, 1);
     }
+    
+    @Test
+    public void testKeepsRequestingSwitched() {
+        Observable<Integer> a = Observable.just(2).repeat(1000).concatWith(Observable.just(1));
+        Observable<Integer> b = Observable.just(1);
+        match(a, b, 1);
+    }
 
     @Test
     public void test2() {
@@ -96,6 +103,13 @@ public class OnSubscribeMatchTest {
     public void testNoMatchExistsForAtLeastOneFirstLonger() {
         Observable<Integer> a = Observable.just(1, 2);
         Observable<Integer> b = Observable.just(1);
+        match(a, b, 1);
+    }
+    
+    @Test
+    public void testNoMatchExistsForAtLeastOneFirstLongerSwitched() {
+        Observable<Integer> a = Observable.just(1);
+        Observable<Integer> b = Observable.just(1, 2);
         match(a, b, 1);
     }
 
