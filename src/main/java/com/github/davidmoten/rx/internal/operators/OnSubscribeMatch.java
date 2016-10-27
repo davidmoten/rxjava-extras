@@ -81,7 +81,6 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
 
         // mutable fields, guarded by `this` and `wip` value
         private final AtomicInteger wip = new AtomicInteger(0);
-        private boolean requestAll = false;
         private int requestFromA = 0;
         private int requestFromB = 0;
 
@@ -122,15 +121,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         void drain() {
             if (wip.getAndIncrement() == 0) {
                 do {
-                    long r;
-                    if (requestAll) {
-                        r = Long.MAX_VALUE;
-                    } else {
-                        r = get();
-                        if (r == Long.MAX_VALUE) {
-                            requestAll = true;
-                        }
-                    }
+                    long r = get();
                     int emitted = 0;
                     while (r > emitted & !queue.isEmpty()) {
                         if (child.isUnsubscribed()) {
