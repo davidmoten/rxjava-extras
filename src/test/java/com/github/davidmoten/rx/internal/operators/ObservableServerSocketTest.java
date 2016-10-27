@@ -344,7 +344,7 @@ public final class ObservableServerSocketTest {
                                 return Observable.<Object> just(1);
                             }
                         }) //
-                                .timeout(5, TimeUnit.SECONDS) //
+                                .timeout(30, TimeUnit.SECONDS) //
                                 .subscribeOn(clientScheduler);
                     }
                 }) //
