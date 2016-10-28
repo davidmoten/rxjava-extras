@@ -33,7 +33,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     private static final Object NULL_SENTINEL = new Object();
 
     public OnSubscribeMatch(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
-            Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, long requestSize) {
+            Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
+            long requestSize) {
         Preconditions.checkNotNull(a, "a should not be null");
         Preconditions.checkNotNull(b, "b should not be null");
         Preconditions.checkNotNull(aKey, "aKey cannot be null");
@@ -55,8 +56,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         MySubscriber<B, K> bSub = new MySubscriber<B, K>(Source.B, receiverHolder, requestSize);
         child.add(aSub);
         child.add(bSub);
-        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner, aSub, bSub, child,
-                requestSize);
+        MyProducer<A, B, K, C> producer = new MyProducer<A, B, K, C>(a, b, aKey, bKey, combiner,
+                aSub, bSub, child, requestSize);
         receiverHolder.set(producer);
         child.setProducer(producer);
         a.unsafeSubscribe(aSub);
@@ -64,7 +65,9 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
     }
 
     @SuppressWarnings("serial")
-    private static final class MyProducer<A, B, K, C> extends AtomicLong implements Producer, Receiver {
+    private static final class MyProducer<A, B, K, C> extends AtomicInteger
+            implements Producer, Receiver {
+        // extends AtomicInteger as a work-in-progress atomic (wip)
 
         private final Queue<Object> queue;
         private final Map<K, Queue<A>> as = new ConcurrentHashMap<K, Queue<A>>();
@@ -77,8 +80,9 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private final MySubscriber<B, K> bSub;
         private final long requestSize;
 
-        // mutable fields, guarded by `this` and `wip` value
-        private final AtomicInteger wip = new AtomicInteger(0);
+        private final AtomicLong requested = new AtomicLong(0);
+
+        // mutable fields, guarded by `this` atomics
         private int requestFromA = 0;
         private int requestFromB = 0;
 
@@ -91,8 +95,9 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         private static final int COMPLETED_BOTH = 3;
 
         MyProducer(Observable<A> a, Observable<B> b, Func1<? super A, ? extends K> aKey,
-                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner, MySubscriber<A, K> aSub,
-                MySubscriber<B, K> bSub, Subscriber<? super C> child, long requestSize) {
+                Func1<? super B, ? extends K> bKey, Func2<? super A, ? super B, C> combiner,
+                MySubscriber<A, K> aSub, MySubscriber<B, K> bSub, Subscriber<? super C> child,
+                long requestSize) {
             this.aKey = aKey;
             this.bKey = bKey;
             this.combiner = combiner;
@@ -110,67 +115,69 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         @Override
         public void request(long n) {
             if (BackpressureUtils.validate(n)) {
-                BackpressureUtils.getAndAddRequest(this, n);
+                BackpressureUtils.getAndAddRequest(requested, n);
                 drain();
             }
         }
 
         void drain() {
-            if (wip.getAndIncrement() == 0) {
-                do {
-                    long r = get();
-                    int emitted = 0;
-                    while (r > emitted) {
-                        if (child.isUnsubscribed()) {
-                            return;
-                        }
-                        // note will not return null
-                        Object v = queue.poll();
-                        if (v == null) {
-                            // queue is empty
-                            break;
-                        } else if (v instanceof ItemA) {
-                            Emitted em = handleItem(((ItemA) v).value, Source.A);
-                            if (em == Emitted.FINISHED) {
-                                return;
-                            } else if (em == Emitted.ONE) {
-                                emitted += 1;
-                            }
-                        } else if (v instanceof Source) {
-                            // source completed
-                            Status status = handleCompleted((Source) v);
-                            if (status == Status.FINISHED) {
-                                return;
-                            }
-                        } else if (v instanceof MyError) {
-                            // v must be an error
-                            clear();
-                            child.onError(((MyError) v).error);
-                            return;
-                        } else {
-                            // is onNext from B
-                            Emitted em = handleItem(v, Source.B);
-                            if (em == Emitted.FINISHED) {
-                                return;
-                            } else if (em == Emitted.ONE) {
-                                emitted += 1;
-                            }
-                        }
-                        if (r == emitted) {
-                            r = BackpressureUtils.produced(this, emitted);
-                            emitted = 0;
-                        }
-                    }
-                    if (emitted > 0) {
-                        // queue was exhausted but requests were not
-                        BackpressureUtils.produced(this, emitted);
-                    }
-                } while (wip.decrementAndGet() != 0);
+            if (getAndIncrement() != 0) {
+                // work already in progress
+                // so exit
+                return;
             }
+            do {
+                long r = requested.get();
+                int emitted = 0;
+                while (r > emitted) {
+                    if (child.isUnsubscribed()) {
+                        return;
+                    }
+                    // note will not return null
+                    Object v = queue.poll();
+                    if (v == null) {
+                        // queue is empty
+                        break;
+                    } else if (v instanceof ItemA) {
+                        Emitted em = handleItem(((ItemA) v).value, Source.A);
+                        if (em == Emitted.FINISHED) {
+                            return;
+                        } else if (em == Emitted.ONE) {
+                            emitted += 1;
+                        }
+                    } else if (v instanceof Source) {
+                        // source completed
+                        Status status = handleCompleted((Source) v);
+                        if (status == Status.FINISHED) {
+                            return;
+                        }
+                    } else if (v instanceof MyError) {
+                        // v must be an error
+                        clear();
+                        child.onError(((MyError) v).error);
+                        return;
+                    } else {
+                        // is onNext from B
+                        Emitted em = handleItem(v, Source.B);
+                        if (em == Emitted.FINISHED) {
+                            return;
+                        } else if (em == Emitted.ONE) {
+                            emitted += 1;
+                        }
+                    }
+                    if (r == emitted) {
+                        break;
+                    }
+                }
+                if (emitted > 0) {
+                    // queue was exhausted but requests were not
+                    BackpressureUtils.produced(requested, emitted);
+                }
+            } while (decrementAndGet() != 0);
         }
 
         private Emitted handleItem(Object value, Source source) {
-            Emitted result = Emitted.NONE;
+            final Emitted result;
 
             // logic duplication occurs below
             // would be nice to simplify without making code
@@ -191,6 +198,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 if (q == null) {
                     // cache value
                     add(as, key, a);
+                    result = Emitted.NONE;
                 } else {
                     // emit match
                     B b = poll(bs, q, key);
@@ -231,6 +239,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 if (q == null) {
                     // cache value
                     add(bs, key, b);
+                    result = Emitted.NONE;
                 } else {
                     // emit match
                     A a = poll(as, q, key);
