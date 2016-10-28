@@ -1,9 +1,9 @@
 package com.github.davidmoten.rx.internal.operators;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -70,8 +70,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         // extends AtomicInteger as a work-in-progress atomic (wip)
 
         private final Queue<Object> queue;
-        private final Map<K, Queue<A>> as = new ConcurrentHashMap<K, Queue<A>>();
-        private final Map<K, Queue<B>> bs = new ConcurrentHashMap<K, Queue<B>>();
+        private final Map<K, Queue<A>> as = new HashMap<K, Queue<A>>();
+        private final Map<K, Queue<B>> bs = new HashMap<K, Queue<B>>();
         private final Func1<? super A, ? extends K> aKey;
         private final Func1<? super B, ? extends K> bKey;
         private final Func2<? super A, ? super B, C> combiner;
