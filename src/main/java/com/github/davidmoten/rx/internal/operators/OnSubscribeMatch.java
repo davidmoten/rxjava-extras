@@ -170,7 +170,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     }
                 }
                 if (emitted > 0) {
-                    // queue was exhausted but requests were not
+                    // reduce requested by emitted
                     BackpressureUtils.produced(requested, emitted);
                 }
             } while (decrementAndGet() != 0);
