@@ -374,7 +374,7 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
         void offer(Object item);
     }
 
-    private static class MySubscriber<T, K> extends Subscriber<T> {
+    static final class MySubscriber<T, K> extends Subscriber<T> {
 
         private final AtomicReference<Receiver> receiver;
         private final Source source;
