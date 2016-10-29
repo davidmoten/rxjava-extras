@@ -39,6 +39,12 @@ public final class ObservableReverse {
                         i--;
                         return list.get(i);
                     }
+
+                    @Override
+                    public void remove() {
+                        throw new UnsupportedOperationException();
+                    }
+                    
                 };
             }
         };
