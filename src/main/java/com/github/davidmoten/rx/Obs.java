@@ -3,11 +3,13 @@ package com.github.davidmoten.rx;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.davidmoten.rx.internal.operators.ObservableReverse;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeFromQueue;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeMatch;
 import com.github.davidmoten.rx.internal.operators.OnSubscribeRepeating;
@@ -271,4 +273,8 @@ public final class Obs {
                 .create(new OnSubscribeMatch<A, B, K, C>(a, b, aKey, bKey, combiner, requestSize));
     }
 
+    public static <T> Observable<T> reverse(Observable<T> source) {
+        return ObservableReverse.reverse(source);
+    }
+    
 }

@@ -1335,4 +1335,13 @@ public final class Transformers {
         };
 
     }
+    
+    public static <T> Transformer<T,T> reverse() {
+        return new Transformer<T,T>() {
+
+            @Override
+            public Observable<T> call(Observable<T> source) {
+                return Obs.reverse(source);
+            }};
+    }
 }
