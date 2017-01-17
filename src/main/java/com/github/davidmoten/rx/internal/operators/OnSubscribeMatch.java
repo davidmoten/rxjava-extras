@@ -126,7 +126,8 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                 // so exit
                 return;
             }
-            do {
+            int missed = 1;
+            while (true) {
                 long r = requested.get();
                 int emitted = 0;
                 while (r > emitted) {
@@ -173,7 +174,11 @@ public final class OnSubscribeMatch<A, B, K, C> implements OnSubscribe<C> {
                     // reduce requested by emitted
                     BackpressureUtils.produced(requested, emitted);
                 }
-            } while (decrementAndGet() != 0);
+                missed = this.addAndGet(-missed);
+                if (missed == 0 ) {
+                    return;
+                }
+            } 
         }
 
         private Emitted handleItem(Object value, Source source) {

@@ -525,7 +525,7 @@ Suppose you have a a zip file `file.zip` and you want to stream the lines of the
 Observable<String> lines = 
     Bytes.unzip(new File("file.zip"))
        .filter(entry -> entry.getName().equals("doc.txt"))
-       .concatMap(entry -> Strings.from(entry.getInputStream))
+       .concatMap(entry -> Strings.from(entry.getInputStream()))
        .compose(o-> Strings.split(o, "\n"));
 ```
 Note that above you don't need to worry about closing `entry.getInputStream()` because it is handled in the unsubscribe of the `Bytes.unzip` source.

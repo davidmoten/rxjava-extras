@@ -191,21 +191,21 @@ public final class Functions {
         };
     }
 
-    public static <T, R> Func1<T, R> throwing() {
-        return new Func1<T, R>() {
-
-            @Override
-            public R call(T t) {
-                throw new ThrowingException();
-            }
-        };
-    }
-
     public static <T, R, S> Func2<T, R, S> throwing2() {
         return new Func2<T, R, S>() {
 
             @Override
             public S call(T t, R r) {
+                throw new ThrowingException();
+            }
+        };
+    }
+    
+    public static <T, R> Func1<T, R> throwing() {
+        return new Func1<T, R>() {
+
+            @Override
+            public R call(T t) {
                 throw new ThrowingException();
             }
         };
