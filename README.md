@@ -303,6 +303,28 @@ observable.retryWhen(
     RetryWhen.delays(delays, TimeUnit.SECONDS).build());
 ```
 
+### Retry with exponential backoff
+
+```java
+//the length of waits determines number of retries
+observable.retryWhen(
+    RetryWhen.exponentialBackoff(delay, TimeUnit.SECONDS).build());
+```
+
+You can cap the delay:
+```java
+//the length of waits determines number of retries
+observable.retryWhen(
+    RetryWhen.exponentialBackoff(delay, maxDelay, TimeUnit.SECONDS).build());
+```
+
+The default backoff factor is 2 (the delay doubles on each consecutive failure). You can customize this value with another overload:
+```java
+//the length of waits determines number of retries
+observable.retryWhen(
+    RetryWhen.exponentialBackoff(delay, maxDelay, TimeUnit.SECONDS, 1.5).build());
+```
+
 ### Retry only for a particular exception
 
 ```java
