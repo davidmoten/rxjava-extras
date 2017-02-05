@@ -5,7 +5,7 @@ rxjava-extras
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/com.github.davidmoten/rxjava-extras)<br/>
 [![codecov](https://codecov.io/gh/davidmoten/rxjava-extras/branch/master/graph/badge.svg)](https://codecov.io/gh/davidmoten/rxjava-extras)
 
-Utilities for use with rxjava:
+Utilities for use with RxJava 1 (see [rxjava2-extras](https://github.com/davidmoten/rxjava2-extras) for RxJava 2):
 
 * `Functions.identity, alwaysTrue, alwaysFalse, constant, not`
 * `Actions.setAtomic, doNothing, unsubscribe, increment, decrement, addTo, println, setToTrue, countDown, printStackTrace`
