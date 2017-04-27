@@ -446,7 +446,7 @@ Observable.just(1, 2, 3, 4)
       Transformers.<List<Integer>>onBackpressureBufferToFile())
 ```
 
-###Performance
+### Performance
 Throughput writing to spinning disk (and reading straight away with little downstream processing cost) on an i7 with `Options.bufferSizeBytes=1024`:
 
 ```
