@@ -17,6 +17,7 @@ import rx.internal.operators.BackpressureUtils;
 import rx.internal.operators.NotificationLite;
 import rx.internal.util.RxRingBuffer;
 import rx.internal.util.unsafe.MpscLinkedQueue;
+import rx.plugins.RxJavaHooks;
 
 /**
  * @author David Karnokd
@@ -295,7 +296,7 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
         final MergeProducer<T> parent;
         volatile boolean done;
 
-        public SourceSubscriber(MergeProducer<T> parent) {
+        SourceSubscriber(MergeProducer<T> parent) {
             queue = RxRingBuffer.getSpscInstance();
             this.parent = parent;
         }
@@ -312,6 +313,9 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
 
         @Override
         public void onNext(T t) {
+            if (done) {
+                return;
+            }
             try {
                 queue.onNext(NotificationLite.next(t));
             } catch (MissingBackpressureException mbe) {
@@ -336,12 +340,19 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
 
         @Override
         public void onError(Throwable e) {
+            if (done) {
+                RxJavaHooks.onError(e);
+                return;
+            }
             done = true;
             parent.error(e);
         }
 
         @Override
         public void onCompleted() {
+            if (done) {
+                return;
+            }
             done = true;
             parent.emit();
         }
