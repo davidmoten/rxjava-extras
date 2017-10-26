@@ -1,6 +1,10 @@
 sudo: false
 language: java
 dist: precise
+addons:
+  hosts:
+    - rxci
+  hostname: rxci
 jdk:
 - oraclejdk8
 - oraclejdk7
