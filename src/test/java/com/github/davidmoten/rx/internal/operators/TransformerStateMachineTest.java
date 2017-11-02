@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -15,7 +14,6 @@ import com.github.davidmoten.rx.Actions;
 import com.github.davidmoten.rx.Functions;
 import com.github.davidmoten.rx.StateMachine.Transition;
 import com.github.davidmoten.rx.Transformers;
-import com.github.davidmoten.rx.slf4j.Logging;
 import com.github.davidmoten.rx.util.BackpressureUtils;
 
 import rx.Observable;
@@ -233,8 +231,8 @@ public class TransformerStateMachineTest {
     public void testForMemoryLeaks() {
         int n = 1000000;
         int count = Observable.range(1, n)
-                .lift(Logging.<Integer> logger().showCount().showMemory().every(1, TimeUnit.SECONDS)
-                        .log())
+//                .lift(Logging.<Integer> logger().showCount().showMemory().every(1, TimeUnit.SECONDS)
+//                        .log())
                 .compose(Transformers.toListWhile(new Func2<List<Integer>, Integer, Boolean>() {
                     @Override
                     public Boolean call(List<Integer> list, Integer t) {
