@@ -170,6 +170,14 @@ public final class RetryWhen {
 		return new Builder().action(action);
 	}
 
+	public static Builder exponentialBackoff(long firstDelay, long maxDelay, TimeUnit unit, final double factor) {
+		return new Builder().exponentialBackoff(firstDelay, maxDelay, unit, factor);
+	}
+
+	public static Builder exponentialBackoff(long firstDelay, long maxDelay, TimeUnit unit) {
+		return new Builder().exponentialBackoff(firstDelay, maxDelay, unit);
+	}
+
 	public static Builder exponentialBackoff(final long firstDelay, final TimeUnit unit, final double factor) {
 		return new Builder().exponentialBackoff(firstDelay, unit, factor);
 	}
@@ -277,6 +285,10 @@ public final class RetryWhen {
 						}
 					});
 			return this;
+		}
+
+		public Builder exponentialBackoff(final long firstDelay, final long maxDelay, final TimeUnit unit)  {
+			return exponentialBackoff(firstDelay, maxDelay, unit, 2);
 		}
 		
 		public Builder exponentialBackoff(final long firstDelay, final TimeUnit unit, final double factor) {
