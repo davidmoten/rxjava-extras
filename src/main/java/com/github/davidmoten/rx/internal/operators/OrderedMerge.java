@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.github.davidmoten.rx.util.RxRingBuffer;
+
 import rx.Observable;
 import rx.Observable.OnSubscribe;
 import rx.Producer;
@@ -15,7 +17,6 @@ import rx.exceptions.CompositeException;
 import rx.exceptions.MissingBackpressureException;
 import rx.internal.operators.BackpressureUtils;
 import rx.internal.operators.NotificationLite;
-import rx.internal.util.RxRingBuffer;
 import rx.internal.util.unsafe.MpscLinkedQueue;
 import rx.plugins.RxJavaHooks;
 
@@ -29,45 +30,47 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
     final List<Observable<T>> sources;
     final Comparator<? super T> comparator;
     final boolean delayErrors;
+    final int bufferSize;
 
     public static <U extends Comparable<? super U>> Observable<U> create(
             Collection<Observable<U>> sources) {
-        return create(sources, false);
+        return create(sources, false, RxRingBuffer.SIZE);
     }
-
+    
     public static <U> Observable<U> create(Collection<Observable<U>> sources,
             Comparator<? super U> comparator) {
-        return create(sources, comparator, false);
+        return create(sources, comparator, false, RxRingBuffer.SIZE);
     }
 
     public static <U extends Comparable<? super U>> Observable<U> create(
-            Collection<Observable<U>> sources, boolean delayErrors) {
-        return Observable.create(new OrderedMerge<U>(sources, new Comparator<U>() {
+            Collection<Observable<U>> sources, boolean delayErrors, int bufferSize) {
+        return Observable.unsafeCreate(new OrderedMerge<U>(sources, new Comparator<U>() {
             @Override
             public int compare(U o1, U o2) {
                 return o1.compareTo(o2);
             }
-        }, delayErrors));
+        }, delayErrors, bufferSize));
     }
 
     public static <U> Observable<U> create(Collection<Observable<U>> sources,
-            Comparator<? super U> comparator, boolean delayErrors) {
-        return Observable.create(new OrderedMerge<U>(sources, comparator, delayErrors));
+            Comparator<? super U> comparator, boolean delayErrors, int bufferSize) {
+        return Observable.unsafeCreate(new OrderedMerge<U>(sources, comparator, delayErrors, bufferSize));
     }
 
     private OrderedMerge(Collection<Observable<T>> sources,
-            Comparator<? super T> comparator, boolean delayErrors) {
+            Comparator<? super T> comparator, boolean delayErrors, int bufferSize) {
         this.sources = sources instanceof List ? (List<Observable<T>>) sources
                 : new ArrayList<Observable<T>>(sources);
         this.comparator = comparator;
         this.delayErrors = delayErrors;
+        this.bufferSize = bufferSize;
     }
 
     @Override
     public void call(Subscriber<? super T> child) {
         @SuppressWarnings("unchecked")
         SourceSubscriber<T>[] sources = new SourceSubscriber[this.sources.size()];
-        MergeProducer<T> mp = new MergeProducer<T>(sources, child, comparator, delayErrors);
+        MergeProducer<T> mp = new MergeProducer<T>(sources, child, comparator, delayErrors, bufferSize);
         for (int i = 0; i < sources.length; i++) {
             if (child.isUnsubscribed()) {
                 return;
@@ -97,20 +100,23 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
         @SuppressWarnings("rawtypes")
         final SourceSubscriber[] sources;
         final Subscriber<? super T> child;
+        final int bufferSize;
 
         final Queue<Throwable> errors;
 
         boolean emitting;
         boolean missed;
 
+
         @SuppressWarnings("rawtypes")
         public MergeProducer(SourceSubscriber[] sources, Subscriber<? super T> child,
-                Comparator<? super T> comparator, boolean delayErrors) {
+                Comparator<? super T> comparator, boolean delayErrors, int bufferSize) {
             this.sources = sources;
             this.delayErrors = delayErrors;
             this.errors = new MpscLinkedQueue<Throwable>();
             this.child = child;
             this.comparator = comparator;
+            this.bufferSize = bufferSize;
         }
 
         @Override
@@ -291,20 +297,24 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
         }
     }
 
+    private static RxRingBuffer getRingBufferSpscInstance(int bufferSize) {
+        return com.github.davidmoten.rx.util.RxRingBuffer.getSpscInstance(bufferSize);
+    }
+    
     static final class SourceSubscriber<T> extends Subscriber<T> {
         final RxRingBuffer queue;
         final MergeProducer<T> parent;
         volatile boolean done;
 
         SourceSubscriber(MergeProducer<T> parent) {
-            queue = RxRingBuffer.getSpscInstance();
+            queue = getRingBufferSpscInstance(parent.bufferSize);
             this.parent = parent;
         }
 
         @Override
         public void onStart() {
             add(queue);
-            request(RxRingBuffer.SIZE);
+            request(parent.bufferSize);
         }
 
         public void requestMore(long n) {
@@ -357,4 +367,5 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
             parent.emit();
         }
     }
+
 }

@@ -40,6 +40,7 @@ import com.github.davidmoten.rx.util.MapWithIndex;
 import com.github.davidmoten.rx.util.MapWithIndex.Indexed;
 import com.github.davidmoten.rx.util.Pair;
 import com.github.davidmoten.util.Optional;
+import com.github.davidmoten.util.Preconditions;
 
 import rx.Notification;
 import rx.Observable;
@@ -339,6 +340,38 @@ public final class Transformers {
 
     /**
      * <p>
+     * Returns the source {@link Observable} merged with the <code>other</code>
+     * observable using the given {@link Comparator} for order. A precondition
+     * is that the source and other are already ordered. This transformer
+     * supports backpressure and its inputs must also support backpressure.
+     * 
+     * <p>
+     * <img src=
+     * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/orderedMerge.png?raw=true"
+     * alt="marble diagram">
+     * 
+     * @param other
+     *            the other already ordered observable
+     * @param comparator
+     *            the ordering to use
+     * @param delayErrors
+     *            whether errors are reported immediately or are reported after buffered items are emitted
+     * @param bufferSize
+     *            the number of items that are requested from each source at the start (and held)  
+     * @param <T>
+     *            the generic type of the objects being compared
+     * @return merged and ordered observable
+     */
+    public static final <T> Transformer<T, T> orderedMergeWith(final Observable<T> other,
+            final Comparator<? super T> comparator, boolean delayErrors, int bufferSize) {
+        Preconditions.checkArgument(bufferSize > 0, "bufferSize must be greater than zero");
+        @SuppressWarnings("unchecked")
+        Collection<Observable<T>> collection = Arrays.asList(other);
+        return orderedMergeWith(collection, comparator, delayErrors, bufferSize);
+    }
+    
+    /**
+     * <p>
      * Returns the source {@link Observable} merged with all of the other
      * observables using the given {@link Comparator} for order. A precondition
      * is that the source and other are already ordered. This transformer
@@ -366,7 +399,46 @@ public final class Transformers {
                 List<Observable<T>> collection = new ArrayList<Observable<T>>();
                 collection.add(source);
                 collection.addAll(others);
-                return OrderedMerge.<T> create(collection, comparator, false);
+                return OrderedMerge.<T> create(collection, comparator, false, RxRingBuffer.SIZE);
+            }
+        };
+    }
+    
+    /**
+     * <p>
+     * Returns the source {@link Observable} merged with all of the other
+     * observables using the given {@link Comparator} for order. A precondition
+     * is that the source and other are already ordered. This transformer
+     * supports backpressure and its inputs must also support backpressure.
+     * 
+     * <p>
+     * <img src=
+     * "https://github.com/davidmoten/rxjava-extras/blob/master/src/docs/orderedMerge.png?raw=true"
+     * alt="marble diagram">
+     * 
+     * @param others
+     *            a collection of already ordered observables to merge with
+     * @param comparator
+     *            the ordering to use
+     * @param delayErrors
+     *            whether errors are reported immediately or are reported after buffered items are emitted
+     * @param bufferSize
+     *            the number of items that are requested from each source at the start (and held)           
+     * @param <T>
+     *            the generic type of the objects being compared
+     * @return merged and ordered observable
+     */
+    public static final <T> Transformer<T, T> orderedMergeWith(
+            final Collection<Observable<T>> others, final Comparator<? super T> comparator, final boolean delayErrors, final int bufferSize) {
+        Preconditions.checkArgument(bufferSize > 0, "bufferSize must be greater than zero");
+        return new Transformer<T, T>() {
+
+            @Override
+            public Observable<T> call(Observable<T> source) {
+                List<Observable<T>> collection = new ArrayList<Observable<T>>();
+                collection.add(source);
+                collection.addAll(others);
+                return OrderedMerge.<T> create(collection, comparator, delayErrors, bufferSize);
             }
         };
     }
@@ -1266,7 +1338,7 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> o) {
-                return Observable.create(new OnSubscribeDoOnEmpty<T>(o, onEmpty));
+                return Observable.unsafeCreate(new OnSubscribeDoOnEmpty<T>(o, onEmpty));
             }
         };
     }
@@ -1307,7 +1379,7 @@ public final class Transformers {
 
             @Override
             public Observable<T> call(Observable<T> source) {
-                return Observable.create(new OnSubscribeMapLast<T>(source, function));
+                return Observable.unsafeCreate(new OnSubscribeMapLast<T>(source, function));
             }
         };
     }

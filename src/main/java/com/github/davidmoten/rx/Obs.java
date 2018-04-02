@@ -17,6 +17,7 @@ import com.github.davidmoten.rx.internal.operators.OrderedMerge;
 import com.github.davidmoten.rx.internal.operators.Permutations;
 import com.github.davidmoten.rx.internal.operators.Permutations.Swap;
 import com.github.davidmoten.rx.observables.CachedObservable;
+import com.github.davidmoten.rx.util.RxRingBuffer;
 import com.github.davidmoten.util.Optional;
 
 import rx.Observable;
@@ -179,7 +180,7 @@ public final class Obs {
      * @return an observable that repeats t forever (or until unsubscribed)
      */
     public static <T> Observable<T> repeating(final T t) {
-        return Observable.create(new OnSubscribeRepeating<T>(t));
+        return Observable.unsafeCreate(new OnSubscribeRepeating<T>(t));
     }
 
     public static <T extends Comparable<? super T>> Observable<T> create(
@@ -194,12 +195,12 @@ public final class Obs {
 
     public static <T extends Comparable<? super T>> Observable<T> create(
             Collection<Observable<T>> sources, boolean delayErrors) {
-        return OrderedMerge.create(sources, delayErrors);
+        return OrderedMerge.create(sources, delayErrors, RxRingBuffer.SIZE);
     }
 
     public static <T> Observable<T> create(Collection<Observable<T>> sources,
             Comparator<? super T> comparator, boolean delayErrors) {
-        return OrderedMerge.create(sources, comparator, delayErrors);
+        return OrderedMerge.create(sources, comparator, delayErrors, RxRingBuffer.SIZE);
     }
 
     public static <T> Observable<T> fromQueue(Queue<T> queue) {
@@ -270,7 +271,7 @@ public final class Obs {
             final Func1<? super A, ? extends K> aKey, final Func1<? super B, ? extends K> bKey,
             final Func2<? super A, ? super B, C> combiner, long requestSize) {
         return Observable
-                .create(new OnSubscribeMatch<A, B, K, C>(a, b, aKey, bKey, combiner, requestSize));
+                .unsafeCreate(new OnSubscribeMatch<A, B, K, C>(a, b, aKey, bKey, combiner, requestSize));
     }
 
     public static <T> Observable<T> reverse(Observable<T> source) {

@@ -14,6 +14,7 @@ import org.junit.Test;
 
 import com.github.davidmoten.rx.Transformers;
 import com.github.davidmoten.rx.testing.TestingHelper;
+import com.github.davidmoten.rx.util.RxRingBuffer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -217,7 +218,7 @@ public class OrderedMergeTest {
 		Observable<Integer> o2 = Observable.just(2).concatWith(Observable.<Integer> error(new TestException()));
 
 		TestSubscriber<Integer> ts = TestSubscriber.create();
-		OrderedMerge.create(Arrays.asList(o1, o2), true).subscribe(ts);
+		OrderedMerge.create(Arrays.asList(o1, o2), true, RxRingBuffer.SIZE).subscribe(ts);
 
 		ts.assertError(TestException.class);
 		ts.assertValues(1, 2, 3, 5, 7);
@@ -231,7 +232,7 @@ public class OrderedMergeTest {
 		Observable<Integer> o2 = Observable.<Integer> error(new TestException());
 
 		TestSubscriber<Integer> ts = TestSubscriber.create();
-		OrderedMerge.create(Arrays.asList(o1, o2), true).subscribe(ts);
+		OrderedMerge.create(Arrays.asList(o1, o2), true, RxRingBuffer.SIZE).subscribe(ts);
 
 		ts.assertError(TestException.class);
 		ts.assertNotCompleted();
@@ -245,7 +246,7 @@ public class OrderedMergeTest {
 		Observable<Integer> o2 = Observable.just(2, 4, 6, 8);
 
 		TestSubscriber<Integer> ts = TestSubscriber.create();
-		OrderedMerge.create(Arrays.asList(o1, o2)).take(2).subscribe(ts);
+		OrderedMerge.create(Arrays.asList(o1, o2), true, RxRingBuffer.SIZE).take(2).subscribe(ts);
 
 		ts.assertNoErrors();
 		ts.assertCompleted();
