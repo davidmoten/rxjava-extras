@@ -268,6 +268,21 @@ public class OrderedMergeTest {
 		ts.assertNoErrors();
 		ts.assertNotCompleted();
 		ts.assertValues(1, 2);
-
+	}
+	
+	@SuppressWarnings("unchecked")
+    @Test
+	public void testComparatorThrows() {
+	    Observable<Integer> o1 = Observable.just(1, 3, 5, 7);
+        Observable<Integer> o2 = Observable.just(2, 4, 6, 8);
+        final RuntimeException ex = new RuntimeException("boo");
+        Comparator<Integer> c = new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                throw ex;
+            }};
+        OrderedMerge.create(Arrays.asList(o1, o2), c) //
+          .test() //
+          .assertError(ex);
 	}
 }

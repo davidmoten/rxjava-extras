@@ -228,10 +228,15 @@ public final class OrderedMerge<T> implements OnSubscribe<T> {
                         // current
                         if (hasAtLeastOne) {
                             T v = NotificationLite.getValue(o);
-                            int c = comparator.compare(minimum, v);
-                            if (c > 0) {
-                                minimum = v;
-                                toPoll = i;
+                            try {
+                                int c = comparator.compare(minimum, v);
+                                if (c > 0) {
+                                    minimum = v;
+                                    toPoll = i;
+                                } 
+                            } catch (Throwable ex) {
+                                child.onError(ex);
+                                return;
                             }
                         } else {
                             // this is the first value found
