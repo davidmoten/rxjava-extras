@@ -183,22 +183,22 @@ public final class Obs {
         return Observable.unsafeCreate(new OnSubscribeRepeating<T>(t));
     }
 
-    public static <T extends Comparable<? super T>> Observable<T> create(
+    public static <T extends Comparable<? super T>> Observable<T> orderedMerge(
             Collection<Observable<T>> sources) {
-        return create(sources, false);
+        return orderedMerge(sources, false);
     }
 
-    public static <T> Observable<T> create(Collection<Observable<T>> sources,
+    public static <T> Observable<T> orderedMerge(Collection<Observable<T>> sources,
             Comparator<? super T> comparator) {
-        return create(sources, comparator, false);
+        return orderedMerge(sources, comparator, false);
     }
 
-    public static <T extends Comparable<? super T>> Observable<T> create(
+    public static <T extends Comparable<? super T>> Observable<T> orderedMerge(
             Collection<Observable<T>> sources, boolean delayErrors) {
         return OrderedMerge.create(sources, delayErrors, RxRingBuffer.SIZE);
     }
 
-    public static <T> Observable<T> create(Collection<Observable<T>> sources,
+    public static <T> Observable<T> orderedMerge(Collection<Observable<T>> sources,
             Comparator<? super T> comparator, boolean delayErrors) {
         return OrderedMerge.create(sources, comparator, delayErrors, RxRingBuffer.SIZE);
     }
