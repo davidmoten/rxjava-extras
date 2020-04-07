@@ -1,6 +1,4 @@
-sudo: false
 language: java
-dist: precise
 addons:
   hosts:
     - rxci
