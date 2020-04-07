@@ -1,15 +1,10 @@
-sudo: false
 language: java
-dist: precise
 addons:
   hosts:
     - rxci
   hostname: rxci
 jdk:
-- oraclejdk8
-- oraclejdk7
-- openjdk7
-- openjdk6
+- openjdk8
 env:
   global:
   - SONATYPE_USERNAME=davidmoten

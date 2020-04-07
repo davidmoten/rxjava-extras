@@ -1,7 +1,13 @@
 package com.github.davidmoten.rx;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.infra.Blackhole;
@@ -10,6 +16,7 @@ import com.github.davidmoten.rx.buffertofile.DataSerializers;
 import com.github.davidmoten.rx.perf.LatchedObserver;
 
 import rx.Observable;
+import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -63,11 +70,42 @@ public class Benchmarks {
         observer.latch.await(100, TimeUnit.SECONDS);
     }
 
+    private static List<String> lines = readLines();
+
+    private static List<String> readLines() {
+        try {
+            return Files.lines(new File("src/test/resources/the-black-gang.txt").toPath()) //
+                    .collect(Collectors.<String>toList());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+    
     @Benchmark
-    public void perfStringSplit() {
-        Observable.from(Arrays //
-                .asList("the quick brown ", "fox jumped over", " the lazy", " dog")) //
-                .compose(Transformers.split("o"));
+    public void perfStringSplit(final Blackhole bh) {
+        Observable //
+                .from(lines) //
+                .compose(Transformers.split("o")) //
+                .forEach(new Action1<String>() {
+                    @Override
+                    public void call(String x) {
+                        bh.consume(x);
+                    }
+                });
+    }
+
+    @Benchmark
+    public void perfStringSplitWithLimit(final Blackhole bh) {
+        // this should show the allocation overhead of the State object (almost zero effect)
+        Observable //
+                .from(lines) //
+                .compose(Transformers.split(100, "o", 1)) //
+                .forEach(new Action1<String>() {
+                    @Override
+                    public void call(String x) {
+                        bh.consume(x);
+                    }
+                });
     }
 
 }

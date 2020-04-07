@@ -682,12 +682,61 @@ public final class Transformers {
         };
     }
 
-    public static <T> Transformer<String, String> split(String pattern) {
+    public static Transformer<String, String> split(String pattern) {
         return TransformerStringSplit.split(pattern, null);
     }
 
-    public static <T> Transformer<String, String> split(Pattern pattern) {
+    public static Transformer<String, String> split(Pattern pattern) {
         return TransformerStringSplit.split(null, pattern);
+    }
+    
+    /**
+     * Concatenates source stream items (strings) and splits on given pattern.
+     * Emitted items are trimmed to {@code maxItemLength} characters (iff
+     * {@code maxItemLength} is > 0) and emitted immediately that limit is reached.
+     * Characters following up to the next delimiter are ignored. This method exists
+     * as protection against {@code OutOfMemoryError}s in the case that the input
+     * stream is very long and has no delimiters present.
+     * 
+     * @param maxItemLength
+     *            the maximum length of an emitted item (characters after that
+     *            number and before the next matching delimiter are ignored). A
+     *            value of 0 means no limit.
+     * @param pattern
+     *            pattern to split on (note that may be compiled by
+     *            {@link Pattern#compile} for every emission so do some performance
+     *            comparisons with the overload that expects a Pattern instead of a
+     *            String)
+     * @param maxPatternLength
+     *            the maximum length of expected text matching the given pattern.
+     *            Must be > 0.
+     * @return a stream transformer that splits strings by delimiter pattern
+     */
+    public static Transformer<String, String> split(int maxItemLength, String pattern, int maxPatternLength) {
+        return TransformerStringSplit.split(maxItemLength, pattern, null, maxPatternLength);
+    }
+    
+    /**
+     * Concatenates source stream items (strings) and splits on given pattern.
+     * Emitted items are trimmed to {@code maxItemLength} characters (iff
+     * {@code maxItemLength} is > 0) and emitted immediately that limit is reached.
+     * Characters following up to the next delimiter are ignored. This method exists
+     * as protection against OutOfMemoryErrors in the case that the input stream is
+     * very long and has no delimiters present.
+     * 
+     * @param maxItemLength
+     *            the maximum length of an emitted item (characters after that
+     *            number and before the next matching delimiter are ignored). A
+     *            value of 0 means no limit.
+     * @param pattern
+     *            pattern to split on
+     * @param maxPatternLength
+     *            the maximum length of expected text matching the given pattern.
+     *            Must be > 0.
+     * @return a stream transformer that splits strings by delimiter pattern
+     */
+    public static Transformer<String, String> split(int maxItemLength, Pattern pattern, int maxPatternLength) {
+        return TransformerStringSplit.split(maxItemLength, null, pattern, maxPatternLength);
     }
 
     /**
