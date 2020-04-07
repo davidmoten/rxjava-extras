@@ -693,7 +693,7 @@ public final class Transformers {
     /**
      * Concatenates source stream items (strings) and splits on given pattern.
      * Emitted items are trimmed to {@code maxItemLength} characters (iff
-     * {@code maxItemLength} is > 0) and emitted immediately that limit is reached.
+     * {@code maxItemLength} is &gt; 0) and emitted immediately that limit is reached.
      * Characters following up to the next delimiter are ignored. This method exists
      * as protection against {@code OutOfMemoryError}s in the case that the input
      * stream is very long and has no delimiters present.
@@ -709,7 +709,7 @@ public final class Transformers {
      *            String)
      * @param maxPatternLength
      *            the maximum length of expected text matching the given pattern.
-     *            Must be > 0.
+     *            Must be &gt; 0.
      * @return a stream transformer that splits strings by delimiter pattern
      */
     public static Transformer<String, String> split(int maxItemLength, String pattern, int maxPatternLength) {
@@ -719,7 +719,7 @@ public final class Transformers {
     /**
      * Concatenates source stream items (strings) and splits on given pattern.
      * Emitted items are trimmed to {@code maxItemLength} characters (iff
-     * {@code maxItemLength} is > 0) and emitted immediately that limit is reached.
+     * {@code maxItemLength} is &gt; 0) and emitted immediately that limit is reached.
      * Characters following up to the next delimiter are ignored. This method exists
      * as protection against OutOfMemoryErrors in the case that the input stream is
      * very long and has no delimiters present.
@@ -732,7 +732,7 @@ public final class Transformers {
      *            pattern to split on
      * @param maxPatternLength
      *            the maximum length of expected text matching the given pattern.
-     *            Must be > 0.
+     *            Must be &gt; 0.
      * @return a stream transformer that splits strings by delimiter pattern
      */
     public static Transformer<String, String> split(int maxItemLength, Pattern pattern, int maxPatternLength) {
