@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 1994, 2013, Oracle and/or its affiliates. All rights reserved.
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- */
-
 package com.github.davidmoten.util;
 
 import java.io.IOException;
@@ -40,21 +15,18 @@ import java.util.Arrays;
  * class can be called after the stream has been closed without generating an
  * <tt>IOException</tt>.
  *
- * @author Arthur van Hoff
- * @since JDK1.0
  */
-
-public class ByteArrayOutputStreamNoCopyUnsynchronized extends OutputStream {
+public final class ByteArrayOutputStreamNoCopyUnsynchronized extends OutputStream {
 
     /**
      * The buffer where data is stored.
      */
-    protected byte buf[];
+    private byte buf[];
 
     /**
      * The number of valid bytes in the buffer.
      */
-    protected int count;
+    private int count;
 
     /**
      * Creates a new byte array output stream. The buffer capacity is initially
