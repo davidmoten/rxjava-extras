@@ -1,6 +1,5 @@
 package com.github.davidmoten.rx.internal.operators;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -92,7 +91,7 @@ public class OperatorSampleFirstTest {
 
         scheduler.advanceTimeTo(400, TimeUnit.MILLISECONDS);
         inOrder.verify(observer).onNext("one");
-        inOrder.verify(observer).onError(any(TestException.class));
+        inOrder.verify(observer).onError(Mockito.any(TestException.class));
         inOrder.verifyNoMoreInteractions();
     }
 
