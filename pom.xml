@@ -24,15 +24,11 @@
         <exec.version>3.0.0</exec.version>
         <slf4j.version>1.7.36</slf4j.version>
 
-        <cobertura.version>2.7</cobertura.version>
-        <checkstyle.version>3.1.2</checkstyle.version>
         <findbugs.version>2.5.4</findbugs.version>
         <javadoc.version>3.4.0</javadoc.version>
         <pmd.version>3.17.0</pmd.version>
         <jdepend.version>2.0</jdepend.version>
-        <javancss.version>2.1</javancss.version>
         <project.info.version>2.4</project.info.version>
-        <jxr.version>2.5</jxr.version>
         <taglist.version>3.0.0</taglist.version>
         <m3.site.version>3.12.0</m3.site.version>
         <changelog.version>2.2</changelog.version>
@@ -206,49 +202,12 @@
                 plugins when they run -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jxr-plugin</artifactId>
-                <version>${jxr.version}</version>
-                <configuration>
-                    <aggregate>true</aggregate>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>${cobertura.version}</version>
-                <configuration>
-                    <aggregate>false</aggregate>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${checkstyle.version}</version>
-                <configuration>
-                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
                 <version>${pmd.version}</version>
                 <configuration>
                     <targetJdk>${maven.compiler.target}</targetJdk>
                     <aggregate>true</aggregate>
                 </configuration>
-            </plugin>
-            <!-- <plugin> <groupId>org.codehaus.mojo</groupId> <artifactId>findbugs-maven-plugin</artifactId> 
-                <version>${findbugs.version}</version> <configuration> <xmlOutput>true</xmlOutput> 
-                <effort>Max</effort> </configuration> </plugin> -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>jdepend-maven-plugin</artifactId>
-                <version>${jdepend.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>javancss-maven-plugin</artifactId>
-                <version>${javancss.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -258,11 +217,6 @@
                     <dependencyDetailsEnabled>false</dependencyDetailsEnabled>
                     <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>taglist-maven-plugin</artifactId>
-                <version>${taglist.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
