@@ -2,6 +2,7 @@ package com.github.davidmoten.rx.buffertofile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 import com.github.davidmoten.util.Preconditions;
 
@@ -170,7 +171,7 @@ public final class Options {
 			@Override
 			public File call() {
 				try {
-					return File.createTempFile(DEFAULT_FILE_PREFIX, "");
+					return Files.createTempFile(DEFAULT_FILE_PREFIX, "").toFile();
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
