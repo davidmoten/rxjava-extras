@@ -5,3 +5,5 @@ on: [push, pull_request]
 jobs:
   build:
     uses: davidmoten/workflows/.github/workflows/ci.yml@master
+    with:
+        jdk-matrix: '["8"]'
